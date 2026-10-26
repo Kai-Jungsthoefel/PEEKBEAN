@@ -1,0 +1,2 @@
+# Samples must stay byte-identical: encodings, line endings and binary formats are what they test.
+samples/** -text

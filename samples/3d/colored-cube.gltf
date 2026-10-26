@@ -1,0 +1,117 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "generate-samples.mjs"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "Farbwuerfel"
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "COLOR_0": 2
+          },
+          "indices": 3,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.6
+      }
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 1032,
+      "uri": "data:application/octet-stream;base64,AAAgQQAAIMEAACDBAAAgQQAAIEEAACDBAAAgQQAAIEEAACBBAAAgQQAAIMEAACBBAAAgwQAAIMEAACDBAAAgwQAAIEEAACDBAAAgwQAAIEEAACBBAAAgwQAAIMEAACBBAAAgwQAAIEEAACDBAAAgQQAAIEEAACDBAAAgQQAAIEEAACBBAAAgwQAAIEEAACBBAAAgwQAAIMEAACDBAAAgQQAAIMEAACDBAAAgQQAAIMEAACBBAAAgwQAAIMEAACBBAAAgwQAAIMEAACBBAAAgQQAAIMEAACBBAAAgQQAAIEEAACBBAAAgwQAAIEEAACBBAAAgwQAAIMEAACDBAAAgQQAAIMEAACDBAAAgQQAAIEEAACDBAAAgwQAAIEEAACDBAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/MzNzP5qZGT+uR2E+AACAPzMzcz+amRk/rkdhPgAAgD8zM3M/mpkZP65HYT4AAIA/MzNzP5qZGT+uR2E+AACAP+xRuD5xPUo/zcwMPwAAgD/sUbg+cT1KP83MDD8AAIA/7FG4PnE9Sj/NzAw/AACAP+xRuD5xPUo/zcwMPwAAgD+amRk/ZmYmPwAAgD8AAIA/mpkZP2ZmJj8AAIA/AACAP5qZGT9mZiY/AACAPwAAgD+amRk/ZmYmPwAAgD8AAIA/w/VoP7geRT8pXI8+AACAP8P1aD+4HkU/KVyPPgAAgD/D9Wg/uB5FPylcjz4AAIA/w/VoP7geRT8pXI8+AACAP9ejcD9mZuY+rkfhPgAAgD/Xo3A/ZmbmPq5H4T4AAIA/16NwP2Zm5j6uR+E+AACAP9ejcD9mZuY+rkfhPgAAgD9mZmY/w/VoPx+Faz8AAIA/ZmZmP8P1aD8fhWs/AACAP2ZmZj/D9Wg/H4VrPwAAgD9mZmY/w/VoPx+Faz8AAIA/AAABAAIAAAACAAMABAAGAAUABAAHAAYACAAKAAkACAALAAoADAANAA4ADAAOAA8AEAARABIAEAASABMAFAAWABUAFAAXABYA"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 288,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 288,
+      "byteLength": 288,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 576,
+      "byteLength": 384,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 960,
+      "byteLength": 72,
+      "target": 34963
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3",
+      "min": [
+        -10,
+        -10,
+        -10
+      ],
+      "max": [
+        10,
+        10,
+        10
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5123,
+      "count": 36,
+      "type": "SCALAR"
+    }
+  ]
+}

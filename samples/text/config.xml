@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Beispielkonfiguration -->
+<konfiguration version="1.0">
+  <einheit>mm</einheit>
+  <bauteil id="zahnrad" werkstoff="C45">
+    <zaehne>18</zaehne>
+    <modul>1.5</modul>
+  </bauteil>
+  <bauteil id="flansch" werkstoff="S235JR">
+    <bohrungen anzahl="6" durchmesser="13" lochkreis="110"/>
+  </bauteil>
+</konfiguration>
