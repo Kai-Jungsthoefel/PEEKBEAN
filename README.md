@@ -7,9 +7,9 @@ View files of all kinds in the browser without uploading them. The site is purel
 | Viewer | Formats | Library |
 |---|---|---|
 | PDF | `.pdf` (search, show and hide layers, password-protected PDFs) | pdf.js |
-| Word | `.docx .docm .dotx` (pages laid out like Word: floating pictures, shapes, text boxes, form fields and check boxes, tables, headers and footers, footnotes, charts) | own layout engine |
+| Word | `.docx .docm .dotx` (pages laid out like Word: floating pictures, shapes, text boxes, form fields and check boxes, tables, headers and footers, footnotes, charts) | [ooxml-pages](https://github.com/Kai-Jungsthoefel/ooxml-pages) |
 | Spreadsheet | `.xlsx .xlsm .xlsb .xls .ods .numbers .csv .tsv`, xlsx with formatting | SheetJS, own style reader |
-| Presentation | `.pptx .pptm .ppsx .potx` (shapes, text, pictures, tables, charts, layouts and masters) | own renderer |
+| Presentation | `.pptx .pptm .ppsx .potx` (shapes, text, pictures, tables, charts, layouts and masters) | [ooxml-pages](https://github.com/Kai-Jungsthoefel/ooxml-pages) |
 | DXF / DWG | `.dxf` (text DXF), `.dwg` R12 to 2018+, model space and layouts, AutoCAD Architecture objects as geometry | dxf-viewer, acadrust (Rust → WebAssembly) |
 | CAD model | `.step .stp .iges .igs .brep` | OpenCascade (occt-import-js) |
 | 3D model | `.stl .obj .ply .glb .gltf .3mf` | three.js |

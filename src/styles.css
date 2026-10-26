@@ -497,9 +497,8 @@ dialog { color: var(--tx); }
 /* Paged documents: Word, PowerPoint */
 .paged-scroll { flex: 1; min-height: 0; overflow: auto; background: var(--bg); }
 .paged-pages { padding: 24px; }
-.slides { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.paged-pages.slides { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .slide-frame { margin: 0 0 16px; }
-.ev-slide { position: relative; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(27, 30, 35, .12), 0 0 0 1px rgba(27, 30, 35, .06); }
 .slide-frame figcaption { margin-top: 6px; font-size: 12px; color: var(--tx3); text-align: center; }
 
 /* Archive contents */
