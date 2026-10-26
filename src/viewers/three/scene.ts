@@ -6,6 +6,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { h, setPressed, toolButton } from '../../core/dom';
 import { icon } from '../../core/icons';
+import { onThemeChange, tokenColor } from '../../core/theme';
 import type { Viewer, ViewerContext } from '../../core/types';
 import { MeasureTool } from './measure';
 import { PartsTree, buildTree, type TreeNode } from './parts-tree';
@@ -162,7 +163,6 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
   /** World position → coordinates of the file (undoing centering and the up rotation). */
   const toFile = (world: THREE.Vector3) => model.worldToLocal(world.clone()).applyQuaternion(upright.clone().invert());
 
-  const styles = getComputedStyle(container);
   // Transparent canvas: the viewport gradient comes from CSS, as in SOMA.
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -187,8 +187,21 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
   camera.add(headlight);
   scene.add(camera);
 
-  const gridColors = [styles.getPropertyValue('--grid-major').trim() || '#aab2bc', styles.getPropertyValue('--grid-minor').trim() || '#d5d9df'];
+  const readGridColors = () => [tokenColor(container, '--grid-major'), tokenColor(container, '--grid-minor')];
+  let gridColors = readGridColors();
   let grid = new THREE.GridHelper(1, 20);
+
+  /** (Re)creates the floor grid below the model, in the current theme's colors. */
+  function buildGrid(): void {
+    const visible = grid.visible;
+    scene.remove(grid);
+    grid.dispose();
+    grid = new THREE.GridHelper(Math.max(size.x, size.y) * 2, 20, gridColors[0], gridColors[1]);
+    grid.rotation.x = Math.PI / 2;
+    grid.position.z = -size.z / 2;
+    grid.visible = visible;
+    scene.add(grid);
+  }
 
   /** Applies the up axis, centers the model at the origin and fits the floor grid. */
   function orient(): void {
@@ -204,14 +217,7 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
     model.position.copy(box.getCenter(new THREE.Vector3())).negate();
     model.updateMatrixWorld(true);
     box.translate(model.position);
-    const visible = grid.visible;
-    scene.remove(grid);
-    grid.dispose();
-    grid = new THREE.GridHelper(Math.max(size.x, size.y) * 2, 20, gridColors[0], gridColors[1]);
-    grid.rotation.x = Math.PI / 2;
-    grid.position.z = -size.z / 2;
-    grid.visible = visible;
-    scene.add(grid);
+    buildGrid();
   }
   orient();
 
@@ -236,6 +242,11 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
     });
   };
   controls.addEventListener('change', requestRender);
+  const stopThemeUpdates = onThemeChange(() => {
+    gridColors = readGridColors();
+    buildGrid();
+    requestRender();
+  });
 
   // ---- Camera moves ----------------------------------------------------------------------------------------------
   let animation = 0;
@@ -480,6 +491,7 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
 
   return {
     destroy: () => {
+      stopThemeUpdates();
       cancelAnimationFrame(frame);
       cancelAnimationFrame(animation);
       resizeObserver.disconnect();

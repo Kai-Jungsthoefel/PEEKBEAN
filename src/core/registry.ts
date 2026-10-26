@@ -47,6 +47,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'pdf',
     label: 'PDF document',
+    category: 'documents',
     icon: 'file',
     extensions: ['pdf'],
     // The spec allows junk before the header, readers accept it within the first KB.
@@ -56,6 +57,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'docx',
     label: 'Word document',
+    category: 'documents',
     icon: 'doc',
     extensions: ['docx', 'docm', 'dotx', 'dotm'],
     load: () => import('../viewers/docx'),
@@ -63,6 +65,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'spreadsheet',
     label: 'Spreadsheet',
+    category: 'documents',
     icon: 'table',
     extensions: ['xlsx', 'xlsm', 'xlsb', 'xls', 'xltx', 'ods', 'fods', 'numbers', 'csv', 'tsv'],
     load: () => import('../viewers/spreadsheet'),
@@ -70,6 +73,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'pptx',
     label: 'Presentation',
+    category: 'documents',
     icon: 'slides',
     extensions: ['pptx', 'pptm', 'ppsx', 'potx'],
     load: () => import('../viewers/pptx'),
@@ -77,6 +81,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'dxf',
     label: 'DXF drawing',
+    category: 'cad',
     icon: 'drawing',
     extensions: ['dxf'],
     sniff: (head) =>
@@ -86,6 +91,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'dwg',
     label: 'DWG drawing',
+    category: 'cad',
     icon: 'drawing',
     extensions: ['dwg'],
     sniff: (head) => /^AC(?:1\d{3}|[12]\.\d\d)/.test(latin1(head, 6)),
@@ -94,6 +100,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'step',
     label: 'CAD model (STEP, IGES)',
+    category: 'cad',
     icon: 'cad',
     extensions: ['step', 'stp', 'p21', 'iges', 'igs', 'brep', 'brp'],
     sniff: (head) =>
@@ -105,6 +112,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'model3d',
     label: '3D model',
+    category: 'cad',
     icon: 'cube',
     extensions: ['stl', 'obj', 'ply', 'glb', 'gltf', '3mf'],
     sniff: (head) => startsWith(head, 'glTF') || startsWith(head, 'ply\n') || startsWith(head, 'ply\r\n'),
@@ -113,6 +121,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'image',
     label: 'Image',
+    category: 'media',
     icon: 'image',
     extensions: [
       'png', 'apng', 'jpg', 'jpeg', 'jfif', 'pjpeg', 'gif', 'webp', 'avif', 'bmp', 'ico', 'cur', 'svg',
@@ -133,6 +142,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'media',
     label: 'Audio / Video',
+    category: 'media',
     icon: 'media',
     extensions: [
       'mp4', 'm4v', 'mov', 'webm', 'mkv', 'ogv', 'mp3', 'wav', 'ogg', 'oga', 'opus', 'flac', 'm4a', 'aac', 'weba',
@@ -153,6 +163,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'email',
     label: 'E-mail',
+    category: 'data',
     icon: 'mail',
     extensions: ['eml', 'msg'],
     sniff: (head) =>
@@ -163,6 +174,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'archive',
     label: 'Archive',
+    category: 'data',
     icon: 'archive',
     extensions: [
       'zip', '7z', 'rar', 'tar', 'gz', 'tgz', 'bz2', 'tbz2', 'xz', 'txz', 'zst', 'lz4', 'cab', 'iso', 'lzh', 'lha',
@@ -185,6 +197,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'font',
     label: 'Font',
+    category: 'media',
     icon: 'font',
     extensions: ['ttf', 'otf', 'woff', 'woff2', 'ttc'],
     // Plain TrueType starts with 00 01 00 00, too common in other binaries to rely on; the extension covers it.
@@ -194,6 +207,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'sqlite',
     label: 'SQLite database',
+    category: 'data',
     icon: 'database',
     extensions: ['sqlite', 'sqlite3', 'db', 'db3', 'gpkg', 'mbtiles'],
     sniff: (head) => startsWith(head, 'SQLite format 3\0'),
@@ -202,6 +216,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'markdown',
     label: 'Markdown',
+    category: 'documents',
     icon: 'markdown',
     extensions: ['md', 'markdown', 'mdown', 'mkd'],
     load: () => import('../viewers/markdown'),
@@ -209,6 +224,7 @@ export const viewers: ViewerDefinition[] = [
   {
     id: 'html',
     label: 'Web page (HTML)',
+    category: 'data',
     icon: 'globe',
     extensions: ['html', 'htm', 'xhtml', 'mht'],
     load: () => import('../viewers/html'),

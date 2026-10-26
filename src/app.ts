@@ -1,16 +1,37 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { formatBytes } from './core/bytes';
+import { extensionOf, formatBytes } from './core/bytes';
 import { h, setPressed } from './core/dom';
-import { icon } from './core/icons';
+import { icon, type IconName } from './core/icons';
 import { detectViewer, hexViewer, textViewer, viewers } from './core/registry';
+import { onThemeChange, setThemePreference, themePreference, type ThemePreference } from './core/theme';
 import type { Viewer, ViewerDefinition } from './core/types';
 import { InfoPanel } from './info-panel';
+import { startPage } from './start-page';
 
 interface OpenFile {
   id: number;
   file: File;
   /** Viewer chosen by the user; undefined means automatic detection. */
   chosenViewer?: string;
+  /** Kind of file once detected, e.g. "DWG drawing". */
+  kind?: string;
+}
+
+const THEMES: { value: ThemePreference; icon: IconName; label: string }[] = [
+  { value: 'system', icon: 'monitor', label: 'Follow system setting' },
+  { value: 'light', icon: 'sun', label: 'Light' },
+  { value: 'dark', icon: 'moon', label: 'Dark' },
+];
+
+/** 2D drawings bake the background into their WebGL scene, so they are drawn again when the theme changes. */
+const REDRAW_ON_THEME = new Set(['dxf', 'dwg']);
+
+const SOURCE_URL = __SOURCE_URL__ ? `${__SOURCE_URL__}/tree/${__GIT_COMMIT__}` : '';
+
+/** Icon for a tab, from the extension; the content check only happens when the file is shown. */
+function iconFor(file: File): IconName {
+  const ext = extensionOf(file.name);
+  return [...viewers, textViewer].find((v) => v.extensions.includes(ext))?.icon ?? 'file';
 }
 
 /** Card over the viewer while it loads: what is happening, a progress bar and the time so far. */
@@ -48,24 +69,38 @@ class LoadingScreen {
   }
 }
 
-const PLANNED_FORMATS ='older Office formats (DOC, PPT), IFC (BIM), EPUB and camera raw files';
-
 export class App {
   private files: OpenFile[] = [];
   private active: OpenFile | null = null;
   private viewer: Viewer | null = null;
+  /** Viewer id of the file on screen, once known. */
+  private shownViewerId: string | null = null;
   private mountToken = 0;
   private nextId = 1;
   /** The info panel stays open across files until it is closed. */
   private infoOpen = false;
   private readonly info = new InfoPanel(() => this.setInfo(false));
+  /** Dims the file behind the info panel where the panel is a bottom sheet (phones). */
+  private readonly infoBackdrop = h('div', { class: 'info-backdrop', onclick: () => this.setInfo(false) });
   private infoButton: HTMLButtonElement | null = null;
   private infoHost: HTMLElement | null = null;
 
   private readonly tabs = h('nav', { class: 'tabs', 'aria-label': 'Open files' });
+  /** Stands in for the tabs on phones: the current file, opening the list of all open files. */
+  private readonly switcher = h('button', { type: 'button', class: 'switcher', 'aria-haspopup': 'dialog', onclick: () => this.openFilesSheet() });
+  private readonly localButton = h(
+    'button',
+    { type: 'button', class: 'local-status', 'aria-haspopup': 'dialog', title: 'How your files stay on this device', onclick: () => this.explainLocal() },
+    h('span', { class: 'dot' }),
+    h('span', { class: 'ls-text' }, 'Local only'),
+  );
+  private readonly themeGroup = h('div', { class: 'theme-seg', role: 'radiogroup', 'aria-label': 'Color theme' });
+  private readonly themeCycle = h('button', { type: 'button', class: 'ibtn theme-cycle', onclick: () => this.cycleTheme() });
+  private readonly header = this.buildHeader();
   private readonly stage = h('main', { class: 'stage' });
   private readonly picker = h('input', { type: 'file', multiple: true, hidden: true });
-  private readonly openInHeader = this.openButton();
+  private readonly localDialog = this.buildLocalDialog();
+  private readonly filesDialog = h('dialog', { class: 'sheet files-sheet', 'aria-labelledby': 'files-title' });
   private readonly dropOverlay = h(
     'div',
     { class: 'drop-overlay', 'aria-hidden': 'true' },
@@ -73,10 +108,21 @@ export class App {
   );
 
   constructor(root: HTMLElement) {
-    root.append(this.header(), this.tabs, this.stage, this.footer(), this.dropOverlay, this.picker);
+    root.append(this.header, this.stage, this.dropOverlay, this.picker, this.localDialog, this.filesDialog);
     this.picker.addEventListener('change', () => {
       this.open([...(this.picker.files ?? [])]);
       this.picker.value = '';
+    });
+    for (const dialog of [this.localDialog, this.filesDialog]) {
+      // A click on the backdrop lands on the dialog element itself.
+      dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) dialog.close();
+      });
+    }
+    this.renderThemeControls();
+    onThemeChange(() => {
+      this.renderThemeControls();
+      if (this.shownViewerId && REDRAW_ON_THEME.has(this.shownViewerId)) this.render();
     });
     this.installDragAndDrop();
     this.render();
@@ -105,40 +151,181 @@ export class App {
   }
 
   private render(): void {
-    // The start page has its own open button.
-    this.openInHeader.hidden = !this.active;
     this.renderTabs();
     this.unmount();
     this.stage.replaceChildren();
     if (this.active) {
       void this.show(this.active);
     } else {
-      this.stage.append(this.startScreen());
+      if (this.filesDialog.open) this.filesDialog.close();
+      this.stage.append(startPage({ openFiles: () => this.picker.click(), explainLocal: () => this.explainLocal(), footer: this.footer() }));
     }
   }
 
+  // ---- Header ------------------------------------------------------------------------------------------------------
+
+  private buildHeader(): HTMLElement {
+    return h(
+      'header',
+      { class: 'top' },
+      h('span', { class: 'brand' }, h('span', { class: 'logo-tile' }, icon('logo', 18, 1.8)), h('b', { class: 'brand-name' }, 'Everything Viewer')),
+      this.tabs,
+      this.switcher,
+      h('span', { class: 'grow' }),
+      this.localButton,
+      this.themeGroup,
+      this.themeCycle,
+      SOURCE_URL && h('a', { class: 'btn source-link', href: SOURCE_URL, target: '_blank', rel: 'noopener noreferrer' }, icon('code', 16, 1.8), 'Source code'),
+    );
+  }
+
   private renderTabs(): void {
-    this.tabs.hidden = this.files.length === 0;
+    const count = this.files.length;
+    this.header.classList.toggle('has-files', count > 0);
+    this.tabs.hidden = count === 0;
+    this.switcher.hidden = count === 0;
     this.tabs.replaceChildren(
-      ...this.files.map((entry) =>
+      ...this.files.map((entry) => {
+        const on = entry === this.active;
+        return h(
+          'div',
+          { class: on ? 'tab on' : 'tab' },
+          h('button', { type: 'button', class: 't', title: entry.file.name, 'aria-current': on ? 'page' : undefined, onclick: () => this.activate(entry) }, icon(iconFor(entry.file), 15), h('span', {}, entry.file.name)),
+          h('button', { type: 'button', class: 'x', title: 'Close', 'aria-label': `Close ${entry.file.name}`, onclick: () => this.close(entry) }, icon('close', 13, 2.2)),
+        );
+      }),
+      h('button', { type: 'button', class: 'tab-add', title: 'Open files', 'aria-label': 'Open files', onclick: () => this.picker.click() }, icon('plus', 16, 2)),
+    );
+    if (this.active) {
+      const name = this.active.file.name;
+      this.switcher.setAttribute('aria-label', `${name}, ${count} open ${count === 1 ? 'file' : 'files'}. Switch file`);
+      this.switcher.replaceChildren(
+        icon(iconFor(this.active.file), 18),
+        h('span', { class: 'sw-name' }, name),
+        h('span', { class: 'count' }, String(count)),
+        icon('chevDown', 16, 2),
+      );
+    }
+    if (this.filesDialog.open) this.renderFilesSheet();
+  }
+
+  private renderThemeControls(): void {
+    const current = themePreference();
+    this.themeGroup.replaceChildren(
+      ...THEMES.map((t) =>
+        h('button', { type: 'button', role: 'radio', 'aria-checked': String(t.value === current), 'aria-label': t.label, title: t.label, onclick: () => setThemePreference(t.value) }, icon(t.icon, 15, 1.8)),
+      ),
+    );
+    const theme = THEMES.find((t) => t.value === current)!;
+    this.themeCycle.replaceChildren(icon(theme.icon, 20, 1.8));
+    this.themeCycle.setAttribute('aria-label', `Color theme: ${theme.label}. Change theme`);
+    this.themeCycle.title = `Color theme: ${theme.label}`;
+  }
+
+  private cycleTheme(): void {
+    const index = THEMES.findIndex((t) => t.value === themePreference());
+    setThemePreference(THEMES[(index + 1) % THEMES.length].value);
+  }
+
+  // ---- Dialogs -----------------------------------------------------------------------------------------------------
+
+  private buildLocalDialog(): HTMLDialogElement {
+    const fact = (num: string, title: string, text: string) => h('li', {}, h('span', { class: 'num' }, num), h('div', {}, h('b', {}, title), h('span', {}, text)));
+    const dialog = h(
+      'dialog',
+      { class: 'pop local-pop', 'aria-labelledby': 'local-title' },
+      h(
+        'div',
+        // Focus starts on the text, not on the close button, so opening shows no focus ring.
+        { class: 'dialog-body', tabindex: '-1', autofocus: true },
+        h('div', { class: 'dialog-hd' }, h('b', { id: 'local-title' }, 'Your files stay on this device'), h('span', { class: 'grow' }), h('button', { type: 'button', class: 'hb', 'aria-label': 'Close', onclick: () => dialog.close() }, icon('close', 14, 2.2))),
+        h(
+          'ol',
+          { class: 'local-facts' },
+          fact('01', 'No upload', 'Files are read and processed locally on your device.'),
+          fact('02', 'Protected by your browser', 'Your browser itself makes sure this page cannot send data to other websites.'),
+          fact('03', 'Open source', 'GPL-3.0. Anyone can check the code.'),
+        ),
+        SOURCE_URL && h('a', { class: 'link', href: SOURCE_URL, target: '_blank', rel: 'noopener noreferrer' }, 'View source code'),
+      ),
+    );
+    return dialog;
+  }
+
+  /** Opens the explanation below the header status (a bottom sheet on phones). */
+  private explainLocal(): void {
+    const anchor = this.localButton.getBoundingClientRect();
+    this.localDialog.style.setProperty('--pop-top', `${anchor.bottom + 6}px`);
+    this.localDialog.style.setProperty('--pop-right', `${Math.max(8, window.innerWidth - anchor.right)}px`);
+    this.localDialog.showModal();
+  }
+
+  private openFilesSheet(): void {
+    this.renderFilesSheet();
+    this.filesDialog.showModal();
+  }
+
+  private renderFilesSheet(): void {
+    const count = this.files.length;
+    this.filesDialog.replaceChildren(
+      h(
+        'div',
+        { class: 'dialog-body' },
+        h('div', { class: 'dialog-hd' }, h('b', { id: 'files-title' }, 'Open files'), h('span', { class: 'count' }, String(count)), h('span', { class: 'grow' }), h('button', { type: 'button', class: 'hb', 'aria-label': 'Close list', onclick: () => this.filesDialog.close() }, icon('close', 16, 2.2))),
+        h(
+          'ul',
+          { class: 'file-list' },
+          ...this.files.map((entry) => {
+            const on = entry === this.active;
+            return h(
+              'li',
+              { class: on ? 'on' : '' },
+              h(
+                'button',
+                {
+                  type: 'button',
+                  class: 'fl-main',
+                  'aria-current': on ? 'true' : undefined,
+                  onclick: () => {
+                    this.filesDialog.close();
+                    if (!on) this.activate(entry);
+                  },
+                },
+                h('span', { class: 'ico' }, icon(iconFor(entry.file), 20)),
+                h('span', { class: 'fl-txt' }, h('b', {}, entry.file.name), h('span', {}, [entry.kind, formatBytes(entry.file.size)].filter(Boolean).join(' · '))),
+              ),
+              h('button', { type: 'button', class: 'hb x', 'aria-label': `Close ${entry.file.name}`, onclick: () => this.close(entry) }, icon('close', 16, 2.2)),
+            );
+          }),
+        ),
         h(
           'div',
-          { class: entry === this.active ? 'tab on' : 'tab' },
-          h('button', { type: 'button', class: 't', title: entry.file.name, onclick: () => this.activate(entry) }, h('span', {}, entry.file.name)),
+          { class: 'dialog-ft' },
           h(
             'button',
-            { type: 'button', class: 'x', title: 'Close', 'aria-label': `Close ${entry.file.name}`, onclick: () => this.close(entry) },
-            icon('close', 14, 2),
+            {
+              type: 'button',
+              class: 'btn primary xl',
+              onclick: () => {
+                this.filesDialog.close();
+                this.picker.click();
+              },
+            },
+            icon('plus', 20, 2),
+            'Open more files',
           ),
         ),
       ),
     );
   }
 
+  // ---- File view ---------------------------------------------------------------------------------------------------
+
   private unmount(): void {
     this.mountToken++;
     this.viewer?.destroy();
     this.viewer = null;
+    this.shownViewerId = null;
   }
 
   private async show(entry: OpenFile): Promise<void> {
@@ -146,7 +333,13 @@ export class App {
     const tools = h('div', { class: 'viewer-tools' });
     const host = h('div', { class: 'viewer-host' });
     const body = h('div', { class: 'viewer-body' }, host);
-    const infoButton = h('button', { type: 'button', class: 'btn sm', title: 'Properties and metadata, e.g. when and where a photo was taken', onclick: () => this.setInfo(!this.infoOpen) }, icon('info', 14), 'Info');
+    const meta = h('span', { class: 'c3' }, formatBytes(entry.file.size));
+    const infoButton = h(
+      'button',
+      { type: 'button', class: 'btn sm info-btn', title: 'Properties and metadata, e.g. when and where a photo was taken', 'aria-label': 'Info', onclick: () => this.setInfo(!this.infoOpen) },
+      icon('info', 15),
+      h('span', { class: 'lbl' }, 'Info'),
+    );
     this.infoButton = infoButton;
     this.infoHost = body;
     const select = h('select', {
@@ -164,11 +357,11 @@ export class App {
         h(
           'div',
           { class: 'filebar' },
-          h('div', { class: 'fileinfo' }, h('b', { title: entry.file.name }, entry.file.name), h('span', { class: 'c3' }, formatBytes(entry.file.size))),
+          h('div', { class: 'fileinfo' }, h('b', { title: entry.file.name }, entry.file.name), meta),
           h('span', { class: 'vsep' }),
           tools,
+          h('label', { class: 'view-as' }, h('span', { class: 'c3' }, 'View as'), h('span', { class: 'select-wrap' }, select, icon('chevDown', 14, 2))),
           infoButton,
-          h('label', { class: 'view-as' }, h('span', { class: 'c3' }, 'View as'), select),
         ),
         body,
       ),
@@ -178,6 +371,9 @@ export class App {
     const detected = await detectViewer(entry.file);
     if (token !== this.mountToken) return;
     const definition = viewers.find((v) => v.id === entry.chosenViewer) ?? detected;
+    this.shownViewerId = definition.id;
+    entry.kind = detected.label;
+    meta.textContent = `${definition.label} · ${formatBytes(entry.file.size)}`;
     select.append(
       h('option', { value: '' }, `Automatic (${detected.label})`),
       ...viewers.map((v) => h('option', { value: v.id }, v.label)),
@@ -222,9 +418,10 @@ export class App {
     this.infoOpen = open;
     if (this.infoButton) setPressed(this.infoButton, open);
     if (open && this.active && this.infoHost) {
-      this.infoHost.append(this.info.element);
+      this.infoHost.append(this.infoBackdrop, this.info.element);
       void this.info.show(this.active.file);
     } else {
+      this.infoBackdrop.remove();
       this.info.element.remove();
     }
   }
@@ -259,80 +456,13 @@ export class App {
     );
   }
 
-  private openButton(): HTMLButtonElement {
-    return h('button', { type: 'button', class: 'btn primary', onclick: () => this.picker.click() }, icon('open', 15, 1.8), 'Open files');
-  }
-
-  private header(): HTMLElement {
-    return h(
-      'header',
-      { class: 'top' },
-      h('span', { class: 'logo' }, icon('logo', 22, 1.6)),
-      h('b', { class: 'brand' }, 'Everything Viewer'),
-      h('span', { class: 'local-pill', title: 'Files are read only in this browser.' }, icon('lock', 13, 2), 'Local · no upload'),
-      h('span', { class: 'grow' }),
-      this.openInHeader,
-    );
-  }
-
-  private startScreen(): HTMLElement {
-    const formats = [...viewers.filter((v) => v.extensions.length > 0 && v !== textViewer)];
-    const fact = (name: Parameters<typeof icon>[0], title: string, text: string) =>
-      h('div', { class: 'fact' }, h('span', { class: 'fact-ico' }, icon(name, 16, 1.8)), h('div', {}, h('b', {}, title), h('span', { class: 'c2' }, text)));
-
-    return h(
-      'section',
-      { class: 'start-body' },
-      h(
-        'div',
-        { class: 'start-grid' },
-        h(
-          'div',
-          {},
-          h('div', { class: 'start-head' }, h('h1', {}, 'View files'), h('span', { class: 'grow' }), this.openButton()),
-          h(
-            'button',
-            { type: 'button', class: 'dropcard', onclick: () => this.picker.click() },
-            h('span', { class: 'ico acc' }, icon('drop', 22, 1.8)),
-            h('b', {}, 'Drag files here'),
-            h('span', { class: 'c2' }, 'or click to choose them. Several files open as tabs.'),
-          ),
-          h('div', { class: 'start-bar' }, h('span', { class: 'cap' }, 'SUPPORTED FORMATS')),
-          h(
-            'div',
-            { class: 'format-grid' },
-            ...formats.map((v) =>
-              h('div', { class: 'fcard' }, h('span', { class: 'ico' }, icon(v.icon, 18)), h('b', {}, v.label), h('span', { class: 'ext' }, v.extensions.map((e) => `.${e}`).join(' '))),
-            ),
-            h('div', { class: 'fcard' }, h('span', { class: 'ico' }, icon(textViewer.icon, 18)), h('b', {}, textViewer.label), h('span', { class: 'ext' }, 'all text files, with syntax highlighting')),
-            h('div', { class: 'fcard' }, h('span', { class: 'ico' }, icon(hexViewer.icon, 18)), h('b', {}, 'Everything else'), h('span', { class: 'ext' }, 'as hex view')),
-          ),
-          h('p', { class: 'ehint' }, `Planned: ${PLANNED_FORMATS}.`),
-        ),
-        h(
-          'aside',
-          { class: 'start-side' },
-          h(
-            'div',
-            { class: 'panel-card' },
-            h('div', { class: 'ph' }, h('b', {}, 'Files stay on your computer')),
-            fact('lock', 'No upload', 'Files are read only in the browser. There is no server that could receive them.'),
-            fact('shield', 'Enforced by the browser', 'A Content Security Policy forbids the page any connection to other servers.'),
-            fact('code', 'Open Source', 'GPL-3.0. The source code is open for anyone to check.'),
-          ),
-        ),
-      ),
-    );
-  }
-
   private footer(): HTMLElement {
-    const source = __SOURCE_URL__ ? `${__SOURCE_URL__}/tree/${__GIT_COMMIT__}` : '';
     return h(
       'footer',
       { class: 'foot' },
       h('span', {}, `Version ${__APP_VERSION__} (${__GIT_COMMIT__})`),
       h('a', { href: 'https://www.gnu.org/licenses/gpl-3.0.html', target: '_blank', rel: 'noopener noreferrer' }, 'GPL-3.0-or-later'),
-      source && h('a', { href: source, target: '_blank', rel: 'noopener noreferrer' }, 'Source code'),
+      SOURCE_URL && h('a', { href: SOURCE_URL, target: '_blank', rel: 'noopener noreferrer' }, 'Source code'),
       h('a', { href: 'third-party-licenses.txt', target: '_blank' }, 'Third-party licenses'),
     );
   }

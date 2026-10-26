@@ -21,10 +21,15 @@ export interface ViewerModule {
   mount(ctx: ViewerContext): Promise<Viewer>;
 }
 
+/** Group on the start page's list of supported formats. */
+export type FormatCategory = 'documents' | 'cad' | 'media' | 'data';
+
 export interface ViewerDefinition {
   id: string;
   /** Human-readable kind of file, e.g. "PDF-Dokument". */
   label: string;
+  /** Where the format is listed on the start page; the text and hex fallbacks have none. */
+  category?: FormatCategory;
   icon: IconName;
   extensions: string[];
   /** Recognizes the format from the first bytes of the file. Only for unambiguous signatures. */

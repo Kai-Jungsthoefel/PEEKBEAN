@@ -24,6 +24,7 @@ export class InfoPanel {
         h('button', { type: 'button', class: 'hb', title: 'Close', 'aria-label': 'Close properties', onclick: () => this.onClose() }, icon('close', 13, 2)),
       ),
       body,
+      h('div', { class: 'ip-local' }, h('span', { class: 'dot' }), 'Read locally on your device. Nothing was uploaded.'),
     );
     let sections = this.cache.get(file);
     if (!sections) {

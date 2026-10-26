@@ -7,5 +7,7 @@ import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
 import './styles.css';
 import { App } from './app';
+import { initTheme } from './core/theme';
 
+initTheme();
 new App(document.querySelector<HTMLElement>('#app')!);

@@ -8,6 +8,7 @@ import fontCyrillicExt from '@fontsource/ibm-plex-sans-condensed/files/ibm-plex-
 import fontGreek from '@fontsource/ibm-plex-sans/files/ibm-plex-sans-greek-400-normal.woff?url';
 import fontCyrillic from '@fontsource/ibm-plex-sans/files/ibm-plex-sans-cyrillic-400-normal.woff?url';
 import { h, toolButton } from '../core/dom';
+import { tokenColor } from '../core/theme';
 import { createLayerPanel, type LayerPanel } from './layers';
 import { Measure2D, ShapeIndex, SnapIndex, type Point2, type Shape2 } from './measure2d';
 import type { Viewer, ViewerContext } from '../core/types';
@@ -64,7 +65,8 @@ export async function mountDrawing({ container, toolbar, progress }: ViewerConte
   container.append(host, status);
 
   const viewer = new DxfViewer(host, {
-    clearColor: new THREE.Color('#ffffff'),
+    // Light or dark paper as the theme says; color correction turns black and white entities to stay visible on it.
+    clearColor: new THREE.Color(tokenColor(container, '--drawing-bg')),
     autoResize: true,
     colorCorrection: true,
     fileEncoding: options.encoding,

@@ -36,6 +36,11 @@ const PATHS = {
   // From SOMA (github.com/Kai-Jungsthoefel/SOMA, GPL-3.0), for the 3D viewer controls.
   chevDown: '<path d="m6 9 6 6 6-6"/>',
   chevRight: '<path d="m9 6 6 6-6 6"/>',
+  chevUp: '<path d="m6 15 6-6 6 6"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/>',
+  monitor: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
   tree: '<rect x="3" y="3" width="7" height="5" rx="1"/><rect x="13" y="10.5" width="8" height="4.5" rx="1"/><rect x="13" y="17" width="8" height="4.5" rx="1"/><path d="M6.5 8v11.2H13M6.5 12.7H13"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
