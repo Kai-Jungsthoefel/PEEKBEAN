@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { formatBytes } from './core/bytes';
-import { h } from './core/dom';
+import { h, setPressed } from './core/dom';
 import { icon } from './core/icons';
 import { detectViewer, hexViewer, textViewer, viewers } from './core/registry';
 import type { Viewer, ViewerDefinition } from './core/types';
+import { InfoPanel } from './info-panel';
 
 interface OpenFile {
   id: number;
@@ -12,7 +13,42 @@ interface OpenFile {
   chosenViewer?: string;
 }
 
-const PLANNED_FORMATS = 'Word, Excel, PowerPoint, STEP/IGES, DXF, DWG, Archive, E-Mails und mehr';
+/** Card over the viewer while it loads: what is happening, a progress bar and the time so far. */
+class LoadingScreen {
+  private readonly text = h('span', { class: 'lc-text' }, 'Loading …');
+  private readonly bar = h('div', { class: 'lc-bar indet' }, h('div'));
+  private readonly time = h('span', { class: 'lc-time' });
+  private readonly started = performance.now();
+  private readonly timer: number;
+  readonly element: HTMLElement;
+
+  constructor(file: File, kind: string) {
+    this.element = h(
+      'div',
+      { class: 'loading', role: 'status', 'aria-live': 'polite' },
+      h('div', { class: 'loading-card' }, h('div', { class: 'lc-hd' }, h('span', { class: 'spinner' }), h('b', { title: file.name }, file.name)), h('div', { class: 'lc-sub' }, this.text, this.time), this.bar, h('div', { class: 'lc-kind' }, `${kind} · ${formatBytes(file.size)}`)),
+    );
+    // Seconds appear once loading takes noticeably long, so a slow file never looks stuck.
+    this.timer = window.setInterval(() => {
+      const seconds = Math.round((performance.now() - this.started) / 1000);
+      this.time.textContent = seconds >= 2 ? `${seconds} s` : '';
+    }, 500);
+  }
+
+  update(message: string, fraction?: number): void {
+    this.text.textContent = message;
+    const determinate = fraction !== undefined && Number.isFinite(fraction);
+    this.bar.classList.toggle('indet', !determinate);
+    (this.bar.firstChild as HTMLElement).style.width = determinate ? `${Math.round(Math.min(1, Math.max(0, fraction)) * 100)}%` : '';
+  }
+
+  close(): void {
+    window.clearInterval(this.timer);
+    this.element.remove();
+  }
+}
+
+const PLANNED_FORMATS ='older Office formats (DOC, PPT), IFC (BIM), EPUB and camera raw files';
 
 export class App {
   private files: OpenFile[] = [];
@@ -20,15 +56,20 @@ export class App {
   private viewer: Viewer | null = null;
   private mountToken = 0;
   private nextId = 1;
+  /** The info panel stays open across files until it is closed. */
+  private infoOpen = false;
+  private readonly info = new InfoPanel(() => this.setInfo(false));
+  private infoButton: HTMLButtonElement | null = null;
+  private infoHost: HTMLElement | null = null;
 
-  private readonly tabs = h('nav', { class: 'tabs', 'aria-label': 'Geöffnete Dateien' });
+  private readonly tabs = h('nav', { class: 'tabs', 'aria-label': 'Open files' });
   private readonly stage = h('main', { class: 'stage' });
   private readonly picker = h('input', { type: 'file', multiple: true, hidden: true });
   private readonly openInHeader = this.openButton();
   private readonly dropOverlay = h(
     'div',
     { class: 'drop-overlay', 'aria-hidden': 'true' },
-    h('div', { class: 'drop-card' }, icon('drop', 28, 1.6), h('b', {}, 'Zum Öffnen loslassen')),
+    h('div', { class: 'drop-card' }, icon('drop', 28, 1.6), h('b', {}, 'Drop to open')),
   );
 
   constructor(root: HTMLElement) {
@@ -86,7 +127,7 @@ export class App {
           h('button', { type: 'button', class: 't', title: entry.file.name, onclick: () => this.activate(entry) }, h('span', {}, entry.file.name)),
           h(
             'button',
-            { type: 'button', class: 'x', title: 'Schließen', 'aria-label': `${entry.file.name} schließen`, onclick: () => this.close(entry) },
+            { type: 'button', class: 'x', title: 'Close', 'aria-label': `Close ${entry.file.name}`, onclick: () => this.close(entry) },
             icon('close', 14, 2),
           ),
         ),
@@ -103,10 +144,14 @@ export class App {
   private async show(entry: OpenFile): Promise<void> {
     const token = this.mountToken;
     const tools = h('div', { class: 'viewer-tools' });
-    const host = h('div', { class: 'viewer-host' }, h('div', { class: 'status' }, h('span', { class: 'spinner' }), 'Wird geladen …'));
+    const host = h('div', { class: 'viewer-host' });
+    const body = h('div', { class: 'viewer-body' }, host);
+    const infoButton = h('button', { type: 'button', class: 'btn sm', title: 'Properties and metadata, e.g. when and where a photo was taken', onclick: () => this.setInfo(!this.infoOpen) }, icon('info', 14), 'Info');
+    this.infoButton = infoButton;
+    this.infoHost = body;
     const select = h('select', {
       class: 'select',
-      title: 'Anzeigen als',
+      title: 'View as',
       onchange: () => {
         entry.chosenViewer = select.value || undefined;
         this.render();
@@ -122,27 +167,42 @@ export class App {
           h('div', { class: 'fileinfo' }, h('b', { title: entry.file.name }, entry.file.name), h('span', { class: 'c3' }, formatBytes(entry.file.size))),
           h('span', { class: 'vsep' }),
           tools,
-          h('label', { class: 'view-as' }, h('span', { class: 'c3' }, 'Anzeigen als'), select),
+          infoButton,
+          h('label', { class: 'view-as' }, h('span', { class: 'c3' }, 'View as'), select),
         ),
-        host,
+        body,
       ),
     );
+    this.setInfo(this.infoOpen);
 
     const detected = await detectViewer(entry.file);
     if (token !== this.mountToken) return;
     const definition = viewers.find((v) => v.id === entry.chosenViewer) ?? detected;
     select.append(
-      h('option', { value: '' }, `Automatisch (${detected.label})`),
+      h('option', { value: '' }, `Automatic (${detected.label})`),
       ...viewers.map((v) => h('option', { value: v.id }, v.label)),
     );
     select.value = entry.chosenViewer ?? '';
 
     const container = h('div', { class: `viewer-root viewer-${definition.id}` });
+    const loading = new LoadingScreen(entry.file, definition.label);
+    host.replaceChildren(loading.element);
     try {
+      loading.update('Loading viewer …');
       const module = await definition.load();
       if (token !== this.mountToken) return;
-      host.replaceChildren(container);
-      const viewer = await module.mount({ file: entry.file, container, toolbar: tools });
+      // The viewer builds up underneath; the loading screen stays on top until it is done.
+      host.replaceChildren(container, loading.element);
+      loading.update('Reading file …');
+      const viewer = await module.mount({
+        file: entry.file,
+        container,
+        toolbar: tools,
+        openFile: (file) => this.open([file]),
+        progress: (message, fraction) => {
+          if (token === this.mountToken) loading.update(message, fraction);
+        },
+      });
       if (token !== this.mountToken) {
         viewer.destroy();
         return;
@@ -153,6 +213,19 @@ export class App {
       console.error(error);
       tools.replaceChildren();
       host.replaceChildren(this.errorBox(entry, definition, error));
+    } finally {
+      loading.close();
+    }
+  }
+
+  private setInfo(open: boolean): void {
+    this.infoOpen = open;
+    if (this.infoButton) setPressed(this.infoButton, open);
+    if (open && this.active && this.infoHost) {
+      this.infoHost.append(this.info.element);
+      void this.info.show(this.active.file);
+    } else {
+      this.info.element.remove();
     }
   }
 
@@ -165,7 +238,7 @@ export class App {
       h(
         'div',
         { class: 'error-card' },
-        h('div', { class: 'error-hd' }, icon('alert', 18, 1.8), h('b', {}, `Die Datei konnte nicht als „${failed.label}“ angezeigt werden.`)),
+        h('div', { class: 'error-hd' }, icon('alert', 18, 1.8), h('b', {}, `The file could not be shown as “${failed.label}”.`)),
         h('p', { class: 'c2' }, message),
         h(
           'div',
@@ -178,7 +251,7 @@ export class App {
                 this.render();
               } },
               icon(v.icon, 14),
-              `Als ${v.label} anzeigen`,
+              `Show as ${v.label}`,
             ),
           ),
         ),
@@ -187,7 +260,7 @@ export class App {
   }
 
   private openButton(): HTMLButtonElement {
-    return h('button', { type: 'button', class: 'btn primary', onclick: () => this.picker.click() }, icon('open', 15, 1.8), 'Dateien öffnen');
+    return h('button', { type: 'button', class: 'btn primary', onclick: () => this.picker.click() }, icon('open', 15, 1.8), 'Open files');
   }
 
   private header(): HTMLElement {
@@ -196,7 +269,7 @@ export class App {
       { class: 'top' },
       h('span', { class: 'logo' }, icon('logo', 22, 1.6)),
       h('b', { class: 'brand' }, 'Everything Viewer'),
-      h('span', { class: 'local-pill', title: 'Dateien werden ausschließlich in diesem Browser gelesen.' }, icon('lock', 13, 2), 'Lokal · kein Upload'),
+      h('span', { class: 'local-pill', title: 'Files are read only in this browser.' }, icon('lock', 13, 2), 'Local · no upload'),
       h('span', { class: 'grow' }),
       this.openInHeader,
     );
@@ -216,25 +289,25 @@ export class App {
         h(
           'div',
           {},
-          h('div', { class: 'start-head' }, h('h1', {}, 'Dateien ansehen'), h('span', { class: 'grow' }), this.openButton()),
+          h('div', { class: 'start-head' }, h('h1', {}, 'View files'), h('span', { class: 'grow' }), this.openButton()),
           h(
             'button',
             { type: 'button', class: 'dropcard', onclick: () => this.picker.click() },
             h('span', { class: 'ico acc' }, icon('drop', 22, 1.8)),
-            h('b', {}, 'Dateien hierher ziehen'),
-            h('span', { class: 'c2' }, 'oder klicken, um sie auszuwählen. Mehrere Dateien öffnen sich als Reiter.'),
+            h('b', {}, 'Drag files here'),
+            h('span', { class: 'c2' }, 'or click to choose them. Several files open as tabs.'),
           ),
-          h('div', { class: 'start-bar' }, h('span', { class: 'cap' }, 'UNTERSTÜTZTE FORMATE')),
+          h('div', { class: 'start-bar' }, h('span', { class: 'cap' }, 'SUPPORTED FORMATS')),
           h(
             'div',
             { class: 'format-grid' },
             ...formats.map((v) =>
               h('div', { class: 'fcard' }, h('span', { class: 'ico' }, icon(v.icon, 18)), h('b', {}, v.label), h('span', { class: 'ext' }, v.extensions.map((e) => `.${e}`).join(' '))),
             ),
-            h('div', { class: 'fcard' }, h('span', { class: 'ico' }, icon(textViewer.icon, 18)), h('b', {}, textViewer.label), h('span', { class: 'ext' }, 'alle Textdateien, mit Syntaxhervorhebung')),
-            h('div', { class: 'fcard' }, h('span', { class: 'ico' }, icon(hexViewer.icon, 18)), h('b', {}, 'Alles andere'), h('span', { class: 'ext' }, 'als Hex-Ansicht')),
+            h('div', { class: 'fcard' }, h('span', { class: 'ico' }, icon(textViewer.icon, 18)), h('b', {}, textViewer.label), h('span', { class: 'ext' }, 'all text files, with syntax highlighting')),
+            h('div', { class: 'fcard' }, h('span', { class: 'ico' }, icon(hexViewer.icon, 18)), h('b', {}, 'Everything else'), h('span', { class: 'ext' }, 'as hex view')),
           ),
-          h('p', { class: 'ehint' }, `Geplant: ${PLANNED_FORMATS}.`),
+          h('p', { class: 'ehint' }, `Planned: ${PLANNED_FORMATS}.`),
         ),
         h(
           'aside',
@@ -242,10 +315,10 @@ export class App {
           h(
             'div',
             { class: 'panel-card' },
-            h('div', { class: 'ph' }, h('b', {}, 'Dateien bleiben auf dem eigenen Rechner')),
-            fact('lock', 'Kein Upload', 'Dateien werden ausschließlich im Browser gelesen. Es gibt keinen Server, der sie empfangen könnte.'),
-            fact('shield', 'Technisch abgesichert', 'Eine Content Security Policy verbietet der Seite jede Verbindung zu fremden Servern.'),
-            fact('code', 'Open Source', 'GPL-3.0. Der Quellcode ist offen und überprüfbar.'),
+            h('div', { class: 'ph' }, h('b', {}, 'Files stay on your computer')),
+            fact('lock', 'No upload', 'Files are read only in the browser. There is no server that could receive them.'),
+            fact('shield', 'Enforced by the browser', 'A Content Security Policy forbids the page any connection to other servers.'),
+            fact('code', 'Open Source', 'GPL-3.0. The source code is open for anyone to check.'),
           ),
         ),
       ),
@@ -259,8 +332,8 @@ export class App {
       { class: 'foot' },
       h('span', {}, `Version ${__APP_VERSION__} (${__GIT_COMMIT__})`),
       h('a', { href: 'https://www.gnu.org/licenses/gpl-3.0.html', target: '_blank', rel: 'noopener noreferrer' }, 'GPL-3.0-or-later'),
-      source && h('a', { href: source, target: '_blank', rel: 'noopener noreferrer' }, 'Quellcode'),
-      h('a', { href: 'third-party-licenses.txt', target: '_blank' }, 'Drittanbieter-Lizenzen'),
+      source && h('a', { href: source, target: '_blank', rel: 'noopener noreferrer' }, 'Source code'),
+      h('a', { href: 'third-party-licenses.txt', target: '_blank' }, 'Third-party licenses'),
     );
   }
 

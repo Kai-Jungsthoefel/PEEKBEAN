@@ -10,7 +10,11 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "samples": "node scripts/generate-samples.mjs"
+    "samples": "node scripts/generate-samples.mjs && node scripts/generate-pptx-samples.mjs",
+    "build:dwg-wasm": "node scripts/build-dwg-wasm.mjs",
+    "test:dwg-wasm": "node scripts/test-dwg-wasm.mjs",
+    "build:libarchive-wasm": "node scripts/build-libarchive-wasm.mjs",
+    "test:libarchive-wasm": "node scripts/test-libarchive-wasm.mjs"
   },
   "dependencies": {
     "@codemirror/language": "^6.13.1",
@@ -19,9 +23,26 @@
     "@codemirror/view": "^6.43.15",
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@fontsource/ibm-plex-sans-condensed": "^5.3.0",
+    "@kenjiuno/msgreader": "^1.29.0",
+    "@zip.js/zip.js": "^2.24.0",
+    "ag-psd": "^33.0.0",
+    "buffer": "^6.0.3",
     "codemirror": "^6.0.2",
+    "docx-preview": "^0.4.1",
+    "dompurify": "^3.4.17",
+    "dxf-viewer": "^1.0.50",
+    "exifr": "^7.1.3",
+    "libheif-js": "^1.23.5",
+    "marked": "^18.1.1",
+    "occt-import-js": "^0.0.23",
+    "opentype.js": "^1.3.4",
     "pdfjs-dist": "^6.4.299",
-    "three": "^0.186.1"
+    "postal-mime": "^4.1.4",
+    "sql.js": "^1.15.1",
+    "three": "^0.186.1",
+    "utif2": "^4.1.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

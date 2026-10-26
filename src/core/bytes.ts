@@ -20,7 +20,7 @@ export function formatBytes(size: number): string {
     value /= 1024;
     unit++;
   } while (value >= 1024 && unit < units.length - 1);
-  return `${value.toLocaleString('de-DE', { maximumFractionDigits: value < 10 ? 1 : 0 })} ${units[unit]}`;
+  return `${value.toLocaleString('en-US', { maximumFractionDigits: value < 10 ? 1 : 0 })} ${units[unit]}`;
 }
 
 /** Heuristic: does this look like text rather than binary data? */

@@ -1,25 +1,25 @@
 {
-  "projekt": "Everything Viewer",
-  "beschreibung": "Beispieldaten für den JSON-Viewer",
+  "project": "Everything Viewer",
+  "description": "Sample data for the JSON viewer",
   "version": 1,
-  "bauteile": [
+  "parts": [
     {
-      "id": "zahnrad",
-      "datei": "3d/gear.stl",
-      "masse_g": 182.4,
-      "werkstoff": "C45"
+      "id": "gear",
+      "file": "3d/gear.stl",
+      "mass_g": 182.4,
+      "material": "C45"
     },
     {
-      "id": "flansch",
-      "datei": "cad/flange.dxf",
-      "masse_g": 2410,
-      "werkstoff": "S235JR"
+      "id": "flange",
+      "file": "cad/flange.dxf",
+      "mass_g": 2410,
+      "material": "S235JR"
     }
   ],
-  "optionen": {
-    "einheit": "mm",
-    "toleranz": 0.1,
-    "aktiv": true,
-    "notiz": null
+  "options": {
+    "unit": "mm",
+    "tolerance": 0.1,
+    "active": true,
+    "note": null
   }
 }

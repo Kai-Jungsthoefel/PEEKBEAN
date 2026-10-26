@@ -3,6 +3,8 @@ import * as pdfjsLib from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import 'pdfjs-dist/web/pdf_viewer.css';
 import { h, toolButton } from '../core/dom';
+import { createLayerPanel, type LayerEntry } from './layers';
+import { Measure2D } from './measure2d';
 import type { ViewerContext } from '../core/types';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -16,9 +18,9 @@ const { EventBus, FindState, LinkTarget, PDFFindController, PDFLinkService, PDFV
 const assetUrl = (dir: string) => new URL(`pdfjs/${dir}/`, document.baseURI).href;
 
 const ZOOM_PRESETS: [string, string][] = [
-  ['auto', 'Automatisch'],
-  ['page-width', 'Seitenbreite'],
-  ['page-fit', 'Ganze Seite'],
+  ['auto', 'Automatic'],
+  ['page-width', 'Page width'],
+  ['page-fit', 'Whole page'],
   ['0.5', '50 %'],
   ['1', '100 %'],
   ['1.5', '150 %'],
@@ -26,7 +28,7 @@ const ZOOM_PRESETS: [string, string][] = [
   ['4', '400 %'],
 ];
 
-export async function mount({ file, container, toolbar }: ViewerContext) {
+export async function mount({ file, container, toolbar, progress }: ViewerContext) {
   const loadingTask = pdfjsLib.getDocument({
     data: new Uint8Array(await file.arrayBuffer()),
     cMapUrl: assetUrl('cmaps'),
@@ -35,12 +37,13 @@ export async function mount({ file, container, toolbar }: ViewerContext) {
     wasmUrl: assetUrl('wasm'),
     iccUrl: assetUrl('iccs'),
   });
+  loadingTask.onProgress = ({ loaded, total }: { loaded: number; total: number }) => progress('Reading PDF …', total ? loaded / total : undefined);
   let passwordCancelled = false;
   loadingTask.onPassword = (update: (password: string) => void, reason: number) => {
     const password = window.prompt(
       reason === pdfjsLib.PasswordResponses.INCORRECT_PASSWORD
-        ? 'Falsches Passwort. Bitte erneut eingeben:'
-        : 'Diese PDF ist passwortgeschützt. Passwort:',
+        ? 'Wrong password. Please try again:'
+        : 'This PDF is password protected. Password:',
     );
     if (password === null) {
       passwordCancelled = true;
@@ -54,9 +57,9 @@ export async function mount({ file, container, toolbar }: ViewerContext) {
   try {
     pdf = await loadingTask.promise;
   } catch (error) {
-    if (passwordCancelled) throw new Error('Ohne Passwort kann die Datei nicht geöffnet werden.');
+    if (passwordCancelled) throw new Error('The file cannot be opened without a password.');
     if ((error as Error).name === 'InvalidPDFException') {
-      throw new Error('Die Datei ist keine gültige PDF oder sie ist beschädigt.');
+      throw new Error('The file is not a valid PDF, or it is damaged.');
     }
     throw error;
   }
@@ -81,7 +84,7 @@ export async function mount({ file, container, toolbar }: ViewerContext) {
     class: 'page-input',
     value: '1',
     inputMode: 'numeric',
-    title: 'Seite',
+    title: 'Page',
     onkeydown: (e: KeyboardEvent) => {
       if (e.key !== 'Enter') return;
       const page = Number(pageInput.value);
@@ -96,7 +99,7 @@ export async function mount({ file, container, toolbar }: ViewerContext) {
     h('option', { value: 'custom', hidden: true }),
   );
 
-  const findInput = h('input', { class: 'find-input', type: 'search', placeholder: 'Suchen …', title: 'Im Dokument suchen' });
+  const findInput = h('input', { class: 'find-input', type: 'search', placeholder: 'Search …', title: 'Search the document' });
   const findStatus = h('span', { class: 'meta' });
   const find = (type: '' | 'again', findPrevious = false) => {
     eventBus.dispatch('find', {
@@ -140,19 +143,110 @@ export async function mount({ file, container, toolbar }: ViewerContext) {
   toolbar.append(
     pageInput,
     h('span', { class: 'meta' }, `/ ${pdf.numPages}`),
-    toolButton('−', 'Verkleinern', () => pdfViewer.decreaseScale()),
+    toolButton('−', 'Zoom out', () => pdfViewer.decreaseScale()),
     zoomSelect,
-    toolButton('+', 'Vergrößern', () => pdfViewer.increaseScale()),
+    toolButton('+', 'Zoom in', () => pdfViewer.increaseScale()),
     findInput,
-    toolButton('↑', 'Vorheriger Treffer (Umschalt+Enter)', () => find('again', true)),
-    toolButton('↓', 'Nächster Treffer (Enter)', () => find('again')),
+    toolButton('↑', 'Previous match (Shift+Enter)', () => find('again', true)),
+    toolButton('↓', 'Next match (Enter)', () => find('again')),
     findStatus,
   );
 
+  const measure = pdfMeasure(pdfViewer, scroller, viewerEl);
+  container.append(h('div', { class: 'cards' }, measure.card));
+  for (const event of ['pagerendered', 'scalechanging', 'rotationchanging', 'updateviewarea']) eventBus.on(event, () => measure.update());
+  toolbar.append(measure.button);
+
+  // Layers (optional content): the viewer has its configuration once the pages are set up. Layers are switched on
+  // that configuration, which is then handed back to redraw the pages.
+  eventBus.on('pagesinit', async () => {
+    const optional = await pdfViewer.optionalContentConfigPromise;
+    const layers = optional
+      ? createLayerPanel(layerEntries(optional), {
+          isVisible: (id) => optional.getGroup(id)?.visible ?? true,
+          setVisible: (ids, visible) => {
+            for (const id of ids) optional.setVisibility(id, visible);
+            pdfViewer.optionalContentConfigPromise = Promise.resolve(optional);
+          },
+        })
+      : null;
+    if (!layers) return;
+    container.append(layers.panel);
+    measure.button.before(layers.button);
+  }, { once: true });
+
   return {
     destroy: () => {
+      measure.dispose();
       pdfViewer.cleanup();
       void loadingTask.destroy();
     },
   };
+}
+
+type OptionalContent = NonNullable<Awaited<ReturnType<pdfjsLib.PDFDocumentProxy['getOptionalContentConfig']>>>;
+
+/**
+ * Layers in the order the file gives for its layer panel. Entries of the order are layer ids or nested lists:
+ * a named list is a heading over its layers, an unnamed one holds the sub-layers of the layer before it.
+ */
+function layerEntries(config: OptionalContent): LayerEntry[] {
+  const entries: LayerEntry[] = [];
+  const seen = new Set<string>();
+  const walk = (order: unknown[], depth: number) => {
+    for (const item of order) {
+      if (typeof item === 'string') {
+        const group = config.getGroup(item);
+        if (!group || seen.has(item)) continue;
+        seen.add(item);
+        entries.push({ id: item, name: group.name || 'Unnamed layer', depth });
+      } else if (item && typeof item === 'object' && Array.isArray((item as { order?: unknown }).order)) {
+        const { name, order: inner } = item as { name: string | null; order: unknown[] };
+        if (name) entries.push({ name, depth });
+        walk(inner, depth + 1);
+      }
+    }
+  };
+  walk(config.getOrder() ?? [], 0);
+  return entries;
+}
+
+// PDF user space unit: 1/72 inch.
+const MM_PER_POINT = 25.4 / 72;
+const CSS_PX_PER_POINT = 96 / 72;
+const UNITS: [string, number][] = [['mm', 1], ['cm', 10], ['m', 1000], ['in', 25.4]];
+
+/** Measuring on PDF pages: lengths on paper, times the drawing scale the user enters (e.g. 1:50). */
+function pdfMeasure(pdfViewer: InstanceType<typeof PDFViewer>, scroller: HTMLElement, viewerEl: HTMLElement): Measure2D {
+  const scaleInput = h('input', { type: 'number', min: '0', step: 'any', value: '1', title: 'Drawing scale: 50 for 1:50, 1 for lengths on paper' });
+  const unitSelect = h('select', { title: 'Unit' }, ...UNITS.map(([unit]) => h('option', { value: unit }, unit)));
+  const settings = h('label', { class: 'mc-scale' }, h('span', {}, 'Scale 1 :'), scaleInput, unitSelect);
+  const factor = () => (Number(scaleInput.value) > 0 ? Number(scaleInput.value) : 1) / (UNITS.find(([u]) => u === unitSelect.value)?.[1] ?? 1);
+  const num = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return new Measure2D({
+    surface: scroller,
+    overlay: viewerEl,
+    toWorld: (clientX, clientY) => {
+      const page = (document.elementFromPoint(clientX, clientY) as HTMLElement | null)?.closest<HTMLElement>('.page');
+      const pageNumber = Number(page?.dataset.pageNumber);
+      const view = pageNumber ? pdfViewer.getPageView(pageNumber - 1) : null;
+      if (!page || !view) return null;
+      const rect = page.getBoundingClientRect();
+      const [x, y] = view.viewport.convertToPdfPoint(clientX - rect.left - page.clientLeft, clientY - rect.top - page.clientTop);
+      return { x, y, page: pageNumber };
+    },
+    toScreen: (p) => {
+      const view = p.page ? pdfViewer.getPageView(p.page - 1) : null;
+      if (!view?.div) return null;
+      const [vx, vy] = view.viewport.convertToViewportPoint(p.x, p.y);
+      const page = view.div.getBoundingClientRect();
+      const origin = viewerEl.getBoundingClientRect();
+      return { x: page.left - origin.left + view.div.clientLeft + vx, y: page.top - origin.top + view.div.clientTop + vy };
+    },
+    unitsPerPixel: () => 1 / (pdfViewer.currentScale * CSS_PX_PER_POINT),
+    convert: (length) => length * MM_PER_POINT * factor(),
+    unit: () => unitSelect.value,
+    settings,
+    describe: (p) => `Page ${p.page} · ${num(p.x * MM_PER_POINT)} / ${num(p.y * MM_PER_POINT)} mm from the sheet edge`,
+  });
 }

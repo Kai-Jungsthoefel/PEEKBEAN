@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120">
   <rect width="320" height="120" fill="#e9fbe9"/>
-  <text x="160" y="66" font-family="sans-serif" font-size="16" text-anchor="middle">Sicher: das Skript lief nicht</text>
-  <script>document.querySelector('rect').setAttribute('fill', 'red'); alert('Skript ausgeführt');</script>
+  <text x="160" y="66" font-family="sans-serif" font-size="16" text-anchor="middle">Safe: the script did not run</text>
+  <script>document.querySelector('rect').setAttribute('fill', 'red'); alert('Script ran');</script>
 </svg>

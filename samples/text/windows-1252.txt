@@ -1,1 +1,1 @@
-Text in Windows-1252: Grüße aus Köln, Maße 12 × 30 mm, Preis 12,50 €.
+Text in Windows-1252: café in Zürich, size 12 × 30 mm, ±0.1, price 12.50 €.

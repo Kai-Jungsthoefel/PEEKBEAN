@@ -1,5 +1,5 @@
-# Private Testdateien
+# Private test files
 
-Hier können echte Dateien zum lokalen Testen liegen, z. B. Zeichnungen oder Dokumente aus der Arbeit.
+Real files for local testing can go here, for example drawings or documents from work.
 
-Der Inhalt dieses Ordners wird **nie committet** (siehe `.gitignore`), nur diese README.
+The contents of this folder are **never committed** (see `.gitignore`), only this README.

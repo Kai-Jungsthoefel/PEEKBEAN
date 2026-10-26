@@ -1,0 +1,90 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [7 0 R 8 0 R 9 0 R 10 0 R 11 0 R] /D << /Order [7 0 R 8 0 R 9 0 R [(Annotations) 10 0 R 11 0 R]] /OFF [11 0 R] >> >> >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Title (Layer test) /Author (Everything Viewer) /Producer (generate-samples.mjs) >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R >> /Properties << /L0 7 0 R /L1 8 0 R /L2 9 0 R /L3 10 0 R /L4 11 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 1839 >>
+stream
+BT /F1 20 Tf 72 540 Td (Layer test \(PDF optional content\)) Tj ET
+BT /F1 11 Tf 72 518 Td (Each part of the drawing lies on its own layer. "Revision B" is switched off by default.) Tj ET
+/OC /L0 BDC
+0.11 0.12 0.14 RG 2.5 w
+221 180 400 240 re S
+466 300 m 466 324.8535 445.8535 345 421 345 c 396.1465 345 376 324.8535 376 300 c 376 275.1465 396.1465 255 421 255 c 445.8535 255 466 275.1465 466 300 c S
+283 230 m 283 236.6276 277.6276 242 271 242 c 264.3724 242 259 236.6276 259 230 c 259 223.3724 264.3724 218 271 218 c 277.6276 218 283 223.3724 283 230 c S
+583 230 m 583 236.6276 577.6276 242 571 242 c 564.3724 242 559 236.6276 559 230 c 559 223.3724 564.3724 218 571 218 c 577.6276 218 583 223.3724 583 230 c S
+583 370 m 583 376.6276 577.6276 382 571 382 c 564.3724 382 559 376.6276 559 370 c 559 363.3724 564.3724 358 571 358 c 577.6276 358 583 363.3724 583 370 c S
+283 370 m 283 376.6276 277.6276 382 271 382 c 264.3724 382 259 376.6276 259 370 c 259 363.3724 264.3724 358 271 358 c 277.6276 358 283 363.3724 283 370 c S
+EMC
+/OC /L1 BDC
+0.18 0.5 0.84 RG 0.8 w [12 4 2 4] 0 d
+201 300 m 641 300 l S
+421 160 m 421 440 l S
+[] 0 d
+EMC
+/OC /L2 BDC
+0.24 0.6 0.28 RG 0.8 w 0.24 0.6 0.28 rg
+221 140 m 621 140 l S 221 132 m 221 148 l S 621 132 m 621 148 l S
+BT /F1 11 Tf 409 144 Td (400) Tj ET
+661 180 m 661 420 l S 653 180 m 669 180 l S 653 420 m 669 420 l S
+BT /F1 11 Tf 667 296 Td (240) Tj ET
+EMC
+/OC /L3 BDC
+0.11 0.12 0.14 rg
+BT /F1 11 Tf 72 120 Td (Material: S235JR, thickness 12 mm) Tj ET
+BT /F1 11 Tf 72 104 Td (Holes: 4 x diameter 24, center bore diameter 90) Tj ET
+EMC
+/OC /L4 BDC
+0.85 0.27 0.24 RG 1.5 w 0.85 0.27 0.24 rg
+597 370 m 597 384.3598 585.3598 396 571 396 c 556.6402 396 545 384.3598 545 370 c 545 355.6402 556.6402 344 571 344 c 585.3598 344 597 355.6402 597 370 c S
+BT /F1 11 Tf 601 400 Td (Revision B: hole moved) Tj ET
+EMC
+endstream
+endobj
+7 0 obj
+<< /Type /OCG /Name (Outline) >>
+endobj
+8 0 obj
+<< /Type /OCG /Name (Center lines) >>
+endobj
+9 0 obj
+<< /Type /OCG /Name (Dimensions) >>
+endobj
+10 0 obj
+<< /Type /OCG /Name (Notes) >>
+endobj
+11 0 obj
+<< /Type /OCG /Name (Revision B) >>
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000015 00000 n 
+0000000204 00000 n 
+0000000261 00000 n 
+0000000358 00000 n 
+0000000460 00000 n 
+0000000656 00000 n 
+0000002547 00000 n 
+0000002595 00000 n 
+0000002648 00000 n 
+0000002699 00000 n 
+0000002746 00000 n 
+trailer
+<< /Size 12 /Root 1 0 R /Info 4 0 R >>
+startxref
+2798
+%%EOF

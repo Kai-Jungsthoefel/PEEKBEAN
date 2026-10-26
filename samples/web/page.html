@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sample page</title>
+<style>
+  body { font-family: Arial, sans-serif; color: #1b1e23; margin: 32px; max-width: 760px; }
+  h1 { border-bottom: 3px solid #f29a38; padding-bottom: 6px; }
+  table { border-collapse: collapse; } td, th { border: 1px solid #d3d8de; padding: 4px 10px; }
+  .warn { background: #fff4e8; padding: 10px 14px; border-radius: 8px; }
+</style>
+<link rel="stylesheet" href="https://cdn.example.com/external-stylesheet.css">
+</head>
+<body>
+<h1>Sample page</h1>
+<p>This HTML file is shown isolated: without scripts and without access to other servers.</p>
+<p class="warn" id="script-check">Script ran: no</p>
+<table><tr><th>Part</th><th>Quantity</th></tr><tr><td>Gear</td><td>1</td></tr><tr><td>Flange plate</td><td>2</td></tr></table>
+<p>External image (blocked): <img src="https://images.example.com/photo.jpg" alt="blocked" width="80" height="40"></p>
+<form action="https://example.com/send"><input name="q" value="Forms are not sent"><button>Send</button></form>
+<script>document.getElementById('script-check').textContent = 'Script ran: YES (error!)'; fetch('https://example.com/leak');</script>
+</body>
+</html>

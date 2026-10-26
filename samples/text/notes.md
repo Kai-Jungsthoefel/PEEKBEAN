@@ -1,17 +1,17 @@
-# Beispieldokument
+# Sample document
 
-Dieses Markdown-Dokument testet die **Syntaxhervorhebung** im Text-Viewer.
+This Markdown document tests the **formatting** in the Markdown viewer.
 
-## Liste
+## List
 
-- Zahnrad (`3d/gear.stl`)
-- Flanschplatte (`cad/flange.dxf`)
+- Gear (`3d/gear.stl`)
+- Flange plate (`cad/flange.dxf`)
 
-## Tabelle
+## Table
 
-| Teil | Werkstoff | Menge |
-|------|-----------|------:|
-| Zahnrad | C45 | 1 |
-| Flansch | S235JR | 2 |
+| Part | Material | Quantity |
+|------|----------|---------:|
+| Gear | C45 | 1 |
+| Flange | S235JR | 2 |
 
-> Zitat: Nichts verlässt den Rechner.
+> Quote: nothing leaves your computer.

@@ -1,6 +1,6 @@
-// Beispiel: Zahnradabmessungen berechnen
+// Example: gear dimensions
 export interface Gear {
-  module: number; // Modul in mm
+  module: number; // module in mm
   teeth: number;
 }
 
@@ -13,4 +13,4 @@ export function tipDiameter(gear: Gear): number {
 }
 
 const gear: Gear = { module: 1.5, teeth: 18 };
-console.log(`Teilkreis: ${pitchDiameter(gear)} mm, Kopfkreis: ${tipDiameter(gear)} mm`);
+console.log(`Pitch diameter: ${pitchDiameter(gear)} mm, tip diameter: ${tipDiameter(gear)} mm`);

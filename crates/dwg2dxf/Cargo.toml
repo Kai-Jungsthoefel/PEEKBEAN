@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# DWG -> DXF converter for Everything Viewer, compiled to WebAssembly with acadrust.
+# Build: node scripts/build-dwg-wasm.mjs (writes src/wasm/dwg2dxf/), test: node scripts/test-dwg-wasm.mjs
+# Sample DWGs (samples/cad/, CC0):
+#   cargo run --release --example dxf_to_dwg -- ../../samples/cad/flange.dxf ../../samples/cad/flange-r2018.dwg R2018
+#   cargo run --release --example arch_sample -- ../../samples/cad/arch-walls-r2018.dwg
+#   cargo run --release --example layout_sample -- ../../samples/cad/flange.dxf ../../samples/cad/flange-layout-r2018.dwg
+# Native conversion for development: cargo run --release --example dwg_to_dxf -- <in.dwg> [out.dxf] [--full] [--layouts]
+[package]
+name = "dwg2dxf"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Without default features: "parallel" only adds rayon, which acadrust uses on native targets only.
+acadrust = { version = "=0.6.7", default-features = false }
+# wasm-bindgen-cli must have exactly this version; scripts/build-dwg-wasm.mjs checks it.
+wasm-bindgen = "=0.2.129"
+js-sys = "=0.3.106"
+# Decodes 8-bit text in proxy graphics (already used by acadrust).
+encoding_rs = "0.8"
+
+[profile.release]
+# "z" gives a 15 % smaller module than "s" (3.4 MB, 1.1 MB gzipped).
+opt-level = "z"
+lto = true
+codegen-units = 1
+# The wasm32 standard library is built with panic = "abort" anyway; panics are turned into JS errors by the hook in lib.rs.
+panic = "abort"
+debug = false
+strip = true

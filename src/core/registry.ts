@@ -12,24 +12,32 @@ function containsAscii(head: Uint8Array, needle: string, within: number): boolea
   return false;
 }
 
+const latin1 = (head: Uint8Array, length = 512) => String.fromCharCode(...head.subarray(0, length));
+
+// ISO base media files (MP4, MOV, HEIC, AVIF) all start with an "ftyp" box; the brand tells them apart.
+const IMAGE_BRANDS = ['avif', 'avis', 'heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1'];
+function ftypBrand(head: Uint8Array): string | null {
+  return startsWith(head, 'ftyp', 4) ? latin1(head.subarray(8, 12)) : null;
+}
+
 export const textViewer: ViewerDefinition = {
   id: 'text',
-  label: 'Text / Quellcode',
+  label: 'Text / source code',
   icon: 'text',
   extensions: [
-    'txt', 'log', 'md', 'markdown', 'rst', 'json', 'jsonc', 'json5', 'xml', 'xsd', 'xsl', 'csv', 'tsv',
-    'ini', 'cfg', 'conf', 'properties', 'env', 'yaml', 'yml', 'toml', 'html', 'htm', 'css', 'scss', 'less',
-    'js', 'mjs', 'cjs', 'jsx', 'ts', 'mts', 'cts', 'tsx', 'vue', 'svelte', 'py', 'rb', 'php', 'pl', 'lua', 'r',
-    'java', 'kt', 'kts', 'scala', 'groovy', 'gradle', 'c', 'h', 'cpp', 'cc', 'cxx', 'hpp', 'hh', 'cs', 'fs',
-    'go', 'rs', 'swift', 'dart', 'sh', 'bash', 'zsh', 'fish', 'ps1', 'psm1', 'bat', 'cmd', 'sql', 'graphql',
-    'proto', 'tex', 'bib', 'diff', 'patch', 'dockerfile', 'makefile', 'cmake', 'tf', 'nc', 'gcode', 'ngc',
+    'txt', 'log', 'rst', 'json', 'jsonc', 'json5', 'geojson', 'xml', 'xsd', 'xsl', 'ini', 'cfg', 'conf', 'properties',
+    'env', 'yaml', 'yml', 'toml', 'css', 'scss', 'less', 'js', 'mjs', 'cjs', 'jsx', 'ts', 'mts', 'cts', 'tsx', 'vue',
+    'svelte', 'py', 'rb', 'php', 'pl', 'lua', 'r', 'java', 'kt', 'kts', 'scala', 'groovy', 'gradle', 'c', 'h', 'cpp',
+    'cc', 'cxx', 'hpp', 'hh', 'cs', 'fs', 'go', 'rs', 'swift', 'dart', 'sh', 'bash', 'zsh', 'fish', 'ps1', 'psm1',
+    'bat', 'cmd', 'sql', 'graphql', 'proto', 'tex', 'bib', 'diff', 'patch', 'dockerfile', 'makefile', 'cmake', 'tf',
+    'nc', 'gcode', 'ngc', 'srt', 'vtt',
   ],
   load: () => import('../viewers/text'),
 };
 
 export const hexViewer: ViewerDefinition = {
   id: 'hex',
-  label: 'Binärdaten (Hex)',
+  label: 'Binary data (hex)',
   icon: 'binary',
   extensions: [],
   load: () => import('../viewers/hex'),
@@ -38,7 +46,7 @@ export const hexViewer: ViewerDefinition = {
 export const viewers: ViewerDefinition[] = [
   {
     id: 'pdf',
-    label: 'PDF-Dokument',
+    label: 'PDF document',
     icon: 'file',
     extensions: ['pdf'],
     // The spec allows junk before the header, readers accept it within the first KB.
@@ -46,27 +54,164 @@ export const viewers: ViewerDefinition[] = [
     load: () => import('../viewers/pdf'),
   },
   {
+    id: 'docx',
+    label: 'Word document',
+    icon: 'doc',
+    extensions: ['docx', 'docm', 'dotx', 'dotm'],
+    load: () => import('../viewers/docx'),
+  },
+  {
+    id: 'spreadsheet',
+    label: 'Spreadsheet',
+    icon: 'table',
+    extensions: ['xlsx', 'xlsm', 'xlsb', 'xls', 'xltx', 'ods', 'fods', 'numbers', 'csv', 'tsv'],
+    load: () => import('../viewers/spreadsheet'),
+  },
+  {
+    id: 'pptx',
+    label: 'Presentation',
+    icon: 'slides',
+    extensions: ['pptx', 'pptm', 'ppsx', 'potx'],
+    load: () => import('../viewers/pptx'),
+  },
+  {
+    id: 'dxf',
+    label: 'DXF drawing',
+    icon: 'drawing',
+    extensions: ['dxf'],
+    sniff: (head) =>
+      startsWith(head, 'AutoCAD Binary DXF') || /^\s*(?:999\r?\n[^\n]*\n\s*)*0\r?\n\s*SECTION/.test(latin1(head)),
+    load: () => import('../viewers/dxf'),
+  },
+  {
+    id: 'dwg',
+    label: 'DWG drawing',
+    icon: 'drawing',
+    extensions: ['dwg'],
+    sniff: (head) => /^AC(?:1\d{3}|[12]\.\d\d)/.test(latin1(head, 6)),
+    load: () => import('../viewers/dwg'),
+  },
+  {
+    id: 'step',
+    label: 'CAD model (STEP, IGES)',
+    icon: 'cad',
+    extensions: ['step', 'stp', 'p21', 'iges', 'igs', 'brep', 'brp'],
+    sniff: (head) =>
+      startsWith(head, 'ISO-10303-21;') ||
+      startsWith(head, 'DBRep_DrawableShape') ||
+      /^.{72}S\s*0*1\r?\n/.test(latin1(head, 90)),
+    load: () => import('../viewers/step'),
+  },
+  {
+    id: 'model3d',
+    label: '3D model',
+    icon: 'cube',
+    extensions: ['stl', 'obj', 'ply', 'glb', 'gltf', '3mf'],
+    sniff: (head) => startsWith(head, 'glTF') || startsWith(head, 'ply\n') || startsWith(head, 'ply\r\n'),
+    load: () => import('../viewers/model3d'),
+  },
+  {
     id: 'image',
-    label: 'Bild',
+    label: 'Image',
     icon: 'image',
-    extensions: ['png', 'apng', 'jpg', 'jpeg', 'jfif', 'pjpeg', 'gif', 'webp', 'avif', 'bmp', 'ico', 'cur', 'svg'],
+    extensions: [
+      'png', 'apng', 'jpg', 'jpeg', 'jfif', 'pjpeg', 'gif', 'webp', 'avif', 'bmp', 'ico', 'cur', 'svg',
+      'tif', 'tiff', 'psd', 'heic', 'heif',
+    ],
     sniff: (head) =>
       startsWith(head, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) ||
       startsWith(head, [0xff, 0xd8, 0xff]) ||
       startsWith(head, 'GIF87a') ||
       startsWith(head, 'GIF89a') ||
       (startsWith(head, 'RIFF') && startsWith(head, 'WEBP', 8)) ||
-      startsWith(head, 'ftypavif', 4) ||
-      startsWith(head, 'ftypavis', 4),
+      startsWith(head, 'II*\0') ||
+      startsWith(head, 'MM\0*') ||
+      startsWith(head, '8BPS') ||
+      IMAGE_BRANDS.includes(ftypBrand(head) ?? ''),
     load: () => import('../viewers/image'),
   },
   {
-    id: 'model3d',
-    label: '3D-Modell',
-    icon: 'cube',
-    extensions: ['stl', 'obj', 'ply', 'glb', 'gltf', '3mf'],
-    sniff: (head) => startsWith(head, 'glTF') || startsWith(head, 'ply\n') || startsWith(head, 'ply\r\n'),
-    load: () => import('../viewers/model3d'),
+    id: 'media',
+    label: 'Audio / Video',
+    icon: 'media',
+    extensions: [
+      'mp4', 'm4v', 'mov', 'webm', 'mkv', 'ogv', 'mp3', 'wav', 'ogg', 'oga', 'opus', 'flac', 'm4a', 'aac', 'weba',
+    ],
+    sniff: (head) => {
+      const brand = ftypBrand(head);
+      return (
+        (brand !== null && !IMAGE_BRANDS.includes(brand)) ||
+        startsWith(head, [0x1a, 0x45, 0xdf, 0xa3]) ||
+        startsWith(head, 'OggS') ||
+        startsWith(head, 'fLaC') ||
+        startsWith(head, 'ID3') ||
+        (startsWith(head, 'RIFF') && startsWith(head, 'WAVE', 8))
+      );
+    },
+    load: () => import('../viewers/media'),
+  },
+  {
+    id: 'email',
+    label: 'E-mail',
+    icon: 'mail',
+    extensions: ['eml', 'msg'],
+    sniff: (head) =>
+      /^(?:Return-Path|Received|Delivered-To|Message-ID|MIME-Version|From|DKIM-Signature|X-[\w-]+)\s*:/i.test(latin1(head, 200)),
+    container: true,
+    load: () => import('../viewers/email'),
+  },
+  {
+    id: 'archive',
+    label: 'Archive',
+    icon: 'archive',
+    extensions: [
+      'zip', '7z', 'rar', 'tar', 'gz', 'tgz', 'bz2', 'tbz2', 'xz', 'txz', 'zst', 'lz4', 'cab', 'iso', 'lzh', 'lha',
+      'cpio', 'ar', 'deb', 'rpm', 'jar', 'war', 'apk', 'xpi', 'nupkg', 'whl',
+    ],
+    sniff: (head) =>
+      startsWith(head, 'PK\x03\x04') ||
+      startsWith(head, 'PK\x05\x06') ||
+      startsWith(head, [0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c]) ||
+      startsWith(head, 'Rar!\x1a\x07') ||
+      startsWith(head, [0x1f, 0x8b]) ||
+      startsWith(head, 'BZh') ||
+      startsWith(head, [0xfd, 0x37, 0x7a, 0x58, 0x5a, 0x00]) ||
+      startsWith(head, 'MSCF') ||
+      startsWith(head, 'ustar', 257),
+    // DOCX, XLSX, PPTX, 3MF, JAR … are ZIP files too.
+    container: true,
+    load: () => import('../viewers/archive'),
+  },
+  {
+    id: 'font',
+    label: 'Font',
+    icon: 'font',
+    extensions: ['ttf', 'otf', 'woff', 'woff2', 'ttc'],
+    // Plain TrueType starts with 00 01 00 00, too common in other binaries to rely on; the extension covers it.
+    sniff: (head) => startsWith(head, 'OTTO') || startsWith(head, 'wOFF') || startsWith(head, 'wOF2') || startsWith(head, 'ttcf'),
+    load: () => import('../viewers/font'),
+  },
+  {
+    id: 'sqlite',
+    label: 'SQLite database',
+    icon: 'database',
+    extensions: ['sqlite', 'sqlite3', 'db', 'db3', 'gpkg', 'mbtiles'],
+    sniff: (head) => startsWith(head, 'SQLite format 3\0'),
+    load: () => import('../viewers/sqlite'),
+  },
+  {
+    id: 'markdown',
+    label: 'Markdown',
+    icon: 'markdown',
+    extensions: ['md', 'markdown', 'mdown', 'mkd'],
+    load: () => import('../viewers/markdown'),
+  },
+  {
+    id: 'html',
+    label: 'Web page (HTML)',
+    icon: 'globe',
+    extensions: ['html', 'htm', 'xhtml', 'mht'],
+    load: () => import('../viewers/html'),
   },
   textViewer,
   hexViewer,
@@ -76,9 +221,8 @@ export const viewers: ViewerDefinition[] = [
 export async function detectViewer(file: File): Promise<ViewerDefinition> {
   const head = new Uint8Array(await file.slice(0, SNIFF_LENGTH).arrayBuffer());
   const ext = extensionOf(file.name) || file.name.toLowerCase();
-  return (
-    viewers.find((v) => v.sniff?.(head)) ??
-    viewers.find((v) => v.extensions.includes(ext)) ??
-    (looksLikeText(head) ? textViewer : hexViewer)
-  );
+  const bySignature = viewers.find((v) => v.sniff?.(head));
+  const byExtension = viewers.find((v) => v.extensions.includes(ext));
+  if (bySignature && !(bySignature.container && byExtension)) return bySignature;
+  return byExtension ?? bySignature ?? (looksLikeText(head) ? textViewer : hexViewer);
 }

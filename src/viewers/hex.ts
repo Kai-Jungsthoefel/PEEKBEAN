@@ -95,8 +95,8 @@ export async function mount({ file, container, toolbar }: ViewerContext) {
 
   const offsetInput = h('input', {
     class: 'offset-input',
-    placeholder: 'Offset, z. B. 0x1F40',
-    title: 'Zu Offset springen (dezimal oder mit 0x hexadezimal), Enter bestätigt',
+    placeholder: 'Offset, e.g. 0x1F40',
+    title: 'Jump to offset (decimal, or hexadecimal with 0x); Enter confirms',
     onkeydown: (e: KeyboardEvent) => {
       if (e.key !== 'Enter') return;
       const raw = offsetInput.value.trim();
