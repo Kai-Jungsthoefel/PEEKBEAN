@@ -488,8 +488,6 @@ dialog { color: var(--tx); }
 /* Paged documents: Word, PowerPoint */
 .paged-scroll { flex: 1; min-height: 0; overflow: auto; background: var(--bg); }
 .paged-pages { padding: 24px; }
-.docx-pages .docx-wrapper { background: transparent !important; padding: 0 !important; }
-.docx-pages .docx-wrapper > section.docx { box-shadow: 0 1px 3px rgba(27, 30, 35, .12), 0 0 0 1px rgba(27, 30, 35, .06) !important; margin: 0 auto 24px !important; }
 .slides { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .slide-frame { margin: 0 0 16px; }
 .ev-slide { position: relative; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(27, 30, 35, .12), 0 0 0 1px rgba(27, 30, 35, .06); }

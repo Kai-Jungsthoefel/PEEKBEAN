@@ -7,7 +7,7 @@ View files of all kinds in the browser without uploading them. The site is purel
 | Viewer | Formats | Library |
 |---|---|---|
 | PDF | `.pdf` (search, show and hide layers, password-protected PDFs) | pdf.js |
-| Word | `.docx .docm .dotx` | docx-preview |
+| Word | `.docx .docm .dotx` (pages laid out like Word: floating pictures, shapes, text boxes, form fields and check boxes, tables, headers and footers, footnotes, charts) | own layout engine |
 | Spreadsheet | `.xlsx .xlsm .xlsb .xls .ods .numbers .csv .tsv`, xlsx with formatting | SheetJS, own style reader |
 | Presentation | `.pptx .pptm .ppsx .potx` (shapes, text, pictures, tables, charts, layouts and masters) | own renderer |
 | DXF / DWG | `.dxf` (text DXF), `.dwg` R12 to 2018+, model space and layouts, AutoCAD Architecture objects as geometry | dxf-viewer, acadrust (Rust → WebAssembly) |
@@ -47,6 +47,7 @@ The WebAssembly modules in `src/wasm/` are checked in prebuilt, so `npm run buil
 - `src/core/registry.ts`: list of all viewers and the format detection
 - `src/viewers/*.ts`: one module per viewer, loaded only when a matching file is opened
 - `src/viewers/pptx/`: the PowerPoint renderer (package, inheritance from layout and master, colors, text, geometry, tables, charts)
+- `src/viewers/docx/`: the Word renderer (styles, numbering, line breaking, pagination, tables, floating objects, VML, equations); DrawingML shapes and charts go through the PowerPoint renderer
 - `src/workers/*.ts`: heavy work (CAD kernel, spreadsheets, DXF, image decoders) runs in web workers
 - `src/app.ts`: user interface (tabs, drag and drop, start page, loading screen)
 - `src/metadata/`, `src/info-panel.ts`: metadata for the info panel, one reader per format family, loaded only when the panel opens

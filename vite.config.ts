@@ -59,19 +59,23 @@ const CSP = [
 ].join('; ');
 
 /**
- * The CSP goes into the page as a meta tag, and into dist/_headers for hosts that read that file
+ * The CSP goes into the page as a meta tag, and into _headers in the output folder for hosts that read that file
  * (Netlify, Cloudflare Pages). Only an HTTP header also covers the web workers.
  */
 function contentSecurityPolicy(): Plugin {
+  let outDir = path.join(root, 'dist');
   return {
     name: 'everythingviewer:csp',
     apply: 'build',
+    configResolved(config) {
+      outDir = path.resolve(config.root, config.build.outDir);
+    },
     transformIndexHtml() {
       return [{ tag: 'meta', attrs: { 'http-equiv': 'Content-Security-Policy', content: CSP }, injectTo: 'head-prepend' }];
     },
     closeBundle() {
       const headers = [`/*`, `  Content-Security-Policy: ${CSP}`, '  X-Content-Type-Options: nosniff', '  Referrer-Policy: no-referrer', ''];
-      writeFileSync(path.join(root, 'dist/_headers'), headers.join('\n'));
+      writeFileSync(path.join(outDir, '_headers'), headers.join('\n'));
     },
   };
 }
@@ -127,9 +131,13 @@ function licenseCheck(): Plugin {
 }
 
 function licenseReport(): Plugin {
+  let outDir = path.join(root, 'dist');
   return {
     name: 'everythingviewer:license-report',
     apply: 'build',
+    configResolved(config) {
+      outDir = path.resolve(config.root, config.build.outDir);
+    },
     closeBundle() {
       const entries = [...dependencies.values()]
         .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
@@ -145,7 +153,7 @@ function licenseReport(): Plugin {
         const full = path.join(root, file);
         if (existsSync(full)) entries.push(`${title}\n\n${readFileSync(full, 'utf8').trim()}`);
       }
-      writeFileSync(path.join(root, 'dist/third-party-licenses.txt'), `${entries.join('\n\n---\n\n')}\n`);
+      writeFileSync(path.join(outDir, 'third-party-licenses.txt'), `${entries.join('\n\n---\n\n')}\n`);
     },
   };
 }

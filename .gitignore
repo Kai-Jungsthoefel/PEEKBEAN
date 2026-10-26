@@ -112,4 +112,9 @@ npm-debug.log*
 samples/private/*
 !samples/private/README.md
 
+# Office lock and temp files (they contain the user name), also inside the allowed folders above.
+**/~$*
+**/~*.tmp
+**/.~lock.*#
+
 TODO.md

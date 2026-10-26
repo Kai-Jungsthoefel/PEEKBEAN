@@ -2,7 +2,7 @@
 
 Test files for all viewers. Except for the exceptions below, all files are self-made and released under **CC0-1.0** (public domain).
 
-- Most are written by `scripts/generate-samples.mjs` (`npm run samples`) without third-party libraries; only the SQLite file is created with sql.js. `scripts/generate-pptx-samples.mjs` writes the two PowerPoint test decks `office/shapes.pptx` and `office/text-tables-charts.pptx`.
+- Most are written by `scripts/generate-samples.mjs` (`npm run samples`) without third-party libraries; only the SQLite file is created with sql.js. `scripts/generate-pptx-samples.mjs` writes the two PowerPoint test decks `office/shapes.pptx` and `office/text-tables-charts.pptx`, and `scripts/generate-docx-samples.mjs` the five Word test documents listed below (`text-layout.docx` to `vml-legacy.docx`).
 - `images/motif.jpg`, `motif.tif` and `motif.webp` were converted once from the generated `motif.bmp`/`motif.png` (JPEG and TIFF with Windows GDI+, WebP with the browser's canvas). `images/photo-exif.jpg` is `motif.jpg` with an EXIF block written by the generator. `media/clip.webm` is a self-drawn canvas animation, recorded with the browser's MediaRecorder.
 - `cad/flange-*.dwg` were written by acadrust's DWG writer from `cad/flange.dxf` (`crates/dwg2dxf/examples/dxf_to_dwg.rs`); `cad/arch-walls-r2018.dwg` and `cad/flange-layout-r2018.dwg` by the examples `arch_sample.rs` and `layout_sample.rs`.
 - `archives/example.tar.bz2` and `example.tar.xz` are written by `node scripts/test-libarchive-wasm.mjs --update-samples` (self-written texts).
@@ -16,6 +16,11 @@ Test files for all viewers. Except for the exceptions below, all files are self-
 | `pdf/document.pdf` | 3 pages, accented letters, vector graphics, link, landscape page, search for "shipyard" (3 matches) |
 | `pdf/layers.pdf` | layers (optional content): 5 layers, a group "Annotations", "Revision B" off by default |
 | `office/document.docx` | headings, character formatting, table, picture, page break, document properties |
+| `office/text-layout.docx` | line spacing modes, fonts, indents, alignment, tab stops with leaders, lists, borders and shading, footnotes, endnote, fields, table of contents, equations, two columns |
+| `office/sections-tables.docx` | table styles, merged cells, cell borders and shading, vertical text, nested and floating tables, repeated header rows, sections with first/odd/even headers, landscape page with border, three columns |
+| `office/floating-pictures.docx` | floating pictures with every wrap type and anchor, wrap distances, z-order, rotation, flips, cropping, pictures in header, footer and table cells |
+| `office/forms-shapes-charts.docx` | legacy form fields and check boxes, check box content controls, symbol fonts, shapes, text boxes (also linked), group, drawing canvas, charts |
+| `office/vml-legacy.docx` | VML pictures and shapes, VML text box, watermark, drop cap, text frame |
 | `office/parts.xlsx` | two sheets, number and date formats, formulas, merged cells, wrapped text, document properties |
 | `office/presentation.pptx` | three slides, background, shapes, picture, placeholders from layout and master, group |
 | `office/shapes.pptx` | 40 preset shapes, lines, arrowheads, connectors, gradient/pattern/picture fills, rotation, flips, nested groups, custom geometry, a hidden slide |

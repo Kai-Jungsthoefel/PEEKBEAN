@@ -49,8 +49,14 @@ function sniff(bytes: Uint8Array): { mime: string } | { unsupported: string } {
   return { unsupported: 'unknown' };
 }
 
+/** Source of pictures for the renderers (the Word viewer adds metafile support on top of MediaCache). */
+export interface MediaSource {
+  get(part: string): Promise<Media>;
+  revokeAll(): void;
+}
+
 /** Images of a package as blob: URLs, shared between slides and revoked together. */
-export class MediaCache {
+export class MediaCache implements MediaSource {
   private readonly cache = new Map<string, Promise<Media>>();
   private readonly urls: string[] = [];
 
@@ -91,7 +97,7 @@ export interface Env {
   pkg: Package;
   theme: Theme;
   colors: ColorContext;
-  media: MediaCache;
+  media: MediaSource;
   deck: DeckStyles;
   slideNumber: number;
   /** Image loads and other work the slide waits for before it counts as finished. */

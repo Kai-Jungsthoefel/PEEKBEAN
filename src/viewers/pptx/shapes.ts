@@ -36,6 +36,11 @@ export interface Tree {
   groupFill?: Fill;
   /** Hook for graphic frames (tables, charts, diagrams); implemented by the slide renderer. */
   graphicFrame?: (frame: Element, box: Box, tree: Tree) => Promise<HTMLElement | null>;
+  /**
+   * Text of shapes without a DrawingML text body (Word text boxes, wps:txbx): gets the text rectangle in the
+   * shape's coordinates and returns the positioned content.
+   */
+  text?: (sp: Element, rect: { x: number; y: number; w: number; h: number; rot: number }, box: Box, tree: Tree) => HTMLElement | null;
 }
 
 export interface Box {
@@ -195,7 +200,8 @@ function nonVisual(sp: Element): Element | null {
     const c = path(sp, nv, 'cNvPr');
     if (c) return c;
   }
-  return null;
+  // Word shapes keep it directly in the shape (wps:cNvPr).
+  return child(sp, 'cNvPr');
 }
 
 function inheritanceChain(sp: Element, tree: Tree): Element[] {
@@ -311,6 +317,14 @@ function renderSp(sp: Element, frame: Frame, tree: Tree, chain: Element[]): HTML
     if (fontRef) layers.push(fontRef);
     const rect = textRect(sp, box, geom, frame);
     const text = renderTextBox(txBody, layers, bodyProps(sp, chain), rect, { env, source: tree.source });
+    if (text) {
+      const turns = [rect.rot ? `rotate(${r2(rect.rot)}deg)` : '', box.flipV ? 'rotate(180deg)' : '', text.style.transform].filter(Boolean);
+      text.style.transform = turns.join(' ');
+      el.append(text);
+    }
+  } else if (tree.text) {
+    const rect = textRect(sp, box, geom, frame);
+    const text = tree.text(sp, rect, box, tree);
     if (text) {
       const turns = [rect.rot ? `rotate(${r2(rect.rot)}deg)` : '', box.flipV ? 'rotate(180deg)' : '', text.style.transform].filter(Boolean);
       text.style.transform = turns.join(' ');
@@ -436,10 +450,12 @@ export async function renderShape(el: Element, frame: Frame, tree: Tree): Promis
   switch (el.localName) {
     case 'sp':
     case 'cxnSp':
+    case 'wsp':
       return renderSp(el, frame, tree, chain);
     case 'pic':
       return renderPic(el, frame, tree, chain);
     case 'grpSp':
+    case 'wgp':
       return renderGroup(el, frame, tree);
     case 'graphicFrame':
       return renderFrame(el, frame, tree, chain);
@@ -451,7 +467,7 @@ export async function renderShape(el: Element, frame: Frame, tree: Tree): Promis
 /** Renders the children of an spTree or group into a container element. */
 export async function renderTree(treeEl: Element, container: HTMLElement, frame: Frame, tree: Tree): Promise<void> {
   for (const el of elements(treeEl)) {
-    if (!['sp', 'cxnSp', 'pic', 'grpSp', 'graphicFrame'].includes(el.localName)) continue;
+    if (!['sp', 'cxnSp', 'pic', 'grpSp', 'graphicFrame', 'wsp', 'wgp'].includes(el.localName)) continue;
     if (tree.env.budget.shapes-- <= 0) return;
     try {
       const out = await renderShape(el, frame, tree);

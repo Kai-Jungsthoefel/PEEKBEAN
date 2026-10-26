@@ -292,7 +292,7 @@ async function graphicFrame(el: Element, box: Box, tree: Tree, deck: Deck): Prom
     if (doc) renderChart(doc.documentElement, container, box, { ...env, theme, colors: { ...env.colors, theme } });
     return container;
   }
-  if (uri.endsWith('/diagram')) return diagram(data, box, tree, deck);
+  if (uri.endsWith('/diagram')) return renderDiagram(data, box, tree, deck.pkg);
   return null;
 }
 
@@ -317,13 +317,13 @@ function diagramText(model: Document, box: Box): HTMLElement {
   return el;
 }
 
-/** SmartArt: PowerPoint stores a pre-rendered drawing of the diagram, which is plain DrawingML shapes. */
-async function diagram(data: Element | null, box: Box, tree: Tree, deck: Deck): Promise<HTMLElement | null> {
+/** SmartArt: PowerPoint (and Word) store a pre-rendered drawing of the diagram, which is plain DrawingML shapes. */
+export async function renderDiagram(data: Element | null, box: Box, tree: Tree, pkg: Package): Promise<HTMLElement | null> {
   const ids = descendant(data, 'relIds');
   const rels = tree.source.rels;
   const dataRel = rels.get(relAttr(ids, 'dm') ?? '');
   let drawingPart: string | null = null;
-  const model = dataRel && !dataRel.external ? await deck.pkg.xml(dataRel.target) : null;
+  const model = dataRel && !dataRel.external ? await pkg.xml(dataRel.target) : null;
   if (model) {
     const ext = descendant(model?.documentElement, 'dataModelExt');
     const rel = rels.get(attr(ext, 'relId') ?? '');
@@ -333,7 +333,7 @@ async function diagram(data: Element | null, box: Box, tree: Tree, deck: Deck): 
     const drawings = [...rels.values()].filter((r) => r.type === 'diagramDrawing' && !r.external);
     if (drawings.length === 1) drawingPart = drawings[0].target;
   }
-  const doc = drawingPart ? await deck.pkg.xml(drawingPart) : null;
+  const doc = drawingPart ? await pkg.xml(drawingPart) : null;
   const spTree = descendant(doc?.documentElement, 'spTree');
   if (!drawingPart || !spTree) return model ? diagramText(model, box) : null;
   const container = framed(box, 'pptx-grp');
@@ -345,7 +345,7 @@ async function diagram(data: Element | null, box: Box, tree: Tree, deck: Deck): 
   const base: Layer[] = [{ list: tree.env.deck.defaultText }, ...(dark ? [{ run: { color: dark } }] : [])];
   await renderTree(spTree, container, frame, {
     ...tree,
-    source: { part: drawingPart, rels: await deck.pkg.rels(drawingPart) },
+    source: { part: drawingPart, rels: await pkg.rels(drawingPart) },
     inherit: undefined,
     layers: () => [...base],
     skipPlaceholders: false,
