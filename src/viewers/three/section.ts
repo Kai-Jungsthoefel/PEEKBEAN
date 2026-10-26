@@ -58,7 +58,7 @@ export class SectionTool {
   private readonly position = h('span', { class: 'v' });
 
   constructor(private readonly host: SectionHost) {
-    this.button = h('button', { type: 'button', class: 'btn sm', title: 'Section view', onclick: () => this.setActive(!this.active) }, icon('layers', 14), 'Section');
+    this.button = h('button', { type: 'button', class: 'btn sm pin', title: 'Section view', onclick: () => this.setActive(!this.active) }, icon('layers', 14), 'Section');
     setPressed(this.button, false);
     this.slider.addEventListener('input', () => {
       this.fraction = Number(this.slider.value) / STEPS;

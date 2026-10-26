@@ -121,6 +121,9 @@ svg.ic { display: block; flex-shrink: 0; }
 .viewer-tools .find-input.not-found { border-color: var(--err); background: var(--err-tint); }
 .viewer-tools .offset-input { width: 170px; font-family: var(--mono); }
 .viewer-tools .zoom-label { min-width: 52px; text-align: center; }
+/* The viewer's tools fold into a menu on phones (more-menu.ts); on wider screens these wrappers vanish from the layout. */
+.more-menu, .pinned-tools { display: contents; }
+.more-btn { display: none; }
 .view-as { display: flex; align-items: center; gap: 8px; font-size: 12.5px; flex-shrink: 0; }
 
 .viewer-body { flex: 1; min-height: 0; display: flex; position: relative; }
@@ -294,13 +297,19 @@ dialog { color: var(--tx); }
   .pop .dialog-body::before { content: ''; align-self: center; width: 36px; height: 4px; margin: -8px 0 0; border-radius: 2px; background: var(--line3); }
   .dialog-hd .hb { width: 44px; height: 44px; border-radius: 10px; }
 
-  /* The file gets the full width; its tools move to a scrollable bar at the bottom with finger-sized targets. */
-  .filebar { order: 2; flex-wrap: nowrap; gap: 6px; min-height: 60px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); overflow-x: auto; scrollbar-width: none; border-bottom: 0; border-top: 1px solid var(--line); }
-  .fileinfo, .filebar > .vsep, .view-as > .c3, .info-btn .lbl { display: none; }
-  /* Info comes first, so it is never scrolled out of reach. */
-  .info-btn { order: -1; }
-  .viewer-tools { flex: 0 0 auto; flex-wrap: nowrap; }
+  /* The file gets the full width; a bar at the bottom holds the pinned tools, Info and "⋯" with finger-sized
+     targets and never scrolls. Everything else opens from "⋯" as a panel above the bar. */
+  .filebar { order: 2; flex-wrap: nowrap; gap: 6px; min-height: 60px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); border-bottom: 0; border-top: 1px solid var(--line); }
+  .fileinfo, .filebar > .vsep, .info-btn .lbl { display: none; }
+  .pinned-tools { display: flex; flex: 1; min-width: 0; gap: 6px; overflow: hidden; }
+  .more-btn { display: flex; }
   .filebar .btn, .filebar .ibtn, .filebar select, .filebar input { height: 44px; min-width: 44px; justify-content: center; }
+  .more-menu { display: none; position: fixed; left: 8px; right: 8px; bottom: calc(68px + env(safe-area-inset-bottom)); z-index: 35; flex-direction: column; gap: 12px; max-height: calc(100dvh - 150px); overflow-y: auto; padding: 12px; border: 1px solid var(--line2); border-radius: 14px; background: var(--s1); box-shadow: var(--shadow); }
+  .more-menu.open { display: flex; }
+  .more-menu .viewer-tools { flex: none; gap: 6px; }
+  .more-menu .viewer-tools:empty { display: none; }
+  .more-menu .view-as { justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }
+  .more-menu .viewer-tools:empty + .view-as { padding-top: 0; border-top: 0; }
   .info-panel { position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 41; width: auto; max-height: 75vh; border: 0; border-top: 1px solid var(--line2); border-radius: 18px 18px 0 0; box-shadow: 0 -12px 40px rgba(0, 0, 0, .3); }
   .info-panel::before { content: ''; align-self: center; flex-shrink: 0; width: 36px; height: 4px; margin-top: 8px; border-radius: 2px; background: var(--line3); }
   .info-backdrop { display: block; position: fixed; inset: 0; z-index: 40; background: var(--scrim); }
@@ -574,3 +583,11 @@ dialog { color: var(--tx); }
 .sql-message { flex-shrink: 0; padding: 6px 12px; font-size: 12px; color: var(--tx2); border-bottom: 1px solid var(--line); }
 .sql-message:empty { display: none; }
 .sql-message.error { color: var(--err); background: var(--err-tint); }
+
+/* ---- Phone overrides for viewers (after the viewer rules, so they win) ------------------------------------------ */
+@media (max-width: 639px) {
+  /* Archive list: name, size and the two buttons; the date column does not fit. */
+  .tree-row { grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; min-height: 44px; padding: 0 8px 0 calc(10px + var(--depth, 0) * 14px); }
+  .tree-date, .tree-actions .lbl { display: none; }
+  .tree-actions .btn.sm, .tree-actions .ibtn.s { width: 40px; height: 40px; padding: 0; justify-content: center; }
+}

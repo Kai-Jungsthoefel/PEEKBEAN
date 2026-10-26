@@ -95,7 +95,7 @@ export class Measure2D {
     const title = host.snap
       ? 'Measure: snaps to points, lines and circles; two lines show their angle (Escape ends)'
       : 'Measure the distance between two points (Escape ends)';
-    this.button = h('button', { type: 'button', class: 'btn sm', title, onclick: () => this.setActive(!this.active) }, icon('ruler', 14), 'Measure');
+    this.button = h('button', { type: 'button', class: 'btn sm pin', title, onclick: () => this.setActive(!this.active) }, icon('ruler', 14), 'Measure');
     setPressed(this.button, false);
 
     const on = <K extends keyof HTMLElementEventMap>(target: HTMLElement | Window, type: K, fn: (e: HTMLElementEventMap[K]) => void, capture = false) => {

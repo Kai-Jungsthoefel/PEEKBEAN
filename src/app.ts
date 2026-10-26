@@ -6,6 +6,7 @@ import { detectViewer, hexViewer, textViewer, viewers } from './core/registry';
 import { onThemeChange, setThemePreference, themePreference, type ThemePreference } from './core/theme';
 import type { Viewer, ViewerDefinition } from './core/types';
 import { InfoPanel } from './info-panel';
+import { MoreMenu } from './more-menu';
 import { startPage } from './start-page';
 
 interface OpenFile {
@@ -84,6 +85,7 @@ export class App {
   private readonly infoBackdrop = h('div', { class: 'info-backdrop', onclick: () => this.setInfo(false) });
   private infoButton: HTMLButtonElement | null = null;
   private infoHost: HTMLElement | null = null;
+  private moreMenu: MoreMenu | null = null;
 
   private readonly tabs = h('nav', { class: 'tabs', 'aria-label': 'Open files' });
   /** Stands in for the tabs on phones: the current file, opening the list of all open files. */
@@ -325,6 +327,8 @@ export class App {
     this.mountToken++;
     this.viewer?.destroy();
     this.viewer = null;
+    this.moreMenu?.dispose();
+    this.moreMenu = null;
     this.shownViewerId = null;
   }
 
@@ -350,6 +354,11 @@ export class App {
         this.render();
       },
     });
+    const moreMenu = new MoreMenu(
+      tools,
+      h('label', { class: 'view-as' }, h('span', { class: 'c3' }, 'View as'), h('span', { class: 'select-wrap' }, select, icon('chevDown', 14, 2))),
+    );
+    this.moreMenu = moreMenu;
     this.stage.append(
       h(
         'div',
@@ -359,9 +368,10 @@ export class App {
           { class: 'filebar' },
           h('div', { class: 'fileinfo' }, h('b', { title: entry.file.name }, entry.file.name), meta),
           h('span', { class: 'vsep' }),
-          tools,
-          h('label', { class: 'view-as' }, h('span', { class: 'c3' }, 'View as'), h('span', { class: 'select-wrap' }, select, icon('chevDown', 14, 2))),
+          moreMenu.panel,
+          moreMenu.pinned,
           infoButton,
+          moreMenu.button,
         ),
         body,
       ),

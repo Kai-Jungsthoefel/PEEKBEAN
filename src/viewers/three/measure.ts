@@ -119,7 +119,7 @@ export class MeasureTool {
     this.hoverMarks.renderOrder = 999;
     host.scene.add(this.marks, this.hoverMarks);
     host.viewport.append(this.label, ...this.diameterLabels);
-    this.button = h('button', { type: 'button', class: 'btn sm', title: 'Measure distances: snaps to circle centers, corners and edges; two edges show their angle (Escape ends)', onclick: () => this.setActive(!this.active) }, icon('ruler', 14), 'Measure');
+    this.button = h('button', { type: 'button', class: 'btn sm pin', title: 'Measure distances: snaps to circle centers, corners and edges; two edges show their angle (Escape ends)', onclick: () => this.setActive(!this.active) }, icon('ruler', 14), 'Measure');
     setPressed(this.button, false);
 
     const on = <K extends keyof HTMLElementEventMap>(target: HTMLElement | Window, type: K, fn: (e: HTMLElementEventMap[K]) => void) => {

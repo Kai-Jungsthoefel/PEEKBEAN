@@ -240,7 +240,7 @@ export async function mount({ file, container, toolbar, openFile, progress }: Vi
 
   const fileRow = (entry: Entry, depth: number) => {
     const openButton: HTMLButtonElement = h('button', { type: 'button', class: 'btn sm', title: 'Open in a new tab', onclick: () =>
-      busy(openButton, async () => openFile(await extract(entry))) }, icon('external', 13), 'Open');
+      busy(openButton, async () => openFile(await extract(entry))) }, icon('external', 13), h('span', { class: 'lbl' }, 'Open'));
     const saveButton: HTMLButtonElement = h('button', { type: 'button', class: 'ibtn s', title: 'Save', 'aria-label': `Save ${entry.name}`, onclick: () =>
       busy(saveButton, async () => download(await extract(entry))) }, icon('download', 14));
     return h(
