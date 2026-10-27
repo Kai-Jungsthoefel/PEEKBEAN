@@ -28,7 +28,7 @@ Format detection checks the file signature first, then the extension, and finall
 
 **Info** in the file bar shows the metadata: for photos the camera, exposure, time taken and GPS location (EXIF, XMP, IPTC via exifr); for MP4/MOV videos the recording time, device and location; MP3/FLAC tags; document properties of PDF, Word, Excel, PowerPoint and OpenDocument files; author, organization and CAD system from the header of STEP files; version and dates of DXF/DWG drawings; plus font names, SQLite header data and the head of HTML pages.
 
-**Measure** works in 3D, DXF/DWG, PDF and images. In 3D and DXF/DWG it snaps to corners, end points and midpoints, edges or lines, and circles: two edges show their angle, parallel ones their distance, a single circle its diameter.
+**Measure** works in 3D, DXF/DWG, PDF and images. In 3D and DXF/DWG it snaps to corners, end points and midpoints, edges or lines, and circles: two edges show their angle, parallel ones their distance, a single circle its diameter. In PDFs and images the scale is set by hand (1:N, length per pixel) or calibrated: measure a distance of known length, enter its real length, and every further measurement uses that scale.
 
 ## Development
 

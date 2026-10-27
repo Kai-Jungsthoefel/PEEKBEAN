@@ -32,6 +32,8 @@ export interface Measure2DHost {
   unit(): string;
   /** Extra settings shown in the card, e.g. scale and unit. */
   settings?: HTMLElement;
+  /** Sets the scale so that a measured length (drawing units) shows as the real value the user knows it has. */
+  calibrate?: { units: string[]; apply(length: number, value: number, unit: string): void };
   /** Coordinates of a point as shown in the card. */
   describe?(p: Point2): string;
 }
@@ -87,6 +89,8 @@ export class Measure2D {
   private b: Point2 | null = null;
   private hover: Point2 | null = null;
   private down: { x: number; y: number } | null = null;
+  /** The card asks for the real length of the measured distance. */
+  private calibrating = false;
   private readonly cleanup: (() => void)[] = [];
 
   constructor(private readonly host: Measure2DHost) {
@@ -144,6 +148,7 @@ export class Measure2D {
 
   private clear(): void {
     this.a = this.b = this.hover = null;
+    this.calibrating = false;
     this.render();
     this.update();
   }
@@ -166,6 +171,7 @@ export class Measure2D {
       this.b = p;
     }
     this.hover = null;
+    this.calibrating = false;
     this.render();
     this.update();
   }
@@ -208,7 +214,9 @@ export class Measure2D {
     if (!this.a) {
       rows.push(h('div', { class: 'mc-hint' }, this.host.snap
         ? 'Click a point. End points, midpoints and circle centers snap, as do lines and circles; small circles also via their rim. Two lines show their angle.'
-        : 'Click the first point.'));
+        : this.host.calibrate
+          ? 'Click the first point. To take the scale from a known length, measure it and choose Calibrate.'
+          : 'Click the first point.'));
     } else if (!this.b) {
       if (this.a.radius !== undefined) rows.push(main(this.a.arc ? 'Radius' : 'Diameter', this.circle(this.a)));
       rows.push(h('div', { class: 'mc-row' }, h('span', {}, 'A'), h('span', { class: 'v' }, this.describe(this.a))));
@@ -216,17 +224,58 @@ export class Measure2D {
     } else {
       const dx = this.b.x - this.a.x;
       const dy = this.b.y - this.a.y;
+      const length = Math.hypot(dx, dy);
       const relation = edgeRelation(this.a, this.b);
       const centers = this.a.radius !== undefined && this.b.radius !== undefined;
       if (relation?.parallel) rows.push(main('Distance between the parallel lines', this.format(relation.distance)));
       else if (relation) rows.push(main('Angle between the lines', `${num(relation.angle)}°`));
-      rows.push(main(centers ? 'Center to center' : relation ? 'Distance between the points' : 'Distance', this.format(Math.hypot(dx, dy))));
+      rows.push(main(centers ? 'Center to center' : relation ? 'Distance between the points' : 'Distance', this.format(length)));
       rows.push(h('div', { class: 'mc-sub' }, `ΔX ${this.format(dx)} · ΔY ${this.format(dy)} · ${num(degrees(Math.atan2(dy, dx)), 1)}°`));
       rows.push(h('div', { class: 'mc-row' }, h('span', {}, 'A'), h('span', { class: 'v' }, this.describe(this.a))));
       rows.push(h('div', { class: 'mc-row' }, h('span', {}, 'B'), h('span', { class: 'v' }, this.describe(this.b))));
+      if (this.host.calibrate && length > 0) {
+        rows.push(this.calibrating
+          ? this.calibration(length, this.host.calibrate)
+          : h('button', { type: 'button', class: 'link mc-cal-open', title: 'Enter the real length of this distance to set the scale', onclick: () => {
+            this.calibrating = true;
+            this.render();
+          } }, 'Calibrate with this distance'));
+      }
     }
     if (this.host.settings) rows.push(this.host.settings);
     this.card.replaceChildren(head, h('div', { class: 'mc-body' }, ...rows));
+  }
+
+  /** Asks for the real length of the measured distance; the host turns it into its scale. */
+  private calibration(length: number, calibrate: NonNullable<Measure2DHost['calibrate']>): HTMLElement {
+    const input = h('input', { type: 'number', min: '0', step: 'any', placeholder: 'Length', 'aria-label': 'Real length of the measured distance' });
+    const unitSelect = h('select', { 'aria-label': 'Unit' }, ...calibrate.units.map((u) => h('option', { value: u }, u)));
+    if (calibrate.units.includes(this.host.unit())) unitSelect.value = this.host.unit();
+    const cancel = () => {
+      this.calibrating = false;
+      this.render();
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') cancel();
+    });
+    requestAnimationFrame(() => input.focus());
+    return h(
+      'form',
+      { class: 'mc-cal', onsubmit: (e: SubmitEvent) => {
+        e.preventDefault();
+        const value = Number(input.value);
+        if (!(value > 0)) {
+          input.focus();
+          return;
+        }
+        calibrate.apply(length, value, unitSelect.value);
+        this.calibrating = false;
+        this.render();
+        this.update();
+      } },
+      h('span', { class: 'mc-hint' }, 'The distance A–B is in reality:'),
+      h('div', { class: 'mc-scale' }, input, unitSelect, h('button', { type: 'submit', class: 'btn sm' }, 'Apply'), h('button', { type: 'button', class: 'link', onclick: cancel }, 'Cancel')),
+    );
   }
 
   /** Line or circle a point snapped to, highlighted under the marks. */

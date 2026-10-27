@@ -221,7 +221,8 @@ function pdfMeasure(pdfViewer: InstanceType<typeof PDFViewer>, scroller: HTMLEle
   const scaleInput = h('input', { type: 'number', min: '0', step: 'any', value: '1', title: 'Drawing scale: 50 for 1:50, 1 for lengths on paper' });
   const unitSelect = h('select', { title: 'Unit' }, ...UNITS.map(([unit]) => h('option', { value: unit }, unit)));
   const settings = h('label', { class: 'mc-scale' }, h('span', {}, 'Scale 1 :'), scaleInput, unitSelect);
-  const factor = () => (Number(scaleInput.value) > 0 ? Number(scaleInput.value) : 1) / (UNITS.find(([u]) => u === unitSelect.value)?.[1] ?? 1);
+  const mmPer = (unit: string) => UNITS.find(([u]) => u === unit)?.[1] ?? 1;
+  const factor = () => (Number(scaleInput.value) > 0 ? Number(scaleInput.value) : 1) / mmPer(unitSelect.value);
   const num = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   return new Measure2D({
     surface: scroller,
@@ -247,6 +248,14 @@ function pdfMeasure(pdfViewer: InstanceType<typeof PDFViewer>, scroller: HTMLEle
     convert: (length) => length * MM_PER_POINT * factor(),
     unit: () => unitSelect.value,
     settings,
+    // The known length over the length on paper gives the drawing scale, e.g. 2.5 m measured as 50 mm → 1:50.
+    calibrate: {
+      units: UNITS.map(([unit]) => unit),
+      apply: (length, value, unit) => {
+        scaleInput.value = String(Number(((value * mmPer(unit)) / (length * MM_PER_POINT)).toPrecision(8)));
+        unitSelect.value = unit;
+      },
+    },
     describe: (p) => `Page ${p.page} · ${num(p.x * MM_PER_POINT)} / ${num(p.y * MM_PER_POINT)} mm from the sheet edge`,
   });
 }

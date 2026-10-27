@@ -227,6 +227,13 @@ export async function mount({ file, container, toolbar, progress }: ViewerContex
     convert: (length) => length * factor(),
     unit: () => unitSelect.value,
     settings: h('label', { class: 'mc-scale' }, h('span', {}, '1 px ='), factorInput, unitSelect),
+    calibrate: {
+      units: ['mm', 'cm', 'm', 'in'],
+      apply: (length, value, unit) => {
+        factorInput.value = String(Number((value / length).toPrecision(8)));
+        unitSelect.value = unit;
+      },
+    },
     describe: (p) => `X ${p.x.toFixed(1)} · Y ${p.y.toFixed(1)} px`,
   });
   container.append(h('div', { class: 'cards' }, measure.card));

@@ -404,6 +404,11 @@ dialog { color: var(--tx); }
 .mc-pt { display: flex; gap: 8px; font-size: 12px; line-height: 1.45; }
 .mc-pt b { color: var(--tx3); font-weight: 600; }
 .mc-pt span { font-variant-numeric: tabular-nums; }
+/* Calibrating: the real length of the measured distance sets the scale. */
+.mc-cal-open { align-self: flex-start; }
+.mc-cal { display: flex; flex-direction: column; gap: 6px; padding: 8px 0 2px; border-top: 1px solid var(--line); }
+.mc-cal .mc-scale select { width: auto; }
+.mc-cal .mc-scale .btn { height: 26px; }
 /* Segmented choice as in SOMA, e.g. the section axis. */
 .seg { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--line2); border-radius: 7px; background: var(--s2); }
 .seg button { min-width: 34px; height: 24px; padding: 0 8px; border-radius: 5px; color: var(--tx2); font-weight: 500; }
