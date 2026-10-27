@@ -100,5 +100,5 @@ export async function mount(ctx: ViewerContext) {
   ctx.progress('Building view …');
   if (meshes.length === 0) throw new Error('The file contains no surfaces that can be displayed.');
   // OpenCascade delivers millimeters with Z up, like most CAD systems.
-  return mountScene(ctx, buildNode(root, meshes), { zUp: true, edges: true, unit: 'mm', title: root.name || ctx.file.name });
+  return mountScene(ctx, buildNode(root, meshes), { zUp: true, unit: 'mm', title: root.name || ctx.file.name });
 }

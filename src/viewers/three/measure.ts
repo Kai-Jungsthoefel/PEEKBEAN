@@ -1,18 +1,33 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Measuring on the mesh. Card and behavior follow SOMA's measure tool (GPL-3.0); SOMA measures exact CAD geometry in a
-// Python service, here we snap to what the triangles reveal: circle centers (holes, bores), corners and edges.
+// Python service, here we snap to what the triangles reveal: circle centers (holes, bores), corners and edges. Lines
+// (tool paths, curves) snap at their end points and along their length; viewers may add exact circles (G-code arcs).
 import * as THREE from 'three';
 import { h, setPressed } from '../../core/dom';
 import { icon } from '../../core/icons';
 import { meshFeatures } from './features';
+
+/** A circle known exactly, e.g. a G-code arc: center and rim in world coordinates, radius in file units. */
+export interface SnapCircle {
+  center: THREE.Vector3;
+  /** One point on the circle, to judge its size on screen. */
+  rim: THREE.Vector3;
+  radius: number;
+  /** A full circle (Ø) rather than an arc (R). */
+  closed: boolean;
+  /** Points along the circle or arc, for the highlight; only asked for once it is a candidate. */
+  outline(): THREE.Vector3[];
+}
 
 export interface MeasureHost {
   camera(): THREE.Camera;
   canvas: HTMLCanvasElement;
   viewport: HTMLElement;
   scene: THREE.Scene;
-  /** Visible meshes and point clouds that can be picked. */
+  /** Visible meshes, point clouds and lines that can be picked. */
   pickables(): THREE.Object3D[];
+  /** Extra circles to snap to, in addition to those found in meshes. */
+  circles?(): SnapCircle[];
   /** World position → coordinates of the file. */
   toFile(world: THREE.Vector3): THREE.Vector3;
   /** Characteristic model size, for picking point clouds. */
@@ -21,7 +36,7 @@ export interface MeasureHost {
   requestRender(): void;
 }
 
-type Kind = 'center' | 'corner' | 'edge' | 'surface' | 'point';
+type Kind = 'center' | 'corner' | 'edge' | 'surface' | 'point' | 'end' | 'line';
 
 interface Pick {
   point: THREE.Vector3;
@@ -66,7 +81,9 @@ function edgeRelation(a: [THREE.Vector3, THREE.Vector3], pa: THREE.Vector3, b: [
   return { parallel: false, angle: THREE.MathUtils.radToDeg(ra.angleTo(rb)) };
 }
 
-const KIND_LABEL: Record<Kind, string> = { center: 'Circle center', corner: 'Corner', edge: 'Edge', surface: 'Surface', point: 'Point' };
+const KIND_LABEL: Record<Kind, string> = { center: 'Circle center', corner: 'Corner', edge: 'Edge', surface: 'Surface', point: 'Point', end: 'End point', line: 'Line' };
+/** Picks along a straight piece: two of them give an angle, or a distance when parallel. */
+const isStraight = (p: Pick | null): p is Pick => (p?.kind === 'edge' || p?.kind === 'line') && p.outline?.length === 2;
 const CORNER_PX = 12;
 const CIRCLE_PX = 9;
 const CENTER_PX = 14;
@@ -119,7 +136,7 @@ export class MeasureTool {
     this.hoverMarks.renderOrder = 999;
     host.scene.add(this.marks, this.hoverMarks);
     host.viewport.append(this.label, ...this.diameterLabels);
-    this.button = h('button', { type: 'button', class: 'btn sm pin', title: 'Measure distances: snaps to circle centers, corners and edges; two edges show their angle (Escape ends)', onclick: () => this.setActive(!this.active) }, icon('ruler', 14), 'Measure');
+    this.button = h('button', { type: 'button', class: 'btn sm pin', title: 'Measure distances: snaps to circle centers, corners, edges and lines; two edges show their angle (Escape ends)', onclick: () => this.setActive(!this.active) }, icon('ruler', 14), 'Measure');
     setPressed(this.button, false);
 
     const on = <K extends keyof HTMLElementEventMap>(target: HTMLElement | Window, type: K, fn: (e: HTMLElementEventMap[K]) => void) => {
@@ -176,7 +193,9 @@ export class MeasureTool {
     const ndc = new THREE.Vector2((cursor.x / rect.width) * 2 - 1, -(cursor.y / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(ndc, camera);
     this.raycaster.params.Points.threshold = this.host.size() * 0.004;
-    const pickables = this.host.pickables();
+    const all = this.host.pickables();
+    const pickables = all.filter((o) => o instanceof THREE.Mesh || o instanceof THREE.Points);
+    const lines = all.filter((o): o is THREE.Line => o instanceof THREE.Line);
     const hit = this.raycaster.intersectObjects(pickables, false)[0];
     if (hit?.object instanceof THREE.Points && hit.index !== undefined) {
       const position = (hit.object.geometry as THREE.BufferGeometry).getAttribute('position');
@@ -208,7 +227,52 @@ export class MeasureTool {
         }
       }
     }
+    for (const circle of this.host.circles?.() ?? []) {
+      const centerScreen = screen(circle.center);
+      const centerPx = centerScreen.distanceTo(cursor);
+      // Near the center, or near the rim: judged by the radius on screen first, then along the drawn arc.
+      let px = centerPx <= CENTER_PX ? centerPx : Infinity;
+      let outline: THREE.Vector3[] | null = null;
+      if (px === Infinity && Math.abs(centerPx - screen(circle.rim).distanceTo(centerScreen)) <= CIRCLE_PX) {
+        outline = circle.outline();
+        for (const p of outline) {
+          const d = screen(p).distanceTo(cursor);
+          if (d <= CIRCLE_PX && d < px) px = d;
+        }
+      }
+      if (px === Infinity) continue;
+      const score = px + (circle.closed ? 0 : 8) + (3 * circle.center.distanceTo(camera.position)) / this.host.size();
+      if (score < (best?.score ?? Infinity)) {
+        best = { score, pick: { kind: 'center', point: circle.center.clone(), radius: circle.radius, arc: !circle.closed, outline: outline ?? circle.outline() } };
+      }
+    }
     if (best) return best.pick;
+
+    // Lines: an end point near the cursor, else the closest point on the line. Lines behind a surface do not count.
+    if (lines.length) {
+      const fov = camera instanceof THREE.PerspectiveCamera ? camera.fov : 40;
+      const pixel = (2 * camera.position.length() * Math.tan(THREE.MathUtils.degToRad(fov) / 2)) / rect.height;
+      this.raycaster.params.Line.threshold = EDGE_PX * pixel;
+      let found: { pick: Pick; px: number } | null = null;
+      for (const lineHit of this.raycaster.intersectObjects(lines, false).slice(0, 24)) {
+        if (lineHit.index === undefined || (hit && lineHit.distance > hit.distance + this.host.size() * 0.01)) continue;
+        const line = lineHit.object as THREE.Line;
+        const position = (line.geometry as THREE.BufferGeometry).getAttribute('position');
+        const a = new THREE.Vector3().fromBufferAttribute(position, lineHit.index).applyMatrix4(line.matrixWorld);
+        const b = new THREE.Vector3().fromBufferAttribute(position, lineHit.index + 1).applyMatrix4(line.matrixWorld);
+        // End points win over any point along a line, hence the offset in the comparison.
+        for (const end of [a, b]) {
+          const px = screen(end).distanceTo(cursor);
+          if (px <= CORNER_PX && px - CORNER_PX < (found?.px ?? Infinity)) found = { pick: { kind: 'end', point: end, outline: [a, b] }, px: px - CORNER_PX };
+        }
+        const sa = screen(a);
+        const ab = screen(b).sub(sa);
+        const t = THREE.MathUtils.clamp(ab.lengthSq() ? cursor.clone().sub(sa).dot(ab) / ab.lengthSq() : 0, 0, 1);
+        const px = sa.addScaledVector(ab, t).distanceTo(cursor);
+        if (px <= EDGE_PX && px < (found?.px ?? Infinity)) found = { pick: { kind: 'line', point: a.clone().lerp(b, t), outline: [a, b] }, px };
+      }
+      if (found) return found.pick;
+    }
     if (!hit || !(hit.object instanceof THREE.Mesh)) return null;
     const mesh = hit.object;
 
@@ -287,7 +351,7 @@ export class MeasureTool {
   private redraw(): void {
     this.clearGroup(this.marks);
     const picks = [this.a, this.b].filter((p): p is Pick => p !== null);
-    for (const p of picks) if ((p.kind === 'center' || p.kind === 'edge') && p.outline) this.outline(p.outline, this.marks);
+    for (const p of picks) if ((p.kind === 'center' || p.kind === 'edge' || p.kind === 'line') && p.outline) this.outline(p.outline, this.marks);
     if (picks.length) {
       const dots = new THREE.Points(new THREE.BufferGeometry().setFromPoints(picks.map((p) => p.point)), this.pointsMaterial);
       dots.renderOrder = 1000;
@@ -338,19 +402,20 @@ export class MeasureTool {
     const rows: (HTMLElement | null)[] = [];
     const point = (tag: string, p: Pick) => h('div', { class: 'mc-pt' }, h('b', {}, tag), h('span', {}, this.describe(p)));
     if (!this.a) {
-      rows.push(h('div', { class: 'mc-hint' }, 'Click a point. Circle centers, corners and edges snap; for a circle center, point at the rim or the middle. Two edges show their angle.'));
+      rows.push(h('div', { class: 'mc-hint' }, 'Click a point. Circle centers, corners, edges and lines snap; for a circle center, point at the rim or the middle. Two edges or lines show their angle.'));
     } else if (!this.b) {
       if (this.circle(this.a)) rows.push(h('div', { class: 'mc-main' }, h('span', {}, this.a.arc ? 'Radius' : 'Diameter'), h('b', {}, this.circle(this.a))));
       rows.push(point('A', this.a));
-      rows.push(h('div', { class: 'mc-hint' }, this.a.kind === 'edge' ? 'Click the second point, or a second edge for the angle.' : 'Click the second point.'));
+      rows.push(h('div', { class: 'mc-hint' }, isStraight(this.a) ? `Click the second point, or a second ${this.a.kind === 'line' ? 'line' : 'edge'} for the angle.` : 'Click the second point.'));
     } else {
       const fa = this.host.toFile(this.a.point);
       const fb = this.host.toFile(this.b.point);
       const d = fb.clone().sub(fa);
       const centers = this.a.kind === 'center' && this.b.kind === 'center';
       const relation = this.edges();
-      if (relation?.parallel) rows.push(h('div', { class: 'mc-main' }, h('span', {}, 'Distance between the parallel edges'), h('b', {}, this.format(relation.distance))));
-      else if (relation) rows.push(h('div', { class: 'mc-main' }, h('span', {}, 'Angle between the edges'), h('b', {}, `${num(relation.angle)}°`)));
+      const pieces = this.a.kind === 'line' && this.b.kind === 'line' ? 'lines' : 'edges';
+      if (relation?.parallel) rows.push(h('div', { class: 'mc-main' }, h('span', {}, `Distance between the parallel ${pieces}`), h('b', {}, this.format(relation.distance))));
+      else if (relation) rows.push(h('div', { class: 'mc-main' }, h('span', {}, `Angle between the ${pieces}`), h('b', {}, `${num(relation.angle)}°`)));
       rows.push(h('div', { class: 'mc-main' }, h('span', {}, centers ? 'Center to center' : relation ? 'Distance between the points' : 'Distance'), h('b', {}, this.format(d.length()))));
       rows.push(h('div', { class: 'mc-sub' }, `ΔX ${num(d.x)} · ΔY ${num(d.y)} · ΔZ ${num(d.z)}`));
       rows.push(point('A', this.a), point('B', this.b));
@@ -361,9 +426,9 @@ export class MeasureTool {
   /** Angle or distance of the two picked edges, in file coordinates. */
   private edges(): EdgeRelation | null {
     const { a, b } = this;
-    if (a?.kind !== 'edge' || b?.kind !== 'edge' || a.outline?.length !== 2 || b.outline?.length !== 2) return null;
+    if (!isStraight(a) || !isStraight(b)) return null;
     const file = (p: THREE.Vector3) => this.host.toFile(p);
-    return edgeRelation([file(a.outline[0]), file(a.outline[1])], file(a.point), [file(b.outline[0]), file(b.outline[1])], file(b.point), this.host.size());
+    return edgeRelation([file(a.outline![0]), file(a.outline![1])], file(a.point), [file(b.outline![0]), file(b.outline![1])], file(b.point), this.host.size());
   }
 
   /** After every frame: keep the distance label at the middle of the line and the diameters at their circles. */

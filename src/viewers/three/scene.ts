@@ -8,7 +8,7 @@ import { h, setPressed, toolButton } from '../../core/dom';
 import { icon } from '../../core/icons';
 import { onThemeChange, tokenColor } from '../../core/theme';
 import type { Viewer, ViewerContext } from '../../core/types';
-import { MeasureTool } from './measure';
+import { MeasureTool, type SnapCircle } from './measure';
 import { PartsTree, buildTree, type TreeNode } from './parts-tree';
 import { SectionTool } from './section';
 import { ViewCube } from './viewcube';
@@ -16,12 +16,12 @@ import { ViewCube } from './viewcube';
 export interface SceneOptions {
   /** True for formats that are Z-up already (STL, 3MF, STEP); Y-up formats (glTF, OBJ) are turned upright. */
   zUp: boolean;
-  /** Draw feature edges, as CAD programs do. */
-  edges?: boolean;
   /** Unit of the file coordinates, shown with dimensions and measurements. */
   unit?: string;
   /** Name in the structure tree. */
   title: string;
+  /** Exact circles the measuring tool snaps to (G-code arcs), in world coordinates. */
+  circles?: () => SnapCircle[];
 }
 
 /** Which axis of the file points up in the view. */
@@ -81,6 +81,9 @@ function countTriangles(root: THREE.Object3D): number {
   return Math.round(triangles);
 }
 
+/** Larger meshes take seconds to find their edges; they are then drawn only when asked for. */
+const EDGES_AT_ONCE = 2_000_000;
+
 const formatNumber = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 
 function isVisible(node: THREE.Object3D): boolean {
@@ -135,7 +138,18 @@ function originAxes(length: number): THREE.Group {
   return group;
 }
 
-export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: SceneOptions): Viewer {
+/** The mounted view, for viewers that add their own objects or interaction (G-code playback). */
+export interface SceneView extends Viewer {
+  requestRender(): void;
+  readonly camera: THREE.PerspectiveCamera;
+  readonly canvas: HTMLCanvasElement;
+  /** Size of the model, for scaling markers. */
+  readonly radius: number;
+  /** Clicks then belong to the measuring tool. */
+  isMeasuring(): boolean;
+}
+
+export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: SceneOptions): SceneView {
   const { container, toolbar } = ctx;
   object.updateMatrixWorld(true);
   const fileBox = new THREE.Box3().setFromObject(object);
@@ -145,7 +159,6 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
   }
   const fileSize = fileBox.getSize(new THREE.Vector3());
   ownMaterials(object);
-  const edgeLines = options.edges ? addFeatureEdges(object) : [];
 
   // The loader's own rotation of the root stays; the chosen up axis is applied on top of it.
   const loaderRotation = object.quaternion.clone();
@@ -319,6 +332,21 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
   });
   const pickables = () => parts.filter((o) => (o instanceof THREE.Mesh || o instanceof THREE.Points) && isVisible(o));
 
+  // ---- Edges, as CAD programs draw them: from the start, except on very large meshes ---------------------------------
+  const meshes = parts.filter((o): o is THREE.Mesh => o instanceof THREE.Mesh);
+  const triangles = countTriangles(object);
+  let edgeLines: THREE.LineSegments[] = [];
+  function createEdges(): void {
+    edgeLines = addFeatureEdges(object);
+    const meshMaterials = meshes.flatMap(materialsOf);
+    // Faces step back a little so the edges on them stay visible.
+    for (const m of meshMaterials) Object.assign(m, { polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1, needsUpdate: true });
+    // A section view that is already open cuts the new edges as well.
+    const clipping = meshMaterials[0]?.clippingPlanes ?? null;
+    for (const lines of edgeLines) Object.assign(lines.material as THREE.Material, { clippingPlanes: clipping, needsUpdate: true });
+  }
+  if (meshes.length && triangles <= EDGES_AT_ONCE) createEdges();
+
   const raycaster = new THREE.Raycaster();
   const hitAt = (clientX: number, clientY: number) => {
     const rect = canvas.getBoundingClientRect();
@@ -404,7 +432,9 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
     canvas,
     viewport: container,
     scene,
-    pickables,
+    // Lines too: tool paths and curves snap at their end points and along their length.
+    pickables: () => parts.filter(isVisible),
+    circles: options.circles,
     toFile,
     size: () => radius * 2,
     unit: options.unit ?? '',
@@ -457,10 +487,11 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
     setPressed(originButton, axes.visible);
     requestRender();
   });
-  let edgesVisible = true;
-  const edgeButton = edgeLines.length
-    ? toolButton('Edges', 'Toggle edges', () => {
+  let edgesVisible = edgeLines.length > 0;
+  const edgeButton = meshes.length
+    ? toolButton('Edges', 'Show the edges: where faces meet at an angle of more than 25°', () => {
         edgesVisible = !edgesVisible;
+        if (edgesVisible && !edgeLines.length) createEdges();
         for (const lines of edgeLines) lines.visible = edgesVisible;
         setPressed(edgeButton!, edgesVisible);
         requestRender();
@@ -470,9 +501,8 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
   setPressed(ghostButton, false);
   setPressed(gridButton, true);
   setPressed(originButton, false);
-  if (edgeButton) setPressed(edgeButton, true);
+  if (edgeButton) setPressed(edgeButton, edgesVisible);
 
-  const triangles = countTriangles(object);
   const unit = options.unit ? ` ${options.unit}` : '';
   toolbar.append(
     h('span', { class: 'meta', title: 'Size of the bounding box in file coordinates' },
@@ -490,6 +520,13 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
   resetView();
 
   return {
+    requestRender,
+    camera,
+    canvas,
+    get radius() {
+      return radius;
+    },
+    isMeasuring: () => Boolean(measure?.isActive),
     destroy: () => {
       stopThemeUpdates();
       cancelAnimationFrame(frame);

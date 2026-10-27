@@ -49,7 +49,7 @@ async function parseEml(file: File): Promise<Mail> {
     html: email.html ?? null,
     text: email.text ?? null,
     attachments: email.attachments.map((a, i) => ({
-      name: a.filename ?? `anhang-${i + 1}`,
+      name: a.filename ?? `attachment-${i + 1}`,
       mimeType: a.mimeType,
       data: toBytes(a.content),
       contentId: a.contentId?.replace(/^<|>$/g, ''),

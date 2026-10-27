@@ -1476,7 +1476,7 @@ write('text/parts.csv', CSV_SAMPLE);
 write('text/data.json', JSON_SAMPLE);
 write('text/config.xml', XML_SAMPLE);
 write('text/notes.md', MD_SAMPLE);
-write('text/flange-drilling.nc', GCODE_SAMPLE);
+write('cnc/flange-drilling.nc', GCODE_SAMPLE);
 write('text/viewer.log', logSample());
 write('text/Makefile', 'all:\n\tnpm run build\n\nsamples:\n\tnode scripts/generate-samples.mjs\n');
 write('text/windows-1252.txt', windows1252('Text in Windows-1252: café in Zürich, size 12 × 30 mm, ±0.1, price 12.50 €.\r\n'));
@@ -1493,7 +1493,7 @@ write('edge-cases/truncated.png', motifPng.subarray(0, 300));
 write('edge-cases/empty.txt', '');
 write('edge-cases/png-named-as.txt', motifPng);
 write('edge-cases/pdf-without-extension', samplePdf());
-write('edge-cases/unknown-extension.xyz', 'Unknown extension, but text content: recognized as text.\n');
+write('edge-cases/unknown-extension.qqq', 'Unknown extension, but text content: recognized as text.\n');
 
 const smallPng = png(320, 200, pixels(320, 200));
 write('office/document.docx', sampleDocx(smallPng));

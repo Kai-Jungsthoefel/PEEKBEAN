@@ -63,3 +63,9 @@ declare module 'exifr/src/core.mjs' {
 }
 
 declare module 'exifr/src/*';
+
+declare module 'decode-dxt' {
+  /** DXT1/3/5 (BC1–3) blocks → RGBA bytes; width and height in whole blocks of 4 pixels. */
+  function decodeDxt(data: DataView, width: number, height: number, format?: string): Uint8Array;
+  export default decodeDxt;
+}

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-export type DecodeFormat = 'tiff' | 'psd' | 'heic';
+export type DecodeFormat = 'tiff' | 'psd' | 'heic' | 'tga' | 'dds' | 'exr' | 'hdr';
 
 export interface DecodeRequest {
   format: DecodeFormat;

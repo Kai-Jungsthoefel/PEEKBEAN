@@ -11,7 +11,7 @@ import type { LibarchiveRequest, LibarchiveResponse } from '../workers/libarchiv
 // zip.js would otherwise spawn workers from inline code; the native DecompressionStream is fast enough.
 configure({ useWebWorkers: false, useCompressionStream: true });
 
-interface Entry {
+export interface Entry {
   /** Folder path with trailing slash, '' for the root. */
   dir: string;
   name: string;
@@ -21,7 +21,7 @@ interface Entry {
   read(password?: string): Promise<Blob>;
 }
 
-interface OpenedArchive {
+export interface OpenedArchive {
   kind: string;
   entries: Entry[];
   close(): Promise<void>;
@@ -141,7 +141,7 @@ async function openLibarchive(file: File): Promise<OpenedArchive> {
     throw opened.ok ? new Error('Unexpected answer from the archive module.') : failure(opened);
   }
   // A single compressed file (format "raw") has one entry called "data"; name it after the outer file.
-  const rawName = file.name.replace(/\.(xz|bz2|lzma|zst|lz4|lz|z|gz)$/i, '') || 'entpackt';
+  const rawName = file.name.replace(/\.(xz|bz2|lzma|zst|lz4|lz|z|gz)$/i, '') || 'unpacked';
   return {
     kind: [opened.format === 'raw' ? 'Compressed file' : opened.format, ...opened.filters.filter((f) => f !== 'none')].join(' · '),
     entries: opened.entries.map((e) => ({
@@ -160,14 +160,14 @@ async function openLibarchive(file: File): Promise<OpenedArchive> {
   };
 }
 
-async function openArchive(file: File): Promise<OpenedArchive> {
+export async function openArchive(file: File): Promise<OpenedArchive> {
   const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
   if (startsWith(head, 'PK')) return openZip(file);
   if (startsWith(head, [0x1f, 0x8b])) {
     const data = await gunzip(file);
     const inner = new Uint8Array(await data.slice(0, 512).arrayBuffer());
     if (startsWith(inner, 'ustar', 257)) return { kind: 'TAR.GZ', entries: await readTar(data), close: async () => {} };
-    const name = gzipName(head, file.name.replace(/\.gz$/i, '') || 'entpackt');
+    const name = gzipName(head, file.name.replace(/\.gz$/i, '') || 'unpacked');
     return { kind: 'GZIP', entries: [{ dir: '', name, size: data.size, modified: null, encrypted: false, read: async () => data }], close: async () => {} };
   }
   if (startsWith(head, 'ustar', 257) || extensionOf(file.name) === 'tar') return { kind: 'TAR', entries: await readTar(file), close: async () => {} };

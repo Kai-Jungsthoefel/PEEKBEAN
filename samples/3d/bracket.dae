@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+<asset><contributor><authoring_tool>OPSIS sample generator</authoring_tool></contributor><unit name="millimeter" meter="0.001"/><up_axis>Z_UP</up_axis></asset>
+<library_effects><effect id="effect0"><profile_COMMON><technique sid="common"><phong><diffuse><color>0.6 0.64 0.7 1</color></diffuse></phong></technique></profile_COMMON></effect><effect id="effect1"><profile_COMMON><technique sid="common"><phong><diffuse><color>0.18 0.5 0.84 1</color></diffuse></phong></technique></profile_COMMON></effect><effect id="effect2"><profile_COMMON><technique sid="common"><phong><diffuse><color>0.95 0.6 0.22 1</color></diffuse></phong></technique></profile_COMMON></effect></library_effects>
+<library_materials><material id="material0" name="Base plate"><instance_effect url="#effect0"/></material><material id="material1" name="Upright"><instance_effect url="#effect1"/></material><material id="material2" name="Rib"><instance_effect url="#effect2"/></material></library_materials>
+<library_geometries><geometry id="geometry0" name="Base plate"><mesh>
+<source id="geometry0-positions"><float_array id="geometry0-array" count="24">0 0 0 80 0 0 80 50 0 0 50 0 0 0 8 80 0 8 80 50 8 0 50 8</float_array>
+<technique_common><accessor source="#geometry0-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+<vertices id="geometry0-vertices"><input semantic="POSITION" source="#geometry0-positions"/></vertices>
+<triangles material="material" count="12"><input semantic="VERTEX" source="#geometry0-vertices" offset="0"/><p>0 3 2 0 2 1 4 5 6 4 6 7 0 1 5 0 5 4 2 3 7 2 7 6 3 0 4 3 4 7 1 2 6 1 6 5</p></triangles>
+</mesh></geometry>
+<geometry id="geometry1" name="Upright"><mesh>
+<source id="geometry1-positions"><float_array id="geometry1-array" count="24">0 0 8 10 0 8 10 50 8 0 50 8 0 0 60 10 0 60 10 50 60 0 50 60</float_array>
+<technique_common><accessor source="#geometry1-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+<vertices id="geometry1-vertices"><input semantic="POSITION" source="#geometry1-positions"/></vertices>
+<triangles material="material" count="12"><input semantic="VERTEX" source="#geometry1-vertices" offset="0"/><p>0 3 2 0 2 1 4 5 6 4 6 7 0 1 5 0 5 4 2 3 7 2 7 6 3 0 4 3 4 7 1 2 6 1 6 5</p></triangles>
+</mesh></geometry>
+<geometry id="geometry2" name="Rib"><mesh>
+<source id="geometry2-positions"><float_array id="geometry2-array" count="18">10 20 8 45 20 8 10 20 43 10 30 8 45 30 8 10 30 43</float_array>
+<technique_common><accessor source="#geometry2-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+<vertices id="geometry2-vertices"><input semantic="POSITION" source="#geometry2-positions"/></vertices>
+<triangles material="material" count="8"><input semantic="VERTEX" source="#geometry2-vertices" offset="0"/><p>0 1 2 3 5 4 0 3 4 0 4 1 0 2 5 0 5 3 1 4 5 1 5 2</p></triangles>
+</mesh></geometry></library_geometries>
+<library_visual_scenes><visual_scene id="scene" name="Bracket"><node id="node0" name="Base plate"><instance_geometry url="#geometry0"><bind_material><technique_common><instance_material symbol="material" target="#material0"/></technique_common></bind_material></instance_geometry></node><node id="node1" name="Upright"><instance_geometry url="#geometry1"><bind_material><technique_common><instance_material symbol="material" target="#material1"/></technique_common></bind_material></instance_geometry></node><node id="node2" name="Rib"><instance_geometry url="#geometry2"><bind_material><technique_common><instance_material symbol="material" target="#material2"/></technique_common></bind_material></instance_geometry></node></visual_scene></library_visual_scenes>
+<scene><instance_visual_scene url="#scene"/></scene>
+</COLLADA>

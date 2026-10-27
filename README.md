@@ -12,14 +12,19 @@ View files of all kinds in the browser without uploading them. The site is purel
 | Presentation | `.pptx .pptm .ppsx .potx` (shapes, text, pictures, tables, charts, layouts and masters) | [ooxml-pages](https://github.com/Kai-Jungsthoefel/ooxml-pages) |
 | DXF / DWG | `.dxf` (text DXF), `.dwg` R12 to 2018+, model space and layouts, AutoCAD Architecture objects as geometry | dxf-viewer, acadrust (Rust → WebAssembly) |
 | CAD model | `.step .stp .iges .igs .brep` | OpenCascade (occt-import-js) |
-| 3D model | `.stl .obj .ply .glb .gltf .3mf` | three.js |
-| Image | `.png .jpg .gif .webp .avif .bmp .ico .svg .tif .psd .heic` | browser, UTIF2, ag-psd, libheif |
+| 3D model | `.stl .obj .ply .glb .gltf .3mf .fbx .dae .3ds .amf .wrl .wrz .vtk .vtp .usd .usda .usdc .usdz .off .vox`, dotbim `.bim`, point clouds `.pcd .xyz`, Rhino `.3dm` (meshes and curves in their layer colors) | three.js loaders, rhino3dm (WebAssembly) |
+| CNC program | `.nc .gcode .gco .ngc .tap .cnc .mpf .eia`: G-code next to its tool paths in 3D, with playback; arcs, drilling cycles, several tools, 3D printer files | own interpreter, CodeMirror 6 |
+| Image | `.png .jpg .gif .webp .avif .bmp .ico .svg .tif .psd .heic .tga .dds .exr .hdr .ktx2 .emf .wmf` (high dynamic range images tone mapped) | browser, UTIF2, ag-psd, libheif, three.js loaders, decode-dxt, Basis Universal, ooxml-pages |
 | Audio / video | `.mp4 .webm .mov .mkv .mp3 .wav .ogg .flac .m4a` (whatever the browser can play) | browser |
 | Archive | `.zip` (including AES), `.7z .rar .tar .gz .bz2 .xz .zst .cab .iso .lha .cpio .rpm .deb` | zip.js, own TAR reader, libarchive (WebAssembly, without OpenSSL) |
 | E-mail | `.eml .msg` (with attachments) | postal-mime, msgreader |
 | Font | `.ttf .otf .woff .woff2` | browser, opentype.js |
 | SQLite | `.sqlite .db .gpkg` (tables, SQL queries) | sql.js |
 | Markdown | `.md` (formatted) | marked, DOMPurify |
+| Jupyter notebook | `.ipynb` (cells with their saved outputs, nothing is run) | marked, DOMPurify, Lezer |
+| Comic | `.cbz .cbr .cb7 .cbt` (pages in name order, unpacked as they come into view) | archive readers above |
+| Calendar / contacts | `.ics .vcf` (events, tasks, contacts with photos) | ical.js |
+| Shortcut | `.lnk .url .desktop .webloc` (target, arguments, start folder; nothing is run) | own readers |
 | Web page | `.html .htm` (without scripts, without network access) | browser (sandboxed iframe) |
 | Text / source code | all text files, with syntax highlighting | CodeMirror 6 |
 | Hex | everything else | own viewer |

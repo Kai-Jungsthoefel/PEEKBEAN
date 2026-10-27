@@ -40,6 +40,9 @@ const EXTRA_NOTICES = [
   ['pdf.js decoders (OpenJPEG, JBIG2, QCMS)', 'node_modules/pdfjs-dist/wasm/LICENSE_OPENJPEG'],
   ['acadrust and Rust crates (in dwg2dxf.wasm)', 'src/wasm/dwg2dxf/THIRD_PARTY_LICENSES.txt'],
   ['libarchive and compression libraries (in libarchive.wasm)', 'src/wasm/libarchive/THIRD_PARTY_LICENSES.txt'],
+  // Both are fetched at run time (rhino3dm/, basis/), so the module graph never sees them.
+  ['rhino3dm 8.32.1 (rhino3dm.js, rhino3dm.wasm)', 'licenses/rhino3dm.txt'],
+  ['Basis Universal transcoder (basis_transcoder.js, basis_transcoder.wasm, shipped with three.js)', 'licenses/basis-universal.txt'],
 ];
 
 // The page must not be able to talk to any server but its own origin; that is the privacy promise.
@@ -92,24 +95,45 @@ function warnMissingSourceUrl(): Plugin {
   };
 }
 
+/** Replaces each pattern exactly once; fails the build when a library update moved the code a patch relies on. */
+function patch(code: string, library: string, replacements: [string, string][]): string {
+  for (const [pattern, replacement] of replacements) {
+    if (code.split(pattern).length !== 2) throw new Error(`${library} changed: the embind eval patch in vite.config.ts no longer applies.`);
+    code = code.replace(pattern, () => replacement);
+  }
+  return code;
+}
+
 /**
- * occt-import-js was compiled with Emscripten's default DYNAMIC_EXECUTION=1: embind builds its call
- * wrappers with `new Function`, which our CSP forbids (no 'unsafe-eval'). This swaps in the generic
- * wrapper Emscripten itself emits with DYNAMIC_EXECUTION=0. Same behavior, a little slower per call.
+ * Emscripten's default DYNAMIC_EXECUTION=1 makes embind build its call wrappers with `new Function`, which our CSP
+ * forbids (no 'unsafe-eval'). These swap in generic wrappers like the ones Emscripten itself emits with
+ * DYNAMIC_EXECUTION=0. Same behavior, a little slower per call.
+ *
+ * The first set fits the Emscripten version of occt-import-js and of the Basis Universal transcoder.
  */
+const INVOKER = 'var invokerFn=newFunc(Function,args)(...closureArgs);';
+const GENERIC_INVOKER = `var invokerFn=(function(){var expected=argCount-2;var argsWired=new Array(expected);var destructors=[];return function(...callArgs){if(callArgs.length!==expected){throwBindingError(\`function \${humanName} called with \${callArgs.length} arguments, expected \${expected}\`)}destructors.length=0;var thisWired;var invokerArgs=[cppTargetFunc];if(isClassMethodFunc){thisWired=argTypes[1].toWireType(destructors,this);invokerArgs.push(thisWired)}for(var i=0;i<expected;++i){argsWired[i]=argTypes[i+2].toWireType(destructors,callArgs[i]);invokerArgs.push(argsWired[i])}var rv=cppInvokerFunc(...invokerArgs);var done=function(rv){if(needsDestructorStack){runDestructors(destructors)}else{for(var i=isClassMethodFunc?1:2;i<argTypes.length;i++){var param=i===1?thisWired:argsWired[i-2];if(argTypes[i].destructorFunction!==null){argTypes[i].destructorFunction(param)}}}if(returns){return argTypes[0].fromWireType(rv)}};return isAsync?rv.then(done):done(rv)}})();`;
+const METHOD_CALLER = 'var invokerFunction=newFunc(Function,params)(...args);';
+const GENERIC_METHOD_CALLER = 'var invokerFunction=(obj,func,destructorsRef,ptr)=>{var off=0;var argN=[];for(var j=0;j<argCount;++j){argN.push(types[j].readValueFromPointer(ptr+off));off+=types[j].argPackAdvance}var rv=kind===1?new func(...argN):func.call(...(kind===0?[obj,...argN]:argN));return retType.isVoid?undefined:emval_returnValue(retType,destructorsRef,rv)};';
+const embindWithoutEval = (code: string, library: string) => patch(code, library, [[INVOKER, GENERIC_INVOKER], [METHOD_CALLER, GENERIC_METHOD_CALLER]]);
+
+/**
+ * rhino3dm comes from a newer Emscripten: createJsInvoker returns the source of a factory, and emval method callers
+ * are built from captured helpers. Both become plain closures over the same values.
+ */
+const RHINO_INVOKER = 'return new Function(args1,invokerFnBody)}';
+const RHINO_GENERIC_INVOKER = 'return function(humanName,throwBindingError,invoker,fn,runDestructors,fromRetWire,toClassParamWire,...rest){var toArgWire=rest.slice(0,argCount);var dtors=rest.slice(argCount);return function(...callArgs){var destructors=needsDestructorStack?[]:null;var thisWired;var argsWired=[];var wired=[fn];if(isClassMethodFunc){thisWired=toClassParamWire(destructors,this);wired.push(thisWired)}for(var i=0;i<argCount;++i){argsWired.push(toArgWire[i](destructors,callArgs[i]));wired.push(argsWired[i])}var rv=invoker(...wired);if(needsDestructorStack){runDestructors(destructors)}else{var d=0;for(var i=isClassMethodFunc?1:2;i<argTypes.length;++i){if(argTypes[i].destructorFunction!==null){dtors[d++](i===1?thisWired:argsWired[i-2])}}}if(returns){return fromRetWire(rv)}}}}';
+const RHINO_METHOD_CALLER = 'var invokerFunction=new Function(Object.keys(captures),functionBody)(...Object.values(captures));';
+const RHINO_GENERIC_METHOD_CALLER = 'var invokerFunction=function(handle,methodName,destructorsRef,args){var a=argFromPtr.map((read,i)=>read(args+i*GenericWireTypeSize));var rv=kind===0?Emval.toValue(handle)(...a):kind===2?new(Emval.toValue(handle))(...a):kind===1?Emval.toValue(handle)[getStringOrSymbol(methodName)](...a):a[a.length-1];return retType.isVoid?undefined:emval_returnValue(toReturnWire,destructorsRef,rv)};';
+const rhinoWithoutEval = (code: string) =>
+  patch(code, 'rhino3dm', [[RHINO_INVOKER, RHINO_GENERIC_INVOKER], [RHINO_METHOD_CALLER, RHINO_GENERIC_METHOD_CALLER]]);
+
 function occtWithoutEval(): Plugin {
-  const INVOKER = 'var invokerFn=newFunc(Function,args)(...closureArgs);';
-  const GENERIC_INVOKER = `var invokerFn=(function(){var expected=argCount-2;var argsWired=new Array(expected);var destructors=[];return function(...callArgs){if(callArgs.length!==expected){throwBindingError(\`function \${humanName} called with \${callArgs.length} arguments, expected \${expected}\`)}destructors.length=0;var thisWired;var invokerArgs=[cppTargetFunc];if(isClassMethodFunc){thisWired=argTypes[1].toWireType(destructors,this);invokerArgs.push(thisWired)}for(var i=0;i<expected;++i){argsWired[i]=argTypes[i+2].toWireType(destructors,callArgs[i]);invokerArgs.push(argsWired[i])}var rv=cppInvokerFunc(...invokerArgs);var done=function(rv){if(needsDestructorStack){runDestructors(destructors)}else{for(var i=isClassMethodFunc?1:2;i<argTypes.length;i++){var param=i===1?thisWired:argsWired[i-2];if(argTypes[i].destructorFunction!==null){argTypes[i].destructorFunction(param)}}}if(returns){return argTypes[0].fromWireType(rv)}};return isAsync?rv.then(done):done(rv)}})();`;
-  const METHOD_CALLER = 'var invokerFunction=newFunc(Function,params)(...args);';
-  const GENERIC_METHOD_CALLER = 'var invokerFunction=(obj,func,destructorsRef,ptr)=>{var off=0;var argN=[];for(var j=0;j<argCount;++j){argN.push(types[j].readValueFromPointer(ptr+off));off+=types[j].argPackAdvance}var rv=kind===1?new func(...argN):func.call(...(kind===0?[obj,...argN]:argN));return retType.isVoid?undefined:emval_returnValue(retType,destructorsRef,rv)};';
   return {
     name: 'everythingviewer:occt-without-eval',
     transform(code, id) {
       if (!id.replace(/\\/g, '/').endsWith('occt-import-js/dist/occt-import-js.js')) return null;
-      for (const pattern of [INVOKER, METHOD_CALLER]) {
-        if (!code.includes(pattern)) throw new Error('occt-import-js changed: the embind eval patch in vite.config.ts no longer applies.');
-      }
-      return { code: code.replace(INVOKER, GENERIC_INVOKER).replace(METHOD_CALLER, GENERIC_METHOD_CALLER), map: null };
+      return { code: embindWithoutEval(code, 'occt-import-js'), map: null };
     },
   };
 }
@@ -175,6 +199,14 @@ export default defineConfig({
     format: 'es',
     plugins: sharedPlugins,
   },
+  // Dependencies only a worker imports: the dev server would find them late, re-bundle its dependencies and leave
+  // the running worker with outdated URLs. Bundling them at startup avoids that.
+  optimizeDeps: {
+    include: [
+      'utif2', 'ag-psd', 'decode-dxt', 'occt-import-js', 'xlsx', 'xlsx/dist/cpexcel.full', 'dxf-viewer', '@zip.js/zip.js',
+      'three/addons/loaders/DDSLoader.js', 'three/addons/loaders/EXRLoader.js', 'three/addons/loaders/HDRLoader.js', 'three/addons/loaders/TGALoader.js',
+    ],
+  },
   // Lets `npm run preview` behave like a host that sends the CSP as a header (workers included).
   preview: {
     headers: { 'Content-Security-Policy': CSP },
@@ -183,12 +215,24 @@ export default defineConfig({
     contentSecurityPolicy(),
     warnMissingSourceUrl(),
     // pdf.js fetches these on demand; serving them ourselves keeps PDFs from triggering CDN requests.
+    // Likewise the Rhino reader and the KTX2 (Basis Universal) transcoder, which three.js loads by URL into workers.
     viteStaticCopy({
-      targets: ['cmaps', 'standard_fonts', 'wasm', 'iccs'].map((dir) => ({
-        src: `node_modules/pdfjs-dist/${dir}`,
-        dest: 'pdfjs',
-        rename: { stripBase: 2 },
-      })),
+      targets: [
+        ...['cmaps', 'standard_fonts', 'wasm', 'iccs'].map((dir) => ({
+          src: `node_modules/pdfjs-dist/${dir}`,
+          dest: 'pdfjs',
+          rename: { stripBase: 2 },
+        })),
+        { src: 'node_modules/rhino3dm/rhino3dm.wasm', dest: 'rhino3dm', rename: { stripBase: true } },
+        { src: 'node_modules/rhino3dm/rhino3dm.js', dest: 'rhino3dm', rename: { stripBase: true }, transform: (content: string) => rhinoWithoutEval(content) },
+        { src: 'node_modules/three/examples/jsm/libs/basis/basis_transcoder.wasm', dest: 'basis', rename: { stripBase: true } },
+        {
+          src: 'node_modules/three/examples/jsm/libs/basis/basis_transcoder.js',
+          dest: 'basis',
+          rename: { stripBase: true },
+          transform: (content: string) => embindWithoutEval(content, 'basis_transcoder'),
+        },
+      ],
     }),
     ...sharedPlugins(),
     licenseReport(),

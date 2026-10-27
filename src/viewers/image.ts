@@ -23,7 +23,73 @@ function decoderFormat(file: File, head: Uint8Array): DecodeFormat | null {
   if (startsWith(head, 'II*\0') || startsWith(head, 'MM\0*') || ext === 'tif' || ext === 'tiff') return 'tiff';
   const brand = startsWith(head, 'ftyp', 4) ? String.fromCharCode(...head.subarray(8, 12)) : '';
   if (['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1'].includes(brand) || ext === 'heic' || ext === 'heif') return 'heic';
+  if (startsWith(head, 'DDS ') || ext === 'dds') return 'dds';
+  if (startsWith(head, [0x76, 0x2f, 0x31, 0x01]) || ext === 'exr') return 'exr';
+  if (startsWith(head, '#?RADIANCE') || startsWith(head, '#?RGBE') || ext === 'hdr') return 'hdr';
+  if (ext === 'tga' || ext === 'icb' || ext === 'vda' || ext === 'vst') return 'tga';
   return null;
+}
+
+const KTX2_SIGNATURE = [0xab, 0x4b, 0x54, 0x58, 0x20, 0x32, 0x30, 0xbb];
+
+/** Formats decoded on the main thread: KTX2 brings its own transcoder workers, metafiles draw on a canvas. */
+function mainThreadFormat(file: File, head: Uint8Array): 'ktx2' | 'metafile' | null {
+  const ext = extensionOf(file.name);
+  if (startsWith(head, KTX2_SIGNATURE) || ext === 'ktx2') return 'ktx2';
+  // EMF starts with record type 1 and has " EMF" at byte 40; WMF either a placeable header or a plain one.
+  if (['emf', 'wmf', 'emz', 'wmz'].includes(ext) || startsWith(head, [0xd7, 0xcd, 0xc6, 0x9a]) || (startsWith(head, [1, 0, 0, 0]) && startsWith(head, ' EMF', 40))) return 'metafile';
+  return null;
+}
+
+async function pixelSource(width: number, height: number, data: Uint8ClampedArray): Promise<Source> {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext('2d')!.putImageData(new ImageData(data as Uint8ClampedArray<ArrayBuffer>, width, height), 0, 0);
+  const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, 'image/png'));
+  if (!blob) throw new Error('The image is too large for this browser.');
+  return { url: URL.createObjectURL(blob), width, height, pages: 1 };
+}
+
+/** KTX2 (Basis Universal or raw pixels) via the three.js loader and the transcoder served next to the page. */
+async function ktx2Source(file: File): Promise<Source> {
+  const [THREE, { KTX2Loader }, { toneMap }] = await Promise.all([
+    import('three'),
+    import('three/addons/loaders/KTX2Loader.js'),
+    import('../workers/tonemap'),
+  ]);
+  const loader = new KTX2Loader().setTranscoderPath(new URL('basis/', document.baseURI).href);
+  // Without a GPU format to aim for, the transcoder hands out plain RGBA pixels.
+  loader.detectSupport({ extensions: { has: () => false } } as unknown as InstanceType<typeof THREE.WebGLRenderer>);
+  try {
+    const buffer = await file.arrayBuffer();
+    const texture = await new Promise<InstanceType<typeof THREE.Texture>>((resolve, reject) => loader.parse(buffer, resolve, reject));
+    const level = ((texture as { mipmaps?: { data: ArrayBufferView; width: number; height: number }[] }).mipmaps?.[0] ?? texture.image) as {
+      data: ArrayBufferView;
+      width: number;
+      height: number;
+    };
+    texture.dispose();
+    const { width, height, data } = level;
+    if (texture.format !== THREE.RGBAFormat) throw new Error('This KTX2 pixel format cannot be shown yet.');
+    if (texture.type === THREE.HalfFloatType) return pixelSource(width, height, toneMap(Array.from(data as Uint16Array, THREE.DataUtils.fromHalfFloat), width, height, 4));
+    if (texture.type === THREE.FloatType) return pixelSource(width, height, toneMap(data as Float32Array, width, height, 4));
+    return pixelSource(width, height, new Uint8ClampedArray(data.buffer, data.byteOffset, data.byteLength));
+  } finally {
+    loader.dispose();
+  }
+}
+
+/** Windows metafiles (EMF, WMF and their gzip forms), drawn by the renderer of ooxml-pages. */
+async function metafileSource(file: File): Promise<Source> {
+  const { metafileToPng } = await import('ooxml-pages/metafile');
+  const blob = await metafileToPng(new Uint8Array(await file.arrayBuffer()));
+  if (!blob) throw new Error('The metafile could not be drawn; it may be damaged or use only EMF+ records.');
+  const url = URL.createObjectURL(blob);
+  const probe = new Image();
+  probe.src = url;
+  await probe.decode();
+  return { url, width: probe.naturalWidth, height: probe.naturalHeight, pages: 1 };
 }
 
 async function nativeSource(file: File): Promise<Source | null> {
@@ -51,22 +117,20 @@ function decodedSource(file: File, format: DecodeFormat, page: number): Promise<
     .finally(() => worker.terminate())
     .then(async (result) => {
       if (!result.ok) throw new Error(result.error);
-      const canvas = document.createElement('canvas');
-      canvas.width = result.width;
-      canvas.height = result.height;
-      canvas.getContext('2d')!.putImageData(new ImageData(result.data as Uint8ClampedArray<ArrayBuffer>, result.width, result.height), 0, 0);
-      const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, 'image/png'));
-      if (!blob) throw new Error('The image is too large for this browser.');
-      return { url: URL.createObjectURL(blob), width: result.width, height: result.height, pages: result.pages };
+      return { ...(await pixelSource(result.width, result.height, result.data)), pages: result.pages };
     });
 }
 
 export async function mount({ file, container, toolbar, progress }: ViewerContext) {
-  const head = new Uint8Array(await file.slice(0, 32).arrayBuffer());
+  const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
   const format = decoderFormat(file, head);
-  // Safari shows TIFF and HEIC natively; Photoshop files always need the decoder.
-  let source = format === 'psd' ? null : await nativeSource(file);
-  if (!source && format) {
+  const special = mainThreadFormat(file, head);
+  // Safari shows TIFF and HEIC natively; the other decoded formats no browser shows.
+  let source = special || (format && format !== 'tiff' && format !== 'heic') ? null : await nativeSource(file);
+  if (!source && special) {
+    progress('Decoding image …');
+    source = special === 'ktx2' ? await ktx2Source(file) : await metafileSource(file);
+  } else if (!source && format) {
     progress('Decoding image …');
     source = await decodedSource(file, format, 0);
   }

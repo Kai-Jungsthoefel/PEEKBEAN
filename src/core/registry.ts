@@ -30,7 +30,7 @@ export const textViewer: ViewerDefinition = {
     'svelte', 'py', 'rb', 'php', 'pl', 'lua', 'r', 'java', 'kt', 'kts', 'scala', 'groovy', 'gradle', 'c', 'h', 'cpp',
     'cc', 'cxx', 'hpp', 'hh', 'cs', 'fs', 'go', 'rs', 'swift', 'dart', 'sh', 'bash', 'zsh', 'fish', 'ps1', 'psm1',
     'bat', 'cmd', 'sql', 'graphql', 'proto', 'tex', 'bib', 'diff', 'patch', 'dockerfile', 'makefile', 'cmake', 'tf',
-    'nc', 'gcode', 'ngc', 'srt', 'vtt',
+    'srt', 'vtt', 'jsonl', 'ndjson', 'reg', 'vbs', 'asm', 'xaml', 'service', 'editorconfig',
   ],
   load: () => import('../viewers/text'),
 };
@@ -114,9 +114,27 @@ export const viewers: ViewerDefinition[] = [
     label: '3D model',
     category: 'cad',
     icon: 'cube',
-    extensions: ['stl', 'obj', 'ply', 'glb', 'gltf', '3mf'],
-    sniff: (head) => startsWith(head, 'glTF') || startsWith(head, 'ply\n') || startsWith(head, 'ply\r\n'),
+    extensions: [
+      'stl', 'obj', 'ply', 'glb', 'gltf', '3mf', '3dm', 'fbx', 'dae', '3ds', 'amf', 'wrl', 'vrml', 'wrz', 'vtk', 'vtp',
+      'usd', 'usda', 'usdc', 'usdz', 'pcd', 'xyz', 'off', 'bim', 'vox',
+    ],
+    sniff: (head) =>
+      startsWith(head, 'glTF') ||
+      startsWith(head, 'ply\n') ||
+      startsWith(head, 'ply\r\n') ||
+      startsWith(head, 'Kaydara FBX Binary') ||
+      startsWith(head, '3D Geometry File Format') ||
+      startsWith(head, 'PXR-USDC'),
     load: () => import('../viewers/model3d'),
+  },
+  {
+    id: 'gcode',
+    label: 'CNC program (G-code)',
+    category: 'cad',
+    icon: 'toolpath',
+    // .nc is also NetCDF; the viewer turns binary files away, and "View as" offers the hex view.
+    extensions: ['nc', 'gcode', 'gco', 'ngc', 'tap', 'cnc', 'mpf', 'eia'],
+    load: () => import('../viewers/gcode'),
   },
   {
     id: 'image',
@@ -125,7 +143,7 @@ export const viewers: ViewerDefinition[] = [
     icon: 'image',
     extensions: [
       'png', 'apng', 'jpg', 'jpeg', 'jfif', 'pjpeg', 'gif', 'webp', 'avif', 'bmp', 'ico', 'cur', 'svg',
-      'tif', 'tiff', 'psd', 'heic', 'heif',
+      'tif', 'tiff', 'psd', 'heic', 'heif', 'tga', 'dds', 'exr', 'hdr', 'ktx2', 'emf', 'wmf', 'emz', 'wmz',
     ],
     sniff: (head) =>
       startsWith(head, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) ||
@@ -136,6 +154,13 @@ export const viewers: ViewerDefinition[] = [
       startsWith(head, 'II*\0') ||
       startsWith(head, 'MM\0*') ||
       startsWith(head, '8BPS') ||
+      startsWith(head, 'DDS ') ||
+      startsWith(head, [0x76, 0x2f, 0x31, 0x01]) ||
+      startsWith(head, '#?RADIANCE') ||
+      startsWith(head, [0xab, 0x4b, 0x54, 0x58, 0x20, 0x32, 0x30, 0xbb]) ||
+      // Placeable WMF, and EMF (record 1 with " EMF" at byte 40).
+      startsWith(head, [0xd7, 0xcd, 0xc6, 0x9a]) ||
+      (startsWith(head, [1, 0, 0, 0]) && startsWith(head, ' EMF', 40)) ||
       IMAGE_BRANDS.includes(ftypBrand(head) ?? ''),
     load: () => import('../viewers/image'),
   },
@@ -212,6 +237,40 @@ export const viewers: ViewerDefinition[] = [
     extensions: ['sqlite', 'sqlite3', 'db', 'db3', 'gpkg', 'mbtiles'],
     sniff: (head) => startsWith(head, 'SQLite format 3\0'),
     load: () => import('../viewers/sqlite'),
+  },
+  {
+    id: 'comic',
+    label: 'Comic book',
+    category: 'documents',
+    icon: 'book',
+    extensions: ['cbz', 'cbr', 'cb7', 'cbt'],
+    load: () => import('../viewers/comic'),
+  },
+  {
+    id: 'notebook',
+    label: 'Jupyter notebook',
+    category: 'documents',
+    icon: 'notebook',
+    extensions: ['ipynb'],
+    load: () => import('../viewers/notebook'),
+  },
+  {
+    id: 'ical',
+    label: 'Calendar or contacts',
+    category: 'data',
+    icon: 'calendar',
+    extensions: ['ics', 'ical', 'ifb', 'vcs', 'vcf', 'vcard'],
+    sniff: (head) => /^\s*BEGIN:(VCALENDAR|VCARD)\r?\n/i.test(latin1(head, 64)),
+    load: () => import('../viewers/ical'),
+  },
+  {
+    id: 'shortcut',
+    label: 'Shortcut',
+    category: 'data',
+    icon: 'link',
+    extensions: ['lnk', 'url', 'desktop', 'webloc'],
+    sniff: (head) => startsWith(head, [0x4c, 0, 0, 0, 0x01, 0x14, 0x02, 0x00]) || startsWith(head, '[InternetShortcut]'),
+    load: () => import('../viewers/shortcut'),
   },
   {
     id: 'markdown',

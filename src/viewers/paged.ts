@@ -5,7 +5,7 @@ import { h, toolButton } from '../core/dom';
 export interface PagedView {
   scroller: HTMLElement;
   pages: HTMLElement;
-  /** Width of the content at 100 %, used by "Seitenbreite". */
+  /** Width of the content at 100 %, used by "Page width". */
   setNaturalWidth(width: number): void;
   fitWidth(): void;
 }
@@ -18,7 +18,7 @@ export function guardLinks(root: HTMLElement): void {
     const href = link.getAttribute('href') ?? '';
     if (href.startsWith('#')) return;
     event.preventDefault();
-    if (/^(https?|mailto):/i.test(href)) window.open(href, '_blank', 'noopener,noreferrer');
+    if (/^(https?|mailto|tel):/i.test(href)) window.open(href, '_blank', 'noopener,noreferrer');
   });
 }
 

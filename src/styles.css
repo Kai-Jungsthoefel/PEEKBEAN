@@ -588,10 +588,77 @@ dialog { color: var(--tx); }
 .sql-message:empty { display: none; }
 .sql-message.error { color: var(--err); background: var(--err-tint); }
 
+/* G-code: program text and tool paths side by side, the playback bar below; on phones one pane at a time. */
+.gcode-viewer { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.gcode-split { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--code-width, minmax(260px, 36%)) 5px minmax(0, 1fr); }
+.gcode-code { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--term); }
+.gcode-code .cm-editor { flex: 1; min-height: 0; background: var(--term); }
+.gcode-divider { cursor: col-resize; background: var(--line); touch-action: none; }
+.gcode-divider:hover { background: var(--acc-line); }
+.gcode-3d { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+.gcode-bar { flex-shrink: 0; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; border-top: 1px solid var(--line); background: var(--s1); }
+.gcode-play { width: 32px; height: 32px; }
+.gcode-play[aria-pressed=true] { color: var(--acc-tx); }
+.gcode-slider { flex: 1; min-width: 60px; accent-color: var(--acc); }
+.gcode-where { min-width: 130px; color: var(--tx2); font: 12px var(--mono); white-space: nowrap; }
+.gcode-panes { display: none; }
+.gcode-note { margin: 0; padding: 16px; color: var(--tx2); font-size: 13px; }
+.cm-gcode-current { background: rgba(255, 0, 170, .13); box-shadow: inset 3px 0 0 #ff00aa; }
+
+/* Comics: one column of pages, placeholders keep the scroll height until a page is unpacked. */
+.comic-pages { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.comic-page { max-width: none; background: var(--s2); box-shadow: 0 1px 3px rgba(27, 30, 35, .12); }
+.comic-img { display: block; width: 100%; height: auto; }
+.comic-page.broken { display: flex; align-items: center; justify-content: center; color: var(--tx2); font-size: 13px; }
+
+/* Jupyter notebooks: prompt column, code on terminal background, outputs below. */
+.notebook { flex: 1; min-height: 0; overflow: auto; background: var(--term); }
+.nb-cells { max-width: 1000px; margin: 0 auto; padding: 24px 24px 64px 8px; display: flex; flex-direction: column; gap: 10px; }
+.nb-cell { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 10px; }
+.nb-prompt { padding-top: 9px; color: var(--tx3); font: 12px var(--mono); text-align: right; white-space: nowrap; }
+.nb-out .nb-prompt { color: var(--acc-tx); }
+.nb-code { margin: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--s1); font: 12.5px/1.5 var(--mono); overflow-x: auto; white-space: pre; }
+.nb-outputs { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.nb-stream { margin: 0; padding: 6px 2px; font: 12.5px/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.nb-error { color: var(--err); }
+.nb-image { max-width: 100%; align-self: flex-start; background: #fff; }
+.nb-html { overflow-x: auto; font-size: 13px; }
+.nb-html table { border-collapse: collapse; }
+.nb-html th, .nb-html td { border: 1px solid var(--line2); padding: 4px 8px; text-align: right; }
+.nb-html th { background: var(--s2); }
+.nb-md { max-width: none; padding: 4px 0; margin: 0; }
+
+/* Calendars, contacts, shortcuts: one card per record with label / value rows. */
+.records { flex: 1; min-height: 0; overflow: auto; padding: 24px 16px 48px; background: var(--bg); }
+.records-list { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.record { padding: 14px 18px 16px; border: 1px solid var(--line2); border-radius: 10px; background: var(--s1); }
+.record-hd { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 10px; }
+.record-hd b { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.record-hd .when { color: var(--acc-tx); font-size: 13px; font-variant-numeric: tabular-nums; }
+.record dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 16px; margin: 0; font-size: 13px; }
+.record dt { color: var(--tx3); }
+.record dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.record a { color: var(--acc-tx); }
+.record-contact { display: flex; gap: 16px; align-items: flex-start; }
+.record-main { flex: 1; min-width: 0; }
+.record-photo { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.record-lines { display: flex; flex-direction: column; }
+.record-lines small { color: var(--tx3); font-size: 11.5px; }
+.records-note, .records-empty { margin: 0; color: var(--tx2); font-size: 13px; }
+
 /* ---- Phone overrides for viewers (after the viewer rules, so they win) ------------------------------------------ */
 @media (max-width: 639px) {
   /* Archive list: name, size and the two buttons; the date column does not fit. */
   .tree-row { grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; min-height: 44px; padding: 0 8px 0 calc(10px + var(--depth, 0) * 14px); }
   .tree-date, .tree-actions .lbl { display: none; }
   .tree-actions .btn.sm, .tree-actions .ibtn.s { width: 40px; height: 40px; padding: 0; justify-content: center; }
+  /* G-code: code or 3D view, switched in the playback bar. */
+  .gcode-split { grid-template-columns: minmax(0, 1fr); }
+  .gcode-divider, .gcode-split[data-pane="3d"] .gcode-code, .gcode-split[data-pane="code"] .gcode-3d { display: none; }
+  .gcode-panes { display: flex; }
+  .gcode-panes button { height: 36px; min-width: 44px; }
+  .gcode-bar { gap: 8px; height: 56px; padding: 0 8px; }
+  .gcode-play { width: 44px; height: 44px; }
+  .gcode-slider { min-width: 36px; }
+  .gcode-where { min-width: 0; flex-shrink: 1; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
 }

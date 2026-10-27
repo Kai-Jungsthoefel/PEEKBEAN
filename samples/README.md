@@ -2,7 +2,7 @@
 
 Test files for all viewers. Except for the exceptions below, all files are self-made and released under **CC0-1.0** (public domain).
 
-- Most are written by `scripts/generate-samples.mjs` (`npm run samples`) without third-party libraries; only the SQLite file is created with sql.js. `scripts/generate-pptx-samples.mjs` writes the two PowerPoint test decks `office/shapes.pptx` and `office/text-tables-charts.pptx`, and `scripts/generate-docx-samples.mjs` the five Word test documents listed below (`text-layout.docx` to `vml-legacy.docx`).
+- Most are written by `scripts/generate-samples.mjs` (`npm run samples`) without third-party libraries; only the SQLite file is created with sql.js. `scripts/generate-pptx-samples.mjs` writes the two PowerPoint test decks `office/shapes.pptx` and `office/text-tables-charts.pptx`, and `scripts/generate-docx-samples.mjs` the five Word test documents listed below (`text-layout.docx` to `vml-legacy.docx`). `scripts/generate-format-samples.mjs` writes the samples of the later formats (3D exchange formats, Rhino, textures, metafiles, CNC, notebook, comics, calendar, contacts, shortcuts); it uses three.js for the EXR and KTX2 files and rhino3dm for the Rhino file.
 - `images/motif.jpg`, `motif.tif` and `motif.webp` were converted once from the generated `motif.bmp`/`motif.png` (JPEG and TIFF with Windows GDI+, WebP with the browser's canvas). `images/photo-exif.jpg` is `motif.jpg` with an EXIF block written by the generator. `media/clip.webm` is a self-drawn canvas animation, recorded with the browser's MediaRecorder.
 - `cad/flange-*.dwg` were written by acadrust's DWG writer from `cad/flange.dxf` (`crates/dwg2dxf/examples/dxf_to_dwg.rs`); `cad/arch-walls-r2018.dwg` and `cad/flange-layout-r2018.dwg` by the examples `arch_sample.rs` and `layout_sample.rs`.
 - `archives/example.tar.bz2` and `example.tar.xz` are written by `node scripts/test-libarchive-wasm.mjs --update-samples` (self-written texts).
@@ -36,6 +36,16 @@ Test files for all viewers. Except for the exceptions below, all files are self-
 | `3d/torus.obj` | OBJ with normals and quads |
 | `3d/sphere-points.ply` | binary PLY, point cloud with colors |
 | `3d/colored-cube.glb`, `colored-cube.gltf` | glTF binary and with embedded data, vertex colors |
+| `3d/bracket.fbx`, `.dae`, `.3ds`, `.amf`, `.usda`, `.usdz`, `.vtp` | the same angle bracket of three colored parts (base plate, upright, rib) in each exchange format: ASCII FBX, COLLADA (unit m, Z up), 3D Studio, AMF, USD as text and as package, VTK XML |
+| `3d/bracket.wrl`, `bracket.wrz` | VRML97 with the bracket plus a cylinder primitive, plain and gzip-compressed |
+| `3d/bracket.3dm` | Rhino 7 file in mm: the bracket as meshes on three colored layers, four hole circles on a layer of their own |
+| `3d/torus.vtk`, `torus.off` | legacy VTK polydata; OFF with vertex colors (COFF) |
+| `3d/dome-scan.pcd`, `terrain.xyz` | point clouds: ASCII PCD without colors, XYZ with colors |
+| `3d/pavilion.bim` | dotbim: slab, four columns sharing one mesh, roof, a transparent glass wall, element info |
+| `3d/house.vox` | MagicaVoxel model with its own palette |
+| `cnc/flange-drilling.nc` | drilling cycle G81 on a bolt circle |
+| `cnc/pocket-contour.nc` | three tools: helical ramp and full circles (I/J), contour with R arcs, peck drilling G83 with G99/G98 |
+| `cnc/calibration-cube.gcode` | 3D printer program: layers, extrusion (E) and travel moves |
 | `images/motif.png` | PNG with transparency |
 | `images/motif.jpg`, `motif.webp`, `motif.bmp`, `icon.ico` | more raster formats |
 | `images/motif.tif` | TIFF, decoded in the browser (UTIF2) |
@@ -43,6 +53,9 @@ Test files for all viewers. Except for the exceptions below, all files are self-
 | `images/animation.gif` | animated GIF |
 | `images/vector.svg` | SVG with gradient and text |
 | `images/svg-with-script.svg` | the script inside the SVG must not run (the area stays green) |
+| `images/motif.tga`, `motif.dds`, `motif.ktx2` | RLE TGA stored bottom row first, DXT1 DDS, raw RGBA KTX2; the dark square must be top left |
+| `images/sky.hdr`, `sky.exr` | high dynamic range sky with a sun far brighter than white (Radiance RGBE, OpenEXR half float), tone mapped |
+| `images/flange.wmf`, `flange.emf` | Windows metafiles: filled circles, lines and text |
 | `media/tone.wav`, `media/clip.webm` | audio and video |
 | `archives/example.zip`, `example.tar`, `example.tar.gz` | folder structure, non-ASCII file name, files open in a new tab |
 | `archives/encrypted.zip` | encrypted ZIP, password `everything` |
@@ -53,11 +66,16 @@ Test files for all viewers. Except for the exceptions below, all files are self-
 | `database/parts.sqlite` | two tables, a view, a BLOB |
 | `fonts/ibm-plex-sans-latin-400-normal.woff`, `.woff2` | font view |
 | `web/page.html` | HTML with a script, external image, stylesheet and form, all of which must be blocked |
-| `text/*` | TypeScript, Python, JSON, XML, Markdown (formatted), G-code, log, file without extension |
+| `text/*` | TypeScript, Python, JSON, XML, Markdown (formatted), log, file without extension |
+| `text/flange-weights.ipynb` | Jupyter notebook: Markdown, code, a table and a chart as outputs, an error with terminal colors |
+| `books/comic.cbz`, `comic.cbt` | comic of five pages (ZIP and TAR) |
+| `mail/workshop.ics` | calendar with time zone: an event with attendees, a weekly series, a multi-day all-day event, a task |
+| `mail/contacts.vcf` | two contacts, vCard 3.0 with an embedded photo and vCard 4.0 |
+| `shortcuts/viewer.lnk`, `website.url`, `viewer.desktop`, `page.webloc` | Windows shortcut to a program with arguments and start folder, Internet shortcut, Linux desktop entry, macOS web location |
 | `text/windows-1252.txt`, `text/utf-16le.txt` | character set detection |
 | `binary/random.bin` | hex view, marker `EVERYTHING-VIEWER-SAMPLE` at offset 0x400 |
 | `edge-cases/broken.pdf` | damaged file, expected: an error message with a way out |
 | `edge-cases/truncated.png` | truncated PNG, the browser shows the readable part |
 | `edge-cases/empty.txt` | empty file |
 | `edge-cases/png-named-as.txt`, `pdf-without-extension` | detection by content instead of extension |
-| `edge-cases/unknown-extension.xyz` | unknown extension with text content |
+| `edge-cases/unknown-extension.qqq` | unknown extension with text content |
