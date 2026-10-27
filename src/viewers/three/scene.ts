@@ -22,6 +22,10 @@ export interface SceneOptions {
   title: string;
   /** Exact circles the measuring tool snaps to (G-code arcs), in world coordinates. */
   circles?: () => SnapCircle[];
+  /** The viewer brings its own structure tree and selection (IFC): no parts tree, and clicks select nothing here. */
+  ownTree?: boolean;
+  /** Edge lines of a mesh, for viewers that compute them faster themselves (IFC, in its worker). */
+  edges?: (mesh: THREE.Mesh) => THREE.BufferGeometry | null;
 }
 
 /** Which axis of the file points up in the view. */
@@ -92,14 +96,14 @@ function isVisible(node: THREE.Object3D): boolean {
 }
 
 /** Lines along sharp edges, as children of their meshes: they turn, hide and get cut together with the part. */
-function addFeatureEdges(root: THREE.Object3D): THREE.LineSegments[] {
+function addFeatureEdges(root: THREE.Object3D, edges?: SceneOptions['edges']): THREE.LineSegments[] {
   const material = new THREE.LineBasicMaterial({ color: 0x1b1e23, transparent: true, opacity: 0.55 });
   const meshes: THREE.Mesh[] = [];
   root.traverse((node) => {
     if (node instanceof THREE.Mesh && !node.userData.helper) meshes.push(node);
   });
   return meshes.map((mesh) => {
-    const lines = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, 25), material);
+    const lines = new THREE.LineSegments(edges?.(mesh) ?? new THREE.EdgesGeometry(mesh.geometry, 25), material);
     lines.userData.helper = true;
     lines.raycast = () => {};
     mesh.add(lines);
@@ -147,6 +151,8 @@ export interface SceneView extends Viewer {
   readonly radius: number;
   /** Clicks then belong to the measuring tool. */
   isMeasuring(): boolean;
+  /** Frames a box in world coordinates, keeping the view direction. */
+  fitTo(box: THREE.Box3): void;
 }
 
 export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: SceneOptions): SceneView {
@@ -337,7 +343,7 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
   const triangles = countTriangles(object);
   let edgeLines: THREE.LineSegments[] = [];
   function createEdges(): void {
-    edgeLines = addFeatureEdges(object);
+    edgeLines = addFeatureEdges(object, options.edges);
     const meshMaterials = meshes.flatMap(materialsOf);
     // Faces step back a little so the edges on them stay visible.
     for (const m of meshMaterials) Object.assign(m, { polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1, needsUpdate: true });
@@ -401,7 +407,7 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
   // ---- Structure tree --------------------------------------------------------------------------------------------
   const treeRoot = buildTree(object);
   let tree: PartsTree | null = null;
-  if (treeRoot && treeRoot.renderables.length > 1) {
+  if (!options.ownTree && treeRoot && treeRoot.renderables.length > 1) {
     tree = new PartsTree(treeRoot, options.title, {
       changed: requestRender,
       setGhost,
@@ -420,7 +426,7 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
   canvas.addEventListener('pointerup', (e) => {
     const d = down;
     down = null;
-    if (!d || measure?.isActive || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) return;
+    if (!d || options.ownTree || measure?.isActive || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) return;
     const hit = hitAt(e.clientX, e.clientY);
     const node = tree?.reveal(hit?.object ?? null) ?? null;
     highlight(node?.renderables ?? (hit ? [hit.object] : []));
@@ -527,6 +533,7 @@ export function mountScene(ctx: ViewerContext, object: THREE.Object3D, options: 
       return radius;
     },
     isMeasuring: () => Boolean(measure?.isActive),
+    fitTo: (target) => fitTo(target, true),
     destroy: () => {
       stopThemeUpdates();
       cancelAnimationFrame(frame);

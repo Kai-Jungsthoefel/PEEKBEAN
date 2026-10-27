@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Park features (sample)</name>
+    <Style id="path"><LineStyle><color>ffd67f2f</color><width>4</width></LineStyle></Style>
+    <Style id="meadow"><LineStyle><color>ff528a1f</color><width>2</width></LineStyle><PolyStyle><color>6652c25c</color></PolyStyle></Style>
+    <Style id="playground"><PolyStyle><color>993da3e8</color><outline>0</outline></PolyStyle></Style>
+    <Style id="poi-normal"><IconStyle><color>ff3c44d9</color><scale>1.1</scale><Icon><href>files/marker.png</href></Icon><hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction"/></IconStyle></Style>
+    <Style id="poi-highlight"><IconStyle><color>ff3c44d9</color><scale>1.4</scale><Icon><href>files/marker.png</href></Icon><hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction"/></IconStyle></Style>
+    <StyleMap id="poi"><Pair><key>normal</key><styleUrl>#poi-normal</styleUrl></Pair><Pair><key>highlight</key><styleUrl>#poi-highlight</styleUrl></Pair></StyleMap>
+    <Style id="bench"><IconStyle><color>ff2fa8e8</color><scale>0.8</scale><Icon><href>files/marker.png</href></Icon><hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction"/></IconStyle></Style>
+    <Folder>
+      <name>Paths</name>
+      <Placemark>
+        <name>Lakeside path</name>
+        <ExtendedData><Data name="surface"><value>gravel</value></Data><Data name="width_m"><value>3.5</value></Data></ExtendedData>
+        <styleUrl>#path</styleUrl>
+        <LineString><coordinates>11.589467,48.157151,0 11.5914835,48.1568632,0 11.5935,48.1569172,0 11.5955165,48.157223,0 11.5969953,48.1576007,0 11.5978019,48.1583201,0</coordinates></LineString>
+      </Placemark>
+      <Placemark>
+        <name>Bike route</name>
+        <ExtendedData><Data name="surface"><value>asphalt</value></Data><Data name="width_m"><value>4</value></Data></ExtendedData>
+        <styleUrl>#path</styleUrl>
+        <MultiGeometry><LineString><coordinates>11.5891981,48.1602986,0 11.5921557,48.1605864,0 11.5948443,48.1607483,0 11.597533,48.1604965,0 11.5991462,48.1595792,0 11.5995764,48.1580503,0</coordinates></LineString><LineString><coordinates>11.5948443,48.1607483,0 11.5952476,48.1614678,0 11.5959198,48.1620973,0</coordinates></LineString></MultiGeometry>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>Areas</name>
+      <Placemark>
+        <name>Sample meadow</name>
+        <description>The pond in the middle is a hole in the polygon.</description>
+        <styleUrl>#meadow</styleUrl>
+        <Polygon><outerBoundaryIs><LinearRing><coordinates>11.5900047,48.1581403,0 11.5926934,48.1574208,0 11.5953821,48.1577805,0 11.5959198,48.1590396,0 11.5937689,48.1600288,0 11.5908113,48.1596691,0 11.5900047,48.1581403,0</coordinates></LinearRing></outerBoundaryIs><innerBoundaryIs><LinearRing><coordinates>11.5938361,48.1587698,0 11.5937205,48.1589284,0 11.5934181,48.1590264,0 11.5930442,48.1590264,0 11.5927417,48.1589284,0 11.5926262,48.1587698,0 11.5927417,48.1586112,0 11.5930442,48.1585132,0 11.5934181,48.1585132,0 11.5937205,48.1586112,0 11.5938361,48.1587698,0</coordinates></LinearRing></innerBoundaryIs></Polygon>
+      </Placemark>
+      <Placemark>
+        <name>Playground</name>
+        <styleUrl>#playground</styleUrl>
+        <Polygon><outerBoundaryIs><LinearRing><coordinates>11.5961887,48.1579604,0 11.5970222,48.1580324,0 11.5969415,48.158464,0 11.596108,48.1583921,0 11.5961887,48.1579604,0</coordinates></LinearRing></outerBoundaryIs></Polygon>
+      </Placemark>
+      <GroundOverlay>
+        <name>Playground plan</name>
+        <Icon><href>files/plan.png</href></Icon>
+        <LatLonBox><north>48.1585</north><south>48.1579244</south><east>11.5970759</east><west>11.5961349</west></LatLonBox>
+      </GroundOverlay>
+    </Folder>
+    <Folder>
+      <name>Points of interest</name>
+      <Placemark>
+        <name>Viewpoint</name>
+        <ExtendedData><Data name="category"><value>viewpoint</value></Data><Data name="capacity"><value>20</value></Data></ExtendedData>
+        <styleUrl>#poi</styleUrl>
+        <Point><coordinates>11.5955165,48.1595792,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>Kiosk</name>
+        <description><![CDATA[<b>Open</b> daily<br>9:00–18:00]]></description>
+        <ExtendedData><Data name="category"><value>food</value></Data><Data name="capacity"><value>35</value></Data></ExtendedData>
+        <styleUrl>#poi</styleUrl>
+        <Point><coordinates>11.5967264,48.1588597,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>Boat rental</name>
+        <ExtendedData><Data name="category"><value>sport</value></Data><Data name="capacity"><value>12</value></Data></ExtendedData>
+        <styleUrl>#poi</styleUrl>
+        <Point><coordinates>11.5918868,48.157151,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>Information board</name>
+        <ExtendedData><Data name="category"><value>info</value></Data><Data name="capacity"><value></value></Data></ExtendedData>
+        <styleUrl>#poi</styleUrl>
+        <Point><coordinates>11.5897359,48.1586799,0</coordinates></Point>
+      </Placemark>
+      <Folder>
+        <name>Benches</name>
+        <visibility>0</visibility>
+      <Placemark>
+        <name>Bench 1</name>
+        <styleUrl>#bench</styleUrl>
+        <Point><coordinates>11.5929623,48.157241,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>Bench 2</name>
+        <styleUrl>#bench</styleUrl>
+        <Point><coordinates>11.5943066,48.157151,0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>Bench 3</name>
+        <styleUrl>#bench</styleUrl>
+        <Point><coordinates>11.5959198,48.1575107,0</coordinates></Point>
+      </Placemark>
+      </Folder>
+    </Folder>
+    <NetworkLink>
+      <name>Live updates (never loaded by the viewer)</name>
+      <Link><href>https://example.com/live-updates.kml</href></Link>
+    </NetworkLink>
+  </Document>
+</kml>

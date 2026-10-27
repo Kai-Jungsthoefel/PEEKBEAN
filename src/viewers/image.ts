@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { extensionOf, startsWith } from '../core/bytes';
 import { h, toolButton } from '../core/dom';
+import { RAW_EXTENSIONS, inspectRaw, previewBlob, thumbnailPixels } from './camera-raw';
 import { Measure2D } from './measure2d';
 import type { ViewerContext } from '../core/types';
 import type { DecodeFormat, DecodeResponse } from '../workers/image-decode-types';
@@ -14,7 +15,15 @@ interface Source {
   height: number;
   /** Pages of a multi-page TIFF or images in a HEIC container. */
   pages: number;
+  /** Shown before the size in the toolbar ("Camera preview"), with an explanation as tooltip. */
+  label?: string;
+  title?: string;
+  /** Camera raw: size of the sensor data. */
+  sensor?: [number, number];
 }
+
+// JPEG XL in its container (a bare codestream starts with FF 0A).
+const JXL_CONTAINER = [0, 0, 0, 0x0c, 0x4a, 0x58, 0x4c, 0x20, 0x0d, 0x0a, 0x87, 0x0a];
 
 /** Formats the browser may not decode itself; they are decoded in a worker instead. */
 function decoderFormat(file: File, head: Uint8Array): DecodeFormat | null {
@@ -27,7 +36,31 @@ function decoderFormat(file: File, head: Uint8Array): DecodeFormat | null {
   if (startsWith(head, [0x76, 0x2f, 0x31, 0x01]) || ext === 'exr') return 'exr';
   if (startsWith(head, '#?RADIANCE') || startsWith(head, '#?RGBE') || ext === 'hdr') return 'hdr';
   if (ext === 'tga' || ext === 'icb' || ext === 'vda' || ext === 'vst') return 'tga';
+  if (startsWith(head, [0xff, 0x0a]) || startsWith(head, JXL_CONTAINER) || ext === 'jxl') return 'jxl';
   return null;
+}
+
+/** Camera raw files, by extension or by the signatures that only raw formats use (CR3, RAF, ORF, RW2, CRW, MRW, X3F). */
+function isCameraRaw(file: File, head: Uint8Array): boolean {
+  return (
+    RAW_EXTENSIONS.includes(extensionOf(file.name)) ||
+    (startsWith(head, 'ftyp', 4) && startsWith(head, 'crx ', 8)) ||
+    ['FUJIFILMCCD-RAW', 'IIRO', 'IIRS', 'MMOR', 'IIU\0', '\0MRM', 'FOVb'].some((s) => startsWith(head, s)) ||
+    startsWith(head, 'HEAPCCDR', 6)
+  );
+}
+
+// A 1×1 JPEG XL image: Safari decodes the format itself, other browsers mostly do not.
+const JXL_PROBE = 'data:image/jxl;base64,/woAELASCAgQACwASxiLFcJJQR4A9Ac=';
+let nativeJxl: Promise<boolean> | null = null;
+function browserDecodesJxl(): Promise<boolean> {
+  nativeJxl ??= new Promise((resolve) => {
+    const probe = new Image();
+    probe.onload = () => resolve(probe.naturalWidth === 1);
+    probe.onerror = () => resolve(false);
+    probe.src = JXL_PROBE;
+  });
+  return nativeJxl;
 }
 
 const KTX2_SIGNATURE = [0xab, 0x4b, 0x54, 0x58, 0x20, 0x32, 0x30, 0xbb];
@@ -117,17 +150,73 @@ function decodedSource(file: File, format: DecodeFormat, page: number): Promise<
     .finally(() => worker.terminate())
     .then(async (result) => {
       if (!result.ok) throw new Error(result.error);
-      return { ...(await pixelSource(result.width, result.height, result.data)), pages: result.pages };
+      const { width, height, data, png, pages, note } = result;
+      const source = png ? await blobSource(new Blob([data as Uint8ClampedArray<ArrayBuffer>], { type: 'image/png' })) : await pixelSource(width, height, data);
+      if (!source) throw new Error('This browser cannot show the decoded image.');
+      return { ...source, pages, label: note };
     });
+}
+
+/** A JPEG or PNG blob the browser decodes; null if it cannot. */
+async function blobSource(blob: Blob): Promise<Source | null> {
+  const url = URL.createObjectURL(blob);
+  const probe = new Image();
+  probe.src = url;
+  try {
+    await probe.decode();
+    return { url, width: probe.naturalWidth, height: probe.naturalHeight, pages: 1 };
+  } catch {
+    URL.revokeObjectURL(url);
+    return null;
+  }
+}
+
+const PREVIEW_NOTE = 'The JPEG picture the camera stored in the raw file. The raw sensor data is not developed.';
+const THUMBNAIL_NOTE = 'The only picture this raw file holds is a small thumbnail. The raw sensor data is not developed.';
+
+/**
+ * Camera raw: the largest JPEG preview the camera embedded, turned by the raw file's orientation. DNG files without a
+ * usable one (often from phones) are developed in the worker; a few medium format raws only hold a small RGB thumbnail.
+ */
+async function rawSource(file: File, progress: (message: string) => void): Promise<Source> {
+  const info = await inspectRaw(file);
+  const sensor: [number, number] | undefined = info.rawWidth ? [info.rawWidth, info.rawHeight] : undefined;
+  const best = info.previews[0];
+  if (info.dng && (!best || Math.max(best.width, best.height) < Math.max(info.rawWidth, info.rawHeight) / 2)) {
+    progress('Developing raw data …');
+    try {
+      const developed = await decodedSource(file, 'dng', 0);
+      return { ...developed, sensor, title: 'The file has no full-size preview, so the raw sensor data was developed here, plainly: white balance and colors as recorded, no noise reduction or lens corrections.' };
+    } catch (error) {
+      if (!best) throw error;
+    }
+  }
+  for (const preview of info.previews) {
+    const source = await blobSource(previewBlob(file, preview, info.orientation));
+    if (!source) continue;
+    const long = Math.max(source.width, source.height);
+    const tiny = long < 400 && long * 2 < Math.max(info.rawWidth, info.rawHeight);
+    return { ...source, label: tiny ? 'Camera thumbnail' : 'Camera preview', title: tiny ? THUMBNAIL_NOTE : PREVIEW_NOTE, sensor };
+  }
+  if (info.thumbnail) {
+    const { width, height } = info.thumbnail;
+    return { ...(await pixelSource(width, height, await thumbnailPixels(file, info.thumbnail))), label: 'Camera thumbnail', title: THUMBNAIL_NOTE, sensor };
+  }
+  throw new Error('This raw file contains no preview image.');
 }
 
 export async function mount({ file, container, toolbar, progress }: ViewerContext) {
   const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
-  const format = decoderFormat(file, head);
-  const special = mainThreadFormat(file, head);
-  // Safari shows TIFF and HEIC natively; the other decoded formats no browser shows.
-  let source = special || (format && format !== 'tiff' && format !== 'heic') ? null : await nativeSource(file);
-  if (!source && special) {
+  const raw = isCameraRaw(file, head);
+  const format = raw ? null : decoderFormat(file, head);
+  const special = raw ? null : mainThreadFormat(file, head);
+  // Safari shows TIFF, HEIC and JPEG XL natively; the other decoded formats no browser shows.
+  const native = !raw && !special && (!format || format === 'tiff' || format === 'heic' || (format === 'jxl' && (await browserDecodesJxl())));
+  let source = native ? await nativeSource(file) : null;
+  if (raw) {
+    progress('Reading camera preview …');
+    source = await rawSource(file, progress);
+  } else if (!source && special) {
     progress('Decoding image …');
     source = special === 'ktx2' ? await ktx2Source(file) : await metafileSource(file);
   } else if (!source && format) {
@@ -148,6 +237,7 @@ export async function mount({ file, container, toolbar, progress }: ViewerContex
   let measure: Measure2D | null = null;
   const zoomLabel = h('span', { class: 'meta zoom-label' });
   const sizeLabel = h('span', { class: 'meta' });
+  const sensorLabel = h('span', { class: 'meta' });
 
   function setSource(next: Source): void {
     if (source && source !== next) URL.revokeObjectURL(source.url);
@@ -156,7 +246,8 @@ export async function mount({ file, container, toolbar, progress }: ViewerContex
     img.src = next.url;
     img.style.width = `${width}px`;
     img.style.height = `${height}px`;
-    sizeLabel.textContent = file.name.toLowerCase().endsWith('.svg') ? 'Vector graphic' : `${width} × ${height} px`;
+    sizeLabel.textContent = file.name.toLowerCase().endsWith('.svg') ? 'Vector graphic' : `${next.label ? `${next.label} · ` : ''}${width} × ${height} px`;
+    sizeLabel.title = next.title ?? '';
   }
 
   function apply(): void {
@@ -251,6 +342,11 @@ export async function mount({ file, container, toolbar, progress }: ViewerContex
   await img.decode().catch(() => {});
 
   toolbar.append(sizeLabel);
+  if (source.sensor) {
+    sensorLabel.textContent = `Raw ${source.sensor[0]} × ${source.sensor[1]}`;
+    sensorLabel.title = 'Size of the sensor data in the raw file';
+    toolbar.append(sensorLabel);
+  }
   if (format && source.pages > 1) {
     const pageSelect = h(
       'select',

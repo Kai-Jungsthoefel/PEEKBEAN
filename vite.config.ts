@@ -40,9 +40,15 @@ const EXTRA_NOTICES = [
   ['pdf.js decoders (OpenJPEG, JBIG2, QCMS)', 'node_modules/pdfjs-dist/wasm/LICENSE_OPENJPEG'],
   ['acadrust and Rust crates (in dwg2dxf.wasm)', 'src/wasm/dwg2dxf/THIRD_PARTY_LICENSES.txt'],
   ['libarchive and compression libraries (in libarchive.wasm)', 'src/wasm/libarchive/THIRD_PARTY_LICENSES.txt'],
+  ['Rust crates in jxl_oxide_wasm_bg.wasm (JPEG XL decoder)', 'licenses/jxl-oxide.txt'],
+  ['C++ libraries compiled into web-ifc.wasm', 'licenses/web-ifc.txt'],
   // Both are fetched at run time (rhino3dm/, basis/), so the module graph never sees them.
   ['rhino3dm 8.32.1 (rhino3dm.js, rhino3dm.wasm)', 'licenses/rhino3dm.txt'],
   ['Basis Universal transcoder (basis_transcoder.js, basis_transcoder.wasm, shipped with three.js)', 'licenses/basis-universal.txt'],
+  // Bundled into @tracespace/parser's own build, so the module graph only sees the parser.
+  ['moo 0.5 (lexer, bundled in @tracespace/parser)', 'licenses/moo.txt'],
+  // The npm package of laz-perf declares Apache-2.0 but ships no license text.
+  ['laz-perf 0.0.7 (laz-perf.wasm)', 'licenses/laz-perf.txt'],
 ];
 
 // The page must not be able to talk to any server but its own origin; that is the privacy promise.
@@ -199,12 +205,23 @@ export default defineConfig({
     format: 'es',
     plugins: sharedPlugins,
   },
+  resolve: {
+    alias: [
+      // mdb-reader's browser build hashes and decrypts (password-protected .accdb) with Node polyfills that need Node's
+      // stream module; these stand-ins do the same with @noble. Nothing else in the app imports either package.
+      { find: /^create-hash$/, replacement: path.join(root, 'src/workers/mdb-hash.ts') },
+      { find: /^browserify-aes\/browser\.js$/, replacement: path.join(root, 'src/workers/mdb-aes.ts') },
+    ],
+  },
   // Dependencies only a worker imports: the dev server would find them late, re-bundle its dependencies and leave
   // the running worker with outdated URLs. Bundling them at startup avoids that.
   optimizeDeps: {
     include: [
-      'utif2', 'ag-psd', 'decode-dxt', 'occt-import-js', 'xlsx', 'xlsx/dist/cpexcel.full', 'dxf-viewer', '@zip.js/zip.js',
+      'utif2', 'ag-psd', 'decode-dxt', 'occt-import-js', 'xlsx', 'xlsx/dist/cpexcel.full', 'dxf-viewer', '@zip.js/zip.js', 'web-ifc',
       'three/addons/loaders/DDSLoader.js', 'three/addons/loaders/EXRLoader.js', 'three/addons/loaders/HDRLoader.js', 'three/addons/loaders/TGALoader.js',
+      '@tracespace/parser', '@tracespace/plotter', '@tracespace/identify-layers', 'shpjs', 'proj4', 'topojson-client',
+      'jxl-oxide-wasm', 'laz-perf/lib/worker/laz-perf.js',
+      'mdb-reader', 'buffer', '@noble/hashes/legacy', '@noble/hashes/sha2', '@noble/ciphers/aes.js',
     ],
   },
   // Lets `npm run preview` behave like a host that sends the CSP as a header (workers included).

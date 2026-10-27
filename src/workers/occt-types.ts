@@ -7,6 +7,11 @@ export interface OcctRequest {
   buffer: ArrayBuffer;
 }
 
+/** Several files through one kernel instance, e.g. the shapes of a FreeCAD document. */
+export interface OcctBatchRequest {
+  batch: OcctRequest[];
+}
+
 export interface OcctNode {
   name: string;
   meshes: number[];
@@ -28,3 +33,9 @@ export type OcctResponse =
   | { ok: false; error: string }
   /** Sent once the CAD kernel is loaded and tessellation starts. */
   | { ok: 'progress' };
+
+/** Answers to a batch request: progress, one result per file in request order, then 'done'. */
+export type OcctBatchResponse =
+  | { ok: 'progress' }
+  | ({ index: number } & Exclude<OcctResponse, { ok: 'progress' }>)
+  | { ok: 'done' };

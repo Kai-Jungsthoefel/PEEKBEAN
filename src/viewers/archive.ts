@@ -5,6 +5,7 @@ import { BlobReader, BlobWriter, ZipReader, configure } from '@zip.js/zip.js';
 import { extensionOf, formatBytes, startsWith } from '../core/bytes';
 import { h } from '../core/dom';
 import { icon } from '../core/icons';
+import { viewers } from '../core/registry';
 import type { ViewerContext } from '../core/types';
 import type { LibarchiveRequest, LibarchiveResponse } from '../workers/libarchive.worker';
 
@@ -277,6 +278,13 @@ export async function mount({ file, container, toolbar, openFile, progress }: Vi
     ),
   );
   toolbar.append(h('span', { class: 'meta' }, `${archive.kind} · ${archive.entries.length} ${archive.entries.length === 1 ? 'file' : 'files'} · ${formatBytes(total)} unpacked`));
+  // Viewers that show several files of an archive together (a board's Gerber files, shapefiles) offer to open it whole.
+  const names = archive.entries.map((e) => e.name);
+  for (const viewer of viewers) {
+    const whole = viewer.wholeArchive;
+    if (!whole?.accepts(names, archive.kind)) continue;
+    toolbar.append(h('button', { type: 'button', class: 'btn sm', title: whole.title, onclick: () => openFile(file, viewer.id) }, icon(viewer.icon, 14), whole.label));
+  }
 
   return { destroy: () => void archive.close() };
 }

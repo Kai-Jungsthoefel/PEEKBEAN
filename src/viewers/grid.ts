@@ -22,6 +22,11 @@ export interface GridData {
   rowHeights?: number[];
   /** Column titles; defaults to A, B, C … */
   columnTitles?: string[];
+  /** Tooltips of the column headers, e.g. the column's type; default the title. */
+  columnTips?: string[];
+  /** Total rows when `rows` is filled on demand (a sparse array); `onView` says which rows are in view. */
+  rowCount?: number;
+  onView?: (firstRow: number, lastRow: number) => void;
   /** Number of the first row as shown in the row header (Excel rows start at 1). */
   firstRowNumber?: number;
   /** CSS declarations referenced by `GridCell.style`. */
@@ -64,13 +69,15 @@ function floorIndex(offsets: number[], value: number): number {
 
 export interface Grid {
   element: HTMLElement;
+  /** Draws again, e.g. after rows arrived for `GridData.onView`. */
+  refresh(): void;
   destroy(): void;
 }
 
-/** Renders `data`; `onSelect` receives the clicked cell's address and content. */
-export function createGrid(data: GridData, onSelect?: (address: string, cell: GridCell | undefined) => void): Grid {
+/** Renders `data`; `onSelect` receives the clicked cell's address, content and position. */
+export function createGrid(data: GridData, onSelect?: (address: string, cell: GridCell | undefined, row: number, column: number) => void): Grid {
   const columns = Math.min(data.columnCount, MAX_COLUMNS);
-  const rowCount = data.rows.length;
+  const rowCount = data.rowCount ?? data.rows.length;
   const widths = Array.from({ length: columns }, (_, i) => data.columnWidths?.[i] ?? DEFAULT_WIDTH);
   const heights = Array.from({ length: rowCount }, (_, i) => data.rowHeights?.[i] ?? DEFAULT_ROW);
   const lefts = [0];
@@ -94,7 +101,7 @@ export function createGrid(data: GridData, onSelect?: (address: string, cell: Gr
     'div',
     { class: 'grid-head', style: `width:${ROW_HEADER_WIDTH + totalWidth}px` },
     h('div', { class: 'grid-corner', style: `width:${ROW_HEADER_WIDTH}px` }),
-    ...widths.map((w, i) => (w > 0 ? h('div', { class: 'grid-ch', style: `left:${ROW_HEADER_WIDTH + lefts[i]}px;width:${w}px`, title: title(i) }, title(i)) : null)),
+    ...widths.map((w, i) => (w > 0 ? h('div', { class: 'grid-ch', style: `left:${ROW_HEADER_WIDTH + lefts[i]}px;width:${w}px`, title: data.columnTips?.[i] ?? title(i) }, title(i)) : null)),
   );
   const rowHeaders = h('div', { class: 'grid-rhs', style: `width:${ROW_HEADER_WIDTH}px;height:${totalHeight}px` });
   const cells = h('div', { class: `grid-cells${data.gridlines === false ? '' : ' lines'}`, style: `left:${ROW_HEADER_WIDTH}px;width:${totalWidth}px;height:${totalHeight}px` });
@@ -189,6 +196,7 @@ export function createGrid(data: GridData, onSelect?: (address: string, cell: Gr
     }
     cells.replaceChildren(fragment);
     rowHeaders.replaceChildren(headers);
+    if (lastRow >= firstRow) data.onView?.(firstRow, lastRow);
   }
 
   cells.addEventListener('click', (event) => {
@@ -209,7 +217,7 @@ export function createGrid(data: GridData, onSelect?: (address: string, cell: Gr
     if (r >= rowCount || c >= columns) return;
     selected = { r, c };
     render();
-    onSelect?.(`${title(c)}${r + firstRowNumber}`, data.rows[r]?.[c]);
+    onSelect?.(`${title(c)}${r + firstRowNumber}`, data.rows[r]?.[c], r, c);
   });
 
   let frame = 0;
@@ -223,6 +231,7 @@ export function createGrid(data: GridData, onSelect?: (address: string, cell: Gr
 
   return {
     element,
+    refresh: schedule,
     destroy: () => {
       cancelAnimationFrame(frame);
       resizeObserver.disconnect();

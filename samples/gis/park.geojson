@@ -1,0 +1,348 @@
+{
+ "type": "FeatureCollection",
+ "name": "park",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Sample meadow",
+    "category": "meadow",
+    "area_ha": 8.6,
+    "opened": "2019-05-04",
+    "accessible": true,
+    "capacity": null,
+    "note": "The pond in the middle is a hole in the polygon."
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       11.5900047,
+       48.1581403
+      ],
+      [
+       11.5926934,
+       48.1574208
+      ],
+      [
+       11.5953821,
+       48.1577805
+      ],
+      [
+       11.5959198,
+       48.1590396
+      ],
+      [
+       11.5937689,
+       48.1600288
+      ],
+      [
+       11.5908113,
+       48.1596691
+      ],
+      [
+       11.5900047,
+       48.1581403
+      ]
+     ],
+     [
+      [
+       11.5937205,
+       48.1586112
+      ],
+      [
+       11.5934181,
+       48.1585132
+      ],
+      [
+       11.5930442,
+       48.1585132
+      ],
+      [
+       11.5927417,
+       48.1586112
+      ],
+      [
+       11.5926262,
+       48.1587698
+      ],
+      [
+       11.5927417,
+       48.1589284
+      ],
+      [
+       11.5930442,
+       48.1590264
+      ],
+      [
+       11.5934181,
+       48.1590264
+      ],
+      [
+       11.5937205,
+       48.1589284
+      ],
+      [
+       11.5938361,
+       48.1587698
+      ],
+      [
+       11.5937205,
+       48.1586112
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Playground",
+    "category": "playground",
+    "area_ha": 0.29,
+    "opened": "2022-07-01",
+    "accessible": true,
+    "capacity": 60,
+    "note": null,
+    "fill": "#e8a33d",
+    "fill-opacity": 0.5,
+    "stroke": "#b06d10",
+    "stroke-width": 2
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       11.5961887,
+       48.1579604
+      ],
+      [
+       11.5970222,
+       48.1580324
+      ],
+      [
+       11.5969415,
+       48.158464
+      ],
+      [
+       11.596108,
+       48.1583921
+      ],
+      [
+       11.5961887,
+       48.1579604
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Lakeside path",
+    "category": "path",
+    "surface": "gravel",
+    "width_m": 3.5,
+    "lit": false
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      11.589467,
+      48.157151
+     ],
+     [
+      11.5914835,
+      48.1568632
+     ],
+     [
+      11.5935,
+      48.1569172
+     ],
+     [
+      11.5955165,
+      48.157223
+     ],
+     [
+      11.5969953,
+      48.1576007
+     ],
+     [
+      11.5978019,
+      48.1583201
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Bike route",
+    "category": "path",
+    "surface": "asphalt",
+    "width_m": 4,
+    "lit": true,
+    "stroke": "#2f7fd6",
+    "stroke-width": 3
+   },
+   "geometry": {
+    "type": "MultiLineString",
+    "coordinates": [
+     [
+      [
+       11.5891981,
+       48.1602986
+      ],
+      [
+       11.5921557,
+       48.1605864
+      ],
+      [
+       11.5948443,
+       48.1607483
+      ],
+      [
+       11.597533,
+       48.1604965
+      ],
+      [
+       11.5991462,
+       48.1595792
+      ],
+      [
+       11.5995764,
+       48.1580503
+      ]
+     ],
+     [
+      [
+       11.5948443,
+       48.1607483
+      ],
+      [
+       11.5952476,
+       48.1614678
+      ],
+      [
+       11.5959198,
+       48.1620973
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Viewpoint",
+    "category": "viewpoint",
+    "capacity": 20,
+    "rating": 4.6,
+    "opened": "2021-06-12",
+    "accessible": true,
+    "marker-color": "#d9443c"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.5955165,
+     48.1595792
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Kiosk",
+    "category": "food",
+    "capacity": 35,
+    "rating": 4.1,
+    "opened": "2019-04-01",
+    "accessible": true,
+    "marker-color": "#d9443c"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.5967264,
+     48.1588597
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Boat rental",
+    "category": "sport",
+    "capacity": 12,
+    "rating": 4.4,
+    "opened": "2018-05-01",
+    "accessible": false,
+    "marker-color": "#d9443c"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.5918868,
+     48.157151
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Information board",
+    "category": "info",
+    "capacity": null,
+    "rating": null,
+    "opened": "2020-03-15",
+    "accessible": true,
+    "marker-color": "#d9443c"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.5897359,
+     48.1586799
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Benches",
+    "category": "bench",
+    "capacity": 9
+   },
+   "geometry": {
+    "type": "MultiPoint",
+    "coordinates": [
+     [
+      11.5929623,
+      48.157241
+     ],
+     [
+      11.5943066,
+      48.157151
+     ],
+     [
+      11.5959198,
+      48.1575107
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Park office",
+    "category": "office",
+    "note": "A feature without geometry: listed in the table, not on the map."
+   },
+   "geometry": null
+  }
+ ]
+}

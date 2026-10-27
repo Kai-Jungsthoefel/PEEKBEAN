@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Metadata of a file for the info panel. Everything is read locally; each format's reader loads only when needed.
 import { extensionOf, formatBytes, startsWith } from '../core/bytes';
+import { RAW_EXTENSIONS } from '../viewers/camera-raw';
 import { formatDate, row, section, type MetaSection } from './model';
 
 export type { MetaRow, MetaSection } from './model';
 
-const IMAGE = new Set(['jpg', 'jpeg', 'jpe', 'jfif', 'tif', 'tiff', 'heic', 'heif', 'avif', 'png', 'webp', 'dng', 'cr2', 'nef', 'arw', 'orf', 'rw2']);
+const IMAGE = new Set(['jpg', 'jpeg', 'jpe', 'jfif', 'tif', 'tiff', 'heic', 'heif', 'avif', 'png', 'webp', 'jxl', ...RAW_EXTENSIONS]);
 const MEDIA = new Set(['mp4', 'm4v', 'm4a', 'mov', 'qt', '3gp', '3g2', 'mp3', 'flac', 'webm', 'mkv', 'ogg', 'oga', 'ogv', 'opus', 'wav', 'aac']);
 const OFFICE = new Set(['docx', 'docm', 'dotx', 'dotm', 'xlsx', 'xlsm', 'xltx', 'xltm', 'pptx', 'pptm', 'potx', 'potm', 'ppsx', 'ppsm']);
 const OPEN_DOCUMENT = new Set(['odt', 'ods', 'odp', 'odg', 'ott', 'ots', 'otp']);
@@ -24,6 +25,9 @@ async function formatSections(file: File, extension: string, head: Uint8Array): 
   if (['ttf', 'otf', 'woff'].includes(extension)) return (await import('./misc')).fontMetadata(file);
   if (startsWith(head, 'SQLite format 3\0')) return (await import('./misc')).sqliteMetadata(head);
   if (['html', 'htm', 'xhtml'].includes(extension)) return (await import('./misc')).htmlMetadata(file);
+  if (extension === 'rtf' || startsWith(head, '{\\rtf')) return (await import('./books')).rtfMetadata(file);
+  if (extension === 'epub' || (startsWith(head, 'PK\x03\x04') && startsWith(head, 'mimetypeapplication/epub+zip', 30))) return (await import('./books')).epubMetadata(file);
+  if (extension === 'fb2') return (await import('./books')).fb2Metadata(file);
   return [];
 }
 

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
+<description>
+<title-info>
+<genre>adventure</genre>
+<author><nickname>OPSIS sample generator</nickname></author>
+<book-title>The Lighthouse Keeper’s Notebook</book-title>
+<annotation><p>Three short chapters about an island light, written as a sample for the OPSIS e-book reader.</p></annotation>
+<keywords>sample, lighthouse</keywords>
+<date value="2026-10-27">2026</date>
+<coverpage><image l:href="#cover.png"/></coverpage>
+<lang>en</lang>
+<sequence name="OPSIS samples" number="1"/>
+</title-info>
+<document-info>
+<author><nickname>OPSIS sample generator</nickname></author>
+<program-used>scripts/generate-book-samples.mjs</program-used>
+<date value="2026-10-27">2026-10-27</date>
+<id>6f1c2a54-3d8e-4b7a-9c21-5e0d4f8a7b13</id>
+<version>1.0</version>
+</document-info>
+<publish-info><publisher>Example</publisher><year>2026</year></publish-info>
+</description>
+<body>
+<title><p>The Lighthouse Keeper’s Notebook</p></title>
+
+<section id="island">
+<title><p>Chapter 1</p><p>The Island</p></title>
+<epigraph><p>Count the ships, not the days.</p><text-author>The previous keeper</text-author></epigraph>
+<p>The island is a long back of granite, three hundred paces from end to end, with the lighthouse at its northern tip. Nothing grows taller than a sea pink, and the wind never quite stops; on calm days it merely lowers its voice.</p>
+<p>My predecessor left me a notebook, a kettle and one piece of advice: <emphasis>count the ships, not the days</emphasis>. I have tried to follow it, with <strong>mixed</strong> success.</p>
+<section id="arrival"><title><p>Arrival</p></title>
+<p>The supply boat comes every second Thursday when the sea allows, which is to say less often than that. It brings oil, flour, letters and news that is already old.<a l:href="#note1" type="note">[1]</a></p>
+<p>The log of the first week is in <a l:href="#log">chapter 3</a>.</p>
+</section>
+</section>
+<section id="light">
+<title><p>Chapter 2</p><p>The Light</p></title>
+<p>The lamp burns from sunset to sunrise. The beam turns once every twenty seconds: two flashes, a long pause, two flashes.</p>
+<image l:href="#seascape.png"/>
+<subtitle>A rhyme from the notebook</subtitle>
+<poem><stanza><v>Two flashes, then the dark between,</v><v>a count that every pilot knows;</v><v>the lamp is trimmed, the glass is clean,</v><v>and round and round the bright beam goes.</v></stanza></poem>
+<empty-line/>
+<p><strong>Never</strong> let the clockwork run down. H<sub>2</sub>O freezes in the cistern at 0 °C; the lens turns at 3 <sup>rpm</sup>.</p>
+</section>
+<section id="logbook">
+<title><p>Chapter 3</p><p>The Log</p></title>
+<p>These are the first entries of my log, copied out fair.</p>
+<table id="log">
+<tr><th>Day</th><th>Weather</th><th>Wind</th><th>Ships seen</th></tr>
+<tr><td>Monday</td><td>Fog until noon, then clear</td><td>SW 3</td><td>2</td></tr>
+<tr><td>Tuesday</td><td>Rain</td><td>W 5</td><td>0</td></tr>
+<tr><td>Wednesday</td><td>Clear and cold</td><td>NW 4</td><td>5</td></tr>
+<tr><td>Thursday</td><td>Squalls, supply boat turned back</td><td>NW 7</td><td>1</td></tr>
+<tr><td>Friday</td><td>Overcast</td><td>N 4</td><td>3</td></tr>
+<tr><td>Saturday</td><td>Clear, a halo round the moon</td><td>NE 2</td><td>4</td></tr>
+<tr><td>Sunday</td><td>Calm; the sea like oil</td><td>variable</td><td>6</td></tr>
+</table>
+<p>Back to <a l:href="#island">the beginning</a>. Non-ASCII text: Grüße, Καλημέρα, 灯台.</p>
+</section>
+</body>
+<body name="notes">
+<title><p>Notes</p></title>
+<section id="note1"><title><p>1</p></title><p>The oldest newspaper on the island describes a winter storm that the keeper of the time, by his own account, slept through.</p></section>
+</body>
+<binary id="cover.png" content-type="image/png">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
+hjXus206AAAAAElFTkSuQmCC</binary>
+<binary id="seascape.png" content-type="image/png">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
+gg==</binary>
+</FictionBook>

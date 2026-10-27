@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Decodes image formats browsers cannot show by themselves into RGBA pixels:
 // TIFF (UTIF2, MIT), Photoshop (ag-psd, MIT), HEIC/HEIF (libheif, LGPL-3.0), TGA, DDS, OpenEXR and Radiance HDR
-// (three.js loaders, MIT; DXT blocks via decode-dxt, MIT). High dynamic range images are tone mapped.
+// (three.js loaders, MIT; DXT blocks via decode-dxt, MIT), DNG raw data (raw-develop.ts) and JPEG XL (jxl-oxide, MIT OR
+// Apache-2.0; handed back as PNG). High dynamic range images are tone mapped.
 import * as UTIF from 'utif2';
 import { readPsd } from 'ag-psd';
 import decodeDxt from 'decode-dxt';
@@ -11,9 +12,10 @@ import { EXRLoader } from 'three/addons/loaders/EXRLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { TGALoader } from 'three/addons/loaders/TGALoader.js';
 import type { DecodeRequest, DecodeResponse } from './image-decode-types';
+import { developRaw } from './raw-develop';
 import { toneMap } from './tonemap';
 
-type Pixels = { width: number; height: number; data: Uint8ClampedArray; pages: number };
+type Pixels = { width: number; height: number; data: Uint8ClampedArray; pages: number; png?: boolean; note?: string };
 
 function decodeTga(buffer: ArrayBuffer): Pixels {
   // Rows come out top first, whatever origin the file uses.
@@ -100,6 +102,8 @@ self.onmessage = async (event: MessageEvent<DecodeRequest>) => {
       dds: () => decodeDds(buffer),
       exr: () => decodeExr(buffer),
       hdr: () => decodeHdr(buffer),
+      jxl: async () => ({ ...(await (await import('./jxl-decode')).decodeJxl(buffer)), pages: 1 }),
+      dng: () => ({ ...developRaw(buffer), pages: 1, note: 'Developed from raw' }),
     };
     const pixels = await decoders[format]();
     const response: DecodeResponse = { ok: true, ...pixels };

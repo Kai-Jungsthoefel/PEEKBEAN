@@ -25,7 +25,7 @@ const THEMES: { value: ThemePreference; icon: IconName; label: string }[] = [
 ];
 
 /** 2D drawings bake the background into their WebGL scene, so they are drawn again when the theme changes. */
-const REDRAW_ON_THEME = new Set(['dxf', 'dwg']);
+const REDRAW_ON_THEME = new Set(['dxf', 'dwg', 'hpgl']);
 
 const SOURCE_URL = __SOURCE_URL__ ? `${__SOURCE_URL__}/tree/${__GIT_COMMIT__}` : '';
 
@@ -130,9 +130,9 @@ export class App {
     this.render();
   }
 
-  open(newFiles: File[]): void {
+  open(newFiles: File[], chosenViewer?: string): void {
     if (newFiles.length === 0) return;
-    const entries = newFiles.map((file) => ({ id: this.nextId++, file }));
+    const entries = newFiles.map((file) => ({ id: this.nextId++, file, chosenViewer }));
     this.files.push(...entries);
     this.activate(entries[0]);
   }
@@ -404,7 +404,7 @@ export class App {
         file: entry.file,
         container,
         toolbar: tools,
-        openFile: (file) => this.open([file]),
+        openFile: (file, viewer) => this.open([file], viewer),
         progress: (message, fraction) => {
           if (token === this.mountToken) loading.update(message, fraction);
         },

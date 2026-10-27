@@ -7,8 +7,8 @@ export interface ViewerContext {
   container: HTMLElement;
   /** Slot in the file toolbar for viewer-specific controls (zoom, page, ...). */
   toolbar: HTMLElement;
-  /** Opens another file in a new tab, e.g. an archive entry or an e-mail attachment. */
-  openFile(file: File): void;
+  /** Opens another file in a new tab, e.g. an archive entry or an e-mail attachment; `viewer` picks one as "View as" does. */
+  openFile(file: File, viewer?: string): void;
   /** Tells the loading screen what is happening; `fraction` (0–1) shows a determinate bar. No effect after mount. */
   progress(message: string, fraction?: number): void;
 }
@@ -39,5 +39,10 @@ export interface ViewerDefinition {
    * so a matching extension of another viewer wins over it.
    */
   container?: boolean;
+  /**
+   * The viewer can show several files of an archive together (a board's Gerber files, shapefiles): the archive viewer
+   * then offers "Open as …" for archives it accepts, by entry names and archive kind.
+   */
+  wholeArchive?: { label: string; title: string; accepts(names: string[], kind: string): boolean };
   load: () => Promise<ViewerModule>;
 }

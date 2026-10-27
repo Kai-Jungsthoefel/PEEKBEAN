@@ -17,6 +17,7 @@ import 'exifr/src/dicts/tiff-gps-keys.mjs';
 import 'exifr/src/dicts/tiff-revivers.mjs';
 import 'exifr/src/dicts/iptc-keys.mjs';
 import 'exifr/src/dicts/ihdr-keys.mjs';
+import { RAW_EXTENSIONS, inspectRaw, previewBlob, type RawInfo } from '../viewers/camera-raw';
 import { formatNumber, locationRows, row, section, text, type MetaRow, type MetaSection } from './model';
 
 type Tags = Record<string, unknown>;
@@ -68,8 +69,9 @@ function focalLength(tags: Tags): string {
 }
 
 function camera(tags: Tags): string {
-  const make = text(tags.Make);
-  const model = text(tags.Model);
+  // A string ends at its first NUL; Samsung raws have leftover bytes behind it.
+  const make = text(tags.Make).split('\0')[0];
+  const model = text(tags.Model).split('\0')[0];
   if (model.toLowerCase().startsWith(make.toLowerCase())) return model;
   return [make, model].filter(Boolean).join(' ');
 }
@@ -78,7 +80,8 @@ function taken(tags: Tags): MetaRow | null {
   const date = (tags.DateTimeOriginal ?? tags.CreateDate ?? tags.DateCreated) as unknown;
   const shown = text(date);
   if (!shown) return null;
-  const offset = text(tags.OffsetTimeOriginal ?? tags.OffsetTime);
+  // Some cameras fill the field with blanks (" :  ").
+  const offset = /^[+-]\d\d:\d\d$/.test(text(tags.OffsetTimeOriginal ?? tags.OffsetTime)) ? text(tags.OffsetTimeOriginal ?? tags.OffsetTime) : '';
   // EXIF times are the camera's local time; the offset to UTC is known only when the camera wrote it.
   return { label: 'Taken', value: offset ? `${shown} (UTC${offset})` : shown };
 }
@@ -88,30 +91,116 @@ function flash(value: unknown): string {
   return value & 1 ? 'fired' : 'did not fire';
 }
 
-export async function imageMetadata(file: File, extension: string): Promise<MetaSection[]> {
-  const input = extension === 'webp' ? await webpExif(file) : file;
-  if (!input) return [];
-  const tags = ((await parse(input, {
-    tiff: true,
-    ifd0: true,
-    exif: true,
-    gps: true,
-    ifd1: false,
-    interop: false,
-    xmp: true,
-    iptc: true,
-    icc: false,
-    jfif: false,
-    ihdr: true,
-    makerNote: false,
-    userComment: true,
-    translateValues: false,
-    mergeOutput: true,
-    silentErrors: true,
-  }).catch(() => null)) ?? {}) as Tags;
+/** The EXIF box of a JPEG XL container: a 4-byte offset to the TIFF header, then the TIFF structure. */
+async function jxlExif(file: File): Promise<Uint8Array | null> {
+  const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  if (String.fromCharCode(...head.subarray(4, 8)) !== 'JXL ') return null;
+  for (let pos = 0, i = 0; pos + 8 <= file.size && i < 64; i++) {
+    const box = new DataView(await file.slice(pos, pos + 16).arrayBuffer());
+    let size = box.getUint32(0);
+    const type = String.fromCharCode(box.getUint8(4), box.getUint8(5), box.getUint8(6), box.getUint8(7));
+    let header = 8;
+    if (size === 1) {
+      size = Number(box.getBigUint64(8));
+      header = 16;
+    } else if (size === 0) size = file.size - pos;
+    if (size < header) break;
+    if (type === 'Exif' && size > header + 4) {
+      const data = new Uint8Array(await file.slice(pos + header, pos + size).arrayBuffer());
+      return data.subarray(4 + new DataView(data.buffer).getUint32(0));
+    }
+    pos += size;
+  }
+  return null;
+}
 
-  const width = Number(tags.ExifImageWidth ?? tags.PixelXDimension ?? tags.ImageWidth);
-  const height = Number(tags.ExifImageHeight ?? tags.PixelYDimension ?? tags.ImageHeight);
+const PARSE_OPTIONS = {
+  tiff: true,
+  ifd0: true,
+  exif: true,
+  gps: true,
+  ifd1: false,
+  interop: false,
+  xmp: true,
+  iptc: true,
+  icc: false,
+  jfif: false,
+  ihdr: true,
+  makerNote: false,
+  userComment: true,
+  translateValues: false,
+  mergeOutput: true,
+  silentErrors: true,
+};
+
+const parseTags = async (input: Blob | Uint8Array, options: Record<string, unknown> = {}) =>
+  ((await parse(input, { ...PARSE_OPTIONS, ...options }).catch(() => null)) ?? {}) as Tags;
+
+/**
+ * Canon CR3 keeps IFD0, EXIF and GPS in separate TIFF structures (CMT1, CMT2, CMT4). The latter two are read as the
+ * first directory of their TIFF, so their tags are named and revived here with exifr's dictionaries.
+ */
+async function cr3Tags(file: File, blocks: NonNullable<RawInfo['cr3']>): Promise<Tags> {
+  const { tagKeys, tagRevivers } = await import('exifr/src/tags.mjs');
+  const block = async (range: [number, number] | undefined, dictionary: 'exif' | 'gps') => {
+    if (!range) return {};
+    const raw = await parseTags(file.slice(...range), { translateKeys: false, reviveValues: false, exif: false, gps: false, xmp: false, iptc: false });
+    const keys = tagKeys.get(dictionary) as Map<number, string> | undefined;
+    const revivers = tagRevivers.get(dictionary) as Map<number, (value: unknown) => unknown> | undefined;
+    return Object.fromEntries(
+      Object.entries(raw).map(([key, value]) => [keys?.get(Number(key)) ?? key, revivers?.get(Number(key))?.(value) ?? value]),
+    );
+  };
+  const tags: Tags = {
+    ...(blocks.CMT1 ? await parseTags(file.slice(...blocks.CMT1)) : {}),
+    ...(await block(blocks.CMT2, 'exif')),
+    ...(await block(blocks.CMT4, 'gps')),
+  };
+  const degrees = (value: unknown, ref: unknown, negative: string) => {
+    if (!Array.isArray(value) || value.length < 3) return NaN;
+    const [d, m, s] = value.map(Number);
+    return (d + m / 60 + s / 3600) * (String(ref).startsWith(negative) ? -1 : 1);
+  };
+  tags.latitude = degrees(tags.GPSLatitude, tags.GPSLatitudeRef, 'S');
+  tags.longitude = degrees(tags.GPSLongitude, tags.GPSLongitudeRef, 'W');
+  return tags;
+}
+
+/** Camera raw files: EXIF data in TIFF structures (most raws), CR3 boxes, or an embedded JPEG (RAF, X3F). */
+async function rawTags(file: File): Promise<{ tags: Tags; info: RawInfo }> {
+  const info = await inspectRaw(file);
+  if (info.cr3) return { tags: await cr3Tags(file, info.cr3), info };
+  const head = new Uint8Array(await file.slice(0, 2).arrayBuffer());
+  // Olympus and Panasonic use TIFF magic numbers of their own, which exifr does not check.
+  const tiff = info.tiffBlock ? file.slice(...info.tiffBlock) : (head[0] === 0x49 && head[1] === 0x49) || (head[0] === 0x4d && head[1] === 0x4d) ? file : null;
+  // Values far into the file (CR2's user comment) need a larger chunk; Panasonic's embedded JPEG (tag 46) is skipped.
+  let tags = tiff ? await parseTags(tiff, { chunkSize: 1 << 20, firstChunkSize: 1 << 20, ifd0: { skip: [0x002e] } }) : {};
+  // RAF, X3F and some Kodak files keep the shot's EXIF data only in the embedded JPEG.
+  const jpeg = info.exifJpeg ? file.slice(...info.exifJpeg) : null;
+  const preview = info.previews.find((p) => p.exif.length);
+  if (!tags.Model || !tags.ExposureTime) {
+    const extra = jpeg ?? (preview ? previewBlob(file, preview, 0) : null);
+    if (extra) tags = { ...(await parseTags(extra)), ...tags };
+  }
+  return { tags, info };
+}
+
+export async function imageMetadata(file: File, extension: string): Promise<MetaSection[]> {
+  let raw: RawInfo | null = null;
+  let tags: Tags;
+  if (RAW_EXTENSIONS.includes(extension)) ({ tags, info: raw } = await rawTags(file));
+  else {
+    const input = extension === 'webp' ? await webpExif(file) : extension === 'jxl' ? await jxlExif(file) : file;
+    if (!input) return [];
+    tags = await parseTags(input);
+  }
+
+  // In raw files IFD0 often describes a thumbnail; when the camera wrote no image size, the largest preview stands in,
+  // or the sensor size if there is no preview of at least half of it.
+  const preview = raw?.previews[0];
+  const full = raw && (!preview || Math.max(preview.width, preview.height) * 2 < Math.max(raw.rawWidth, raw.rawHeight));
+  const width = Number(tags.ExifImageWidth ?? tags.PixelXDimension ?? (raw ? (full ? raw.rawWidth : preview?.width) : tags.ImageWidth));
+  const height = Number(tags.ExifImageHeight ?? tags.PixelYDimension ?? (raw ? (full ? raw.rawHeight : preview?.height) : tags.ImageHeight));
   const direction = Number(tags.GPSImgDirection);
   // Altitude reference 1 means below sea level; exifr returns it as a byte array.
   const altitudeRef = tags.GPSAltitudeRef instanceof Uint8Array ? tags.GPSAltitudeRef[0] : Number(tags.GPSAltitudeRef);
@@ -130,6 +219,7 @@ export async function imageMetadata(file: File, extension: string): Promise<Meta
     section('Location', [...location, ...(location.length && Number.isFinite(direction) ? [{ label: 'Direction', value: `${formatNumber(direction, 0)}°` }] : [])]),
     section('Image', [
       row('Dimensions', width > 0 && height > 0 ? `${width} × ${height} pixels` : ''),
+      row('Sensor data', raw?.rawWidth ? `${raw.rawWidth} × ${raw.rawHeight} pixels` : ''),
       row('Title', tags.title ?? tags.ObjectName ?? tags.Title),
       row('Description', tags.ImageDescription ?? tags.description ?? tags.Caption ?? tags.Description),
       row('Comment', tags.UserComment ?? tags.Comment),

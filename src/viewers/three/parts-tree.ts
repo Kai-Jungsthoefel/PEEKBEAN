@@ -151,7 +151,7 @@ export class PartsTree {
     if (!this.open) return;
     this.foot.replaceChildren(
       icon('eyeoff', 13, 1.8),
-      h('span', {}, `${hidden} ausgeblendet`),
+      h('span', {}, `${hidden} hidden`),
       h('button', { type: 'button', onclick: () => {
         this.root.object.traverse((o) => (o.visible = true));
         this.hooks.changed();

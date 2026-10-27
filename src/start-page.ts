@@ -10,7 +10,7 @@ const ALL_EXTENSIONS = new Set([...viewers, textViewer].flatMap((v) => v.extensi
 
 const CATEGORIES: { id: FormatCategory; title: string; summary: string; icon: IconName }[] = [
   { id: 'documents', title: 'Documents', summary: 'PDF, Word, PowerPoint, Excel', icon: 'doc' },
-  { id: 'cad', title: 'CAD and 3D', summary: 'DWG, DXF, STEP, STL, glTF', icon: 'cube' },
+  { id: 'cad', title: 'CAD and 3D', summary: 'DWG, DXF, STEP, IFC, STL, glTF', icon: 'cube' },
   { id: 'media', title: 'Media', summary: 'Images, audio, video, fonts', icon: 'image' },
   { id: 'data', title: 'Data and web', summary: 'Archives, SQLite, e-mail, HTML', icon: 'archive' },
 ];

@@ -61,6 +61,11 @@ const PATHS = {
   toolpath: '<path d="M4 18h5l3-6 3 6h5"/><path d="M12 12V4"/><circle cx="12" cy="4" r="1.2" fill="currentColor"/>',
   play: '<path d="M8 5.5v13l10.5-6.5Z" fill="currentColor"/>',
   pause: '<path d="M8.5 5.5v13M15.5 5.5v13" stroke-width="2.6"/>',
+  chip: '<rect x="6.5" y="6.5" width="11" height="11" rx="1.5"/><path d="M9.5 3.5v3m5-3v3m-5 11v3m5-3v3M3.5 9.5h3m-3 5h3m11-5h3m-3 5h3"/><circle cx="12" cy="12" r="1.6"/>',
+  map: '<path d="M3.5 6.5 9 4.5l6 2 5.5-2v13l-5.5 2-6-2-5.5 2Z"/><path d="M9 4.5v13M15 6.5v13"/>',
+  points: '<g fill="currentColor" stroke="none"><circle cx="12" cy="5.5" r="1.5"/><circle cx="7.5" cy="9" r="1.5"/><circle cx="16.5" cy="9" r="1.5"/><circle cx="4.5" cy="14" r="1.5"/><circle cx="10" cy="13" r="1.5"/><circle cx="14.5" cy="13.5" r="1.5"/><circle cx="19.5" cy="14" r="1.5"/><circle cx="7" cy="18.5" r="1.5"/><circle cx="12" cy="18.5" r="1.5"/><circle cx="17" cy="18.5" r="1.5"/></g>',
+  building: '<path d="M3 20.5h18"/><path d="M5.5 20.5V9.5h4M18.5 20.5v-17h-9v17"/><path d="M12.5 7h3M12.5 10.5h3M12.5 14h3M7.5 13h0M7.5 16.5h0"/><path d="M12.5 20.5v-3h3v3"/>',
+  toc: '<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.8" cy="6.5" r="1.1" fill="currentColor"/><circle cx="4.8" cy="12" r="1.1" fill="currentColor"/><circle cx="4.8" cy="17.5" r="1.1" fill="currentColor"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;
