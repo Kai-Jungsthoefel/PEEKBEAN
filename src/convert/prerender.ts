@@ -3,6 +3,7 @@
 // content for search engines and for browsers without JavaScript. The page script replaces that content on load.
 import { CONVERTERS, PAIRS, pairPage, type ConversionPair } from './catalog';
 import { formatPageFor, formatPagePath } from '../format-pages';
+import { pageUrl, setPageUrl } from '../prerender';
 
 const ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
 const escape = (text: string) => text.replace(/[&<>"]/g, (c) => ESCAPES[c]);
@@ -53,6 +54,7 @@ export function converterPageHtml(html: string, pair: ConversionPair | null): st
   html = replaceOnce(html, /<meta name="description" content="[^"]*"/, `<meta name="description" content="${description}"`);
   html = replaceOnce(html, /<meta property="og:title" content="[^"]*"/, `<meta property="og:title" content="${title}"`);
   html = replaceOnce(html, /<meta property="og:description" content="[^"]*"/, `<meta property="og:description" content="${description}"`);
+  html = setPageUrl(html, pageUrl(pair ? pairPage(pair) : 'convert.html'));
   html = replaceOnce(html, /<html lang="en"[^>]*>/, pair ? `<html lang="en" data-convert="${pair.slug}">` : '<html lang="en">');
   if (pair && !pair.indexed) html = replaceOnce(html, /<\/head>/, '  <meta name="robots" content="noindex" />\n  </head>');
   return replaceOnce(html, /<!--prerender-->[\s\S]*?<!--\/prerender-->/, `<!--prerender-->${content(pair)}<!--/prerender-->`);

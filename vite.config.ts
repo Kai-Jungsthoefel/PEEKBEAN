@@ -8,7 +8,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 import { findPair, PAIRS, pairPage } from './src/convert/catalog';
 import { converterPageHtml } from './src/convert/prerender';
 import { findFormatPage, FORMAT_PAGES, formatPagePath } from './src/format-pages';
-import { viewerPageHtml } from './src/prerender';
+import { pageUrl, SITE_URL, viewerPageHtml } from './src/prerender';
 
 const root = import.meta.dirname;
 const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
@@ -79,7 +79,7 @@ const CSP = [
 function contentSecurityPolicy(): Plugin {
   let outDir = path.join(root, 'dist');
   return {
-    name: 'everythingviewer:csp',
+    name: 'peekbean:csp',
     apply: 'build',
     configResolved(config) {
       outDir = path.resolve(config.root, config.build.outDir);
@@ -100,7 +100,7 @@ function contentSecurityPolicy(): Plugin {
  */
 function githubStars(): Plugin {
   return {
-    name: 'everythingviewer:github-stars',
+    name: 'peekbean:github-stars',
     apply: 'build',
     async config() {
       const repo = /^https:\/\/github\.com\/([^/]+\/[^/]+)$/.exec(sourceUrl)?.[1];
@@ -131,7 +131,7 @@ function landingPages(): Plugin {
   let outDir = path.join(root, 'dist');
   let building = false;
   return {
-    name: 'everythingviewer:landing-pages',
+    name: 'peekbean:landing-pages',
     configResolved(config) {
       outDir = path.resolve(config.root, config.build.outDir);
       building = config.command === 'build';
@@ -166,13 +166,19 @@ function landingPages(): Plugin {
       for (const format of FORMAT_PAGES) writeFileSync(path.join(outDir, formatPagePath(format)), viewerPageHtml(viewer, format));
       const converter = readFileSync(path.join(outDir, 'convert.html'), 'utf8');
       for (const pair of PAIRS) writeFileSync(path.join(outDir, pairPage(pair)), converterPageHtml(converter, pair));
+      // Conversions marked noindex stay out of the sitemap as well.
+      const pages = ['index.html', 'convert.html', ...FORMAT_PAGES.map(formatPagePath), ...PAIRS.filter((p) => p.indexed).map(pairPage)];
+      const today = new Date().toISOString().slice(0, 10);
+      const urls = pages.map((page) => `  <url><loc>${pageUrl(page)}</loc><lastmod>${today}</lastmod></url>`);
+      writeFileSync(path.join(outDir, 'sitemap.xml'), ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', ...urls, '</urlset>', ''].join('\n'));
+      writeFileSync(path.join(outDir, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
     },
   };
 }
 
 function warnMissingSourceUrl(): Plugin {
   return {
-    name: 'everythingviewer:source-url',
+    name: 'peekbean:source-url',
     apply: 'build',
     buildStart() {
       if (!sourceUrl) {
@@ -217,7 +223,7 @@ const rhinoWithoutEval = (code: string) =>
 
 function occtWithoutEval(): Plugin {
   return {
-    name: 'everythingviewer:occt-without-eval',
+    name: 'peekbean:occt-without-eval',
     transform(code, id) {
       if (!id.replace(/\\/g, '/').endsWith('occt-import-js/dist/occt-import-js.js')) return null;
       return { code: embindWithoutEval(code, 'occt-import-js'), map: null };
@@ -244,7 +250,7 @@ function licenseCheck(): Plugin {
 function licenseReport(): Plugin {
   let outDir = path.join(root, 'dist');
   return {
-    name: 'everythingviewer:license-report',
+    name: 'peekbean:license-report',
     apply: 'build',
     configResolved(config) {
       outDir = path.resolve(config.root, config.build.outDir);
@@ -304,7 +310,8 @@ export default defineConfig({
   // the running worker with outdated URLs. Bundling them at startup avoids that.
   optimizeDeps: {
     include: [
-      'utif2', 'ag-psd', 'decode-dxt', 'occt-import-js', 'xlsx', 'xlsx/dist/cpexcel.full', 'dxf-viewer', 'dxf-viewer/src/DxfScene.js', '@zip.js/zip.js', 'web-ifc',
+      'utif2', 'ag-psd', 'decode-dxt', 'libheif-js/libheif-wasm/libheif-bundle.mjs', 'occt-import-js', 'xlsx', 'xlsx/dist/cpexcel.full',
+      'dxf-viewer', 'dxf-viewer/src/DxfScene.js', '@zip.js/zip.js', 'web-ifc',
       'three/addons/loaders/DDSLoader.js', 'three/addons/loaders/EXRLoader.js', 'three/addons/loaders/HDRLoader.js', 'three/addons/loaders/TGALoader.js',
       '@tracespace/parser', '@tracespace/plotter', '@tracespace/identify-layers', 'shpjs', 'proj4', 'topojson-client',
       'jxl-oxide-wasm', 'laz-perf/lib/worker/laz-perf.js', 'fzstd',

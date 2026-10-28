@@ -8,6 +8,19 @@ import type { FormatCategory } from './core/types';
 const ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
 const escape = (text: string) => text.replace(/[&<>"]/g, (c) => ESCAPES[c]);
 
+export const SITE_URL = 'https://peekbean.com';
+
+/** Public address of a built page; Cloudflare Pages serves `dwg-viewer.html` as `/dwg-viewer` and redirects the rest. */
+export const pageUrl = (file: string) => `${SITE_URL}/${file.replace(/(^|\/)index\.html$/, '$1').replace(/\.html$/, '')}`;
+
+/** Fills in the address of the page for search engines and link previews. */
+export function setPageUrl(html: string, url: string): string {
+  return html
+    .replace(/<link rel="canonical" href="[^"]*"/, `<link rel="canonical" href="${url}"`)
+    .replace(/<meta property="og:url" content="[^"]*"/, `<meta property="og:url" content="${url}"`)
+    .replace(/<meta property="og:image" content="[^"]*"/, `<meta property="og:image" content="${SITE_URL}/og-image.png"`);
+}
+
 export function pageTitle(page: FormatPage | null): string {
   return page ? `${formatPageName(page)}: free, private, no upload | Peekbean` : 'File viewer for any format: free, private, no upload | Peekbean';
 }
@@ -51,6 +64,7 @@ export function viewerPageHtml(html: string, page: FormatPage | null): string {
   html = replaceOnce(html, /<meta name="description" content="[^"]*"/, `<meta name="description" content="${description}"`);
   html = replaceOnce(html, /<meta property="og:title" content="[^"]*"/, `<meta property="og:title" content="${title}"`);
   html = replaceOnce(html, /<meta property="og:description" content="[^"]*"/, `<meta property="og:description" content="${description}"`);
+  html = setPageUrl(html, pageUrl(page ? formatPagePath(page) : 'index.html'));
   html = replaceOnce(html, /<html lang="en"[^>]*>/, page ? `<html lang="en" data-view="${page.slug}">` : '<html lang="en">');
   return replaceOnce(html, /<!--prerender-->[\s\S]*?<!--\/prerender-->/, `<!--prerender-->${content(page)}<!--/prerender-->`);
 }

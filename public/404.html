@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Page not found | Peekbean</title>
+    <!-- Served for every unknown address, also nested ones, so everything is inline and every link absolute. -->
+    <style>
+      :root { --bg: #f3f4f6; --tx: #1b1e23; --tx2: #525b66; --line: #d3d8de; --acc: #f29a38; --acc-ink: #1b1206; }
+      @media (prefers-color-scheme: dark) { :root { --bg: #121417; --tx: #e6e8eb; --tx2: #a3acb6; --line: #2d323a; } }
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--tx); font: 16px/1.5 'Segoe UI', system-ui, sans-serif; }
+      main { max-width: 420px; padding: 32px 16px; text-align: center; }
+      svg { display: block; margin: 0 auto 28px; }
+      h1 { font-size: 28px; margin: 0 0 8px; }
+      p { color: var(--tx2); margin: 0 0 28px; }
+      a { display: inline-block; padding: 10px 20px; border-radius: 8px; background: var(--acc); color: var(--acc-ink); font-weight: 600; text-decoration: none; }
+      a:hover { filter: brightness(1.06); }
+      a.plain { background: none; color: var(--tx2); border: 1px solid var(--line); margin-left: 8px; font-weight: 500; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg width="144" height="48" viewBox="0 8 253 84" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <g stroke="currentColor" stroke-width="7"><path d="M3.5 33.5V88.5"/><circle cx="20" cy="50" r="16.5"/><path d="M50.5 50H83.5A16.5 16.5 0 1 0 79.64 60.61M97.5 50H130.5A16.5 16.5 0 1 0 126.64 60.61"/><path d="M144.5 11.5V66.5M167.5 33.5L144.5 57M153.5 47.8L168 66.5"/></g>
+        <path d="M202.87 52.45A37.39 37.39 0 0 0 235.33 44.37" stroke="#f29a38" stroke-width="33.46"/>
+      </svg>
+      <h1>Nothing to peek at here</h1>
+      <p>This page does not exist. Your files are still welcome on the start page.</p>
+      <a href="/">Open a file</a><a class="plain" href="/convert">Convert files</a>
+    </main>
+  </body>
+</html>
