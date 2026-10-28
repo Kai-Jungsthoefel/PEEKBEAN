@@ -44,7 +44,8 @@ function htmlText(html: string): string {
   return (doc.body?.textContent ?? '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
-function attributes(properties: Record<string, unknown> | null): Record<string, unknown> {
+/** Attributes of a togeojson feature: without the style properties, HTML descriptions as plain text. */
+export function attributes(properties: Record<string, unknown> | null): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(properties ?? {})) {
     if (STYLE_PROPERTIES.includes(key)) continue;
@@ -58,7 +59,7 @@ function attributes(properties: Record<string, unknown> | null): Record<string, 
 }
 
 /** XML text in the encoding its declaration names (KML and GPX are nearly always UTF-8). */
-function decodeXml(bytes: Uint8Array): string {
+export function decodeXml(bytes: Uint8Array): string {
   if (startsWith(bytes, [0xff, 0xfe])) return new TextDecoder('utf-16le').decode(bytes);
   if (startsWith(bytes, [0xfe, 0xff])) return new TextDecoder('utf-16be').decode(bytes);
   const head = new TextDecoder('latin1').decode(bytes.subarray(0, 256));
@@ -70,7 +71,7 @@ function decodeXml(bytes: Uint8Array): string {
   }
 }
 
-function parseXml(text: string, name: string): Document {
+export function parseXml(text: string, name: string): Document {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
   if (doc.getElementsByTagName('parsererror').length) throw new Error(`${name} is not well-formed XML.`);
   return doc;
@@ -95,14 +96,14 @@ function resolvePath(href: string, dir: string): string | null {
   return out.join('/').toLowerCase();
 }
 
-interface XmlSource {
+export interface XmlSource {
   name: string;
   bytes: Uint8Array;
   /** Folder of the file inside the archive, with trailing slash, to resolve its references. */
   dir: string;
 }
 
-interface Collected {
+export interface Collected {
   shapefiles: ShapefileSource[];
   json: JsonSource[];
   xml: XmlSource[];
@@ -233,12 +234,14 @@ function layerOf(name: string, features: F[], result: XmlResult, options: { hidd
   result.layers.push(layer);
 }
 
-function readKml(doc: Document, fallbackName: string, result: XmlResult): void {
+/** The placemarks of a KML file by folder: one group per folder that holds any, named by its folder path. */
+export function kmlGroups(doc: Document, fallbackName: string): { name: string; features: F[]; hidden: boolean }[] {
   const tree = kmlWithFolders(doc);
   const documentName = doc.getElementsByTagName('Document')[0]?.getElementsByTagName('name')[0]?.textContent?.trim();
+  const groups: { name: string; features: F[]; hidden: boolean }[] = [];
   const visit = (children: (Folder | F)[], path: string[], hidden: boolean) => {
     const own = children.filter((c): c is F => c.type === 'Feature');
-    if (own.length) layerOf(path.join(' / ') || documentName || fallbackName, own, result, { hidden });
+    if (own.length) groups.push({ name: path.join(' / ') || documentName || fallbackName, features: own, hidden });
     for (const child of children) {
       if (child.type !== 'folder') continue;
       const name = typeof child.meta.name === 'string' && child.meta.name.trim() ? child.meta.name.trim() : 'Folder';
@@ -246,16 +249,23 @@ function readKml(doc: Document, fallbackName: string, result: XmlResult): void {
     }
   };
   visit(tree.children, [], false);
+  return groups;
 }
 
-/** GPX and TCX: tracks, routes and waypoints as three layers. */
-function readGps(doc: Document, format: 'gpx' | 'tcx', prefix: string, result: XmlResult): void {
+function readKml(doc: Document, fallbackName: string, result: XmlResult): void {
+  for (const group of kmlGroups(doc, fallbackName)) layerOf(group.name, group.features, result, { hidden: group.hidden });
+}
+
+/** GPX and TCX: tracks, routes and waypoints as three groups, each possibly empty. */
+export function gpsGroups(doc: Document, format: 'gpx' | 'tcx', prefix: string): { name: string; features: F[]; kind: 'trk' | 'rte' | 'wpt' }[] {
   const features = (format === 'gpx' ? gpx(doc) : tcx(doc)).features as F[];
   const kind = (f: F) => (f.geometry?.type === 'Point' ? 'wpt' : (f.properties as { _gpxType?: string })?._gpxType === 'rte' ? 'rte' : 'trk');
   const named = (name: string) => (prefix ? `${prefix} – ${name}` : name);
-  layerOf(named('Tracks'), features.filter((f) => kind(f) === 'trk'), result, { tracks: true });
-  layerOf(named('Routes'), features.filter((f) => kind(f) === 'rte'), result, { tracks: true });
-  layerOf(named('Waypoints'), features.filter((f) => kind(f) === 'wpt'), result);
+  return ([['Tracks', 'trk'], ['Routes', 'rte'], ['Waypoints', 'wpt']] as const).map(([name, k]) => ({ name: named(name), features: features.filter((f) => kind(f) === k), kind: k }));
+}
+
+function readGps(doc: Document, format: 'gpx' | 'tcx', prefix: string, result: XmlResult): void {
+  for (const group of gpsGroups(doc, format, prefix)) layerOf(group.name, group.features, result, group.kind === 'wpt' ? {} : { tracks: true });
 }
 
 /** First non-blank byte, after a UTF-8 byte order mark. */
@@ -265,13 +275,15 @@ function firstByte(head: Uint8Array): number {
   return head[i] ?? 0;
 }
 
-export async function readMap(file: File, progress: (message: string) => void): Promise<MapData> {
+/**
+ * The map files a file holds: itself, or the shapefiles, KML, GPX and GeoJSON files in a ZIP or KMZ. `zip` is the
+ * opened archive, to be closed once its `files` are no longer needed.
+ */
+export async function collectSources(file: File, progress: (message: string) => void): Promise<Collected & { zip: ZipReader<unknown> | null }> {
   const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
   const ext = extensionOf(file.name);
   const out: Collected = { shapefiles: [], json: [], xml: [], files: new Map(), kinds: new Set(), notes: [], shapesOnly: false };
   let zip: ZipReader<unknown> | null = null;
-  const data: MapData = { layers: [], notes: out.notes, icons: new Map(), overlays: [], kind: '', shapesOnly: false, urls: [] };
-
   try {
     if (startsWith(head, 'PK\x03\x04') || startsWith(head, 'PK\x05\x06')) {
       progress('Unpacking …');
@@ -283,7 +295,7 @@ export async function readMap(file: File, progress: (message: string) => void): 
     } else if (ext === 'shp' || (head.length >= 4 && new DataView(head.buffer).getInt32(0) === 9994)) {
       out.shapefiles.push({ name: baseName(file.name), shp: await file.arrayBuffer() });
       out.kinds.add('Shapefile');
-      data.shapesOnly = true;
+      out.shapesOnly = true;
     } else if (firstByte(head) === 0x3c) {
       out.xml.push({ name: baseName(file.name), bytes: new Uint8Array(await file.arrayBuffer()), dir: '' });
     } else if (firstByte(head) === 0x7b) {
@@ -292,7 +304,18 @@ export async function readMap(file: File, progress: (message: string) => void): 
     } else {
       throw new Error('This file is not map data: not a shapefile, KML, KMZ, GPX or GeoJSON.');
     }
+    return { ...out, zip };
+  } catch (error) {
+    await zip?.close();
+    throw error;
+  }
+}
 
+export async function readMap(file: File, progress: (message: string) => void): Promise<MapData> {
+  const out = await collectSources(file, progress);
+  const data: MapData = { layers: [], notes: out.notes, icons: new Map(), overlays: [], kind: '', shapesOnly: out.shapesOnly, urls: [] };
+
+  try {
     const xml: XmlResult = { layers: [], overlays: [], hrefs: new Set(), networkLinks: 0 };
     for (const source of out.xml) {
       progress(`Reading ${source.name} …`);
@@ -354,6 +377,6 @@ export async function readMap(file: File, progress: (message: string) => void): 
     for (const url of data.urls) URL.revokeObjectURL(url);
     throw error;
   } finally {
-    await zip?.close();
+    await out.zip?.close();
   }
 }

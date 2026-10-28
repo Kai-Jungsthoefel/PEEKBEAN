@@ -9,7 +9,7 @@ import type { DecodeFormat, DecodeResponse } from '../workers/image-decode-types
 const MIN_SCALE = 0.02;
 const MAX_SCALE = 64;
 
-interface Source {
+export interface Source {
   url: string;
   width: number;
   height: number;
@@ -140,7 +140,7 @@ async function nativeSource(file: File): Promise<Source | null> {
   }
 }
 
-function decodedSource(file: File, format: DecodeFormat, page: number): Promise<Source> {
+export function decodedSource(file: File, format: DecodeFormat, page: number): Promise<Source> {
   const worker = new Worker(new URL('../workers/image-decode.worker.ts', import.meta.url), { type: 'module' });
   return new Promise<DecodeResponse>((resolve, reject) => {
     worker.onmessage = (event: MessageEvent<DecodeResponse>) => resolve(event.data);
@@ -232,7 +232,11 @@ async function rawSource(file: File, progress: (message: string) => void): Promi
   throw new Error('This raw file contains no preview image.');
 }
 
-export async function mount({ file, container, toolbar, progress }: ViewerContext) {
+/**
+ * The picture of an image file as a blob URL, which the caller revokes. `format` is set when the worker decodes the
+ * file, so that further pages can be decoded with decodedSource(). The converter uses this too.
+ */
+export async function openImage(file: File, progress: (message: string) => void): Promise<{ source: Source; format: DecodeFormat | null }> {
   const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
   const raw = isCameraRaw(file, head);
   const layered = !raw && LAYERED_EXTENSIONS.includes(extensionOf(file.name)) && startsWith(head, 'PK\x03\x04');
@@ -255,6 +259,13 @@ export async function mount({ file, container, toolbar, progress }: ViewerContex
     source = await decodedSource(file, format, 0);
   }
   if (!source) throw new Error('This browser does not support this image format, or the file is damaged.');
+  return { source, format };
+}
+
+export async function mount({ file, container, toolbar, progress }: ViewerContext) {
+  const opened = await openImage(file, progress);
+  const { format } = opened;
+  let source: Source | null = opened.source;
 
   const img = h('img', { class: 'image', alt: file.name, draggable: false });
   const stage = h('div', { class: 'image-viewer checkerboard' }, img);

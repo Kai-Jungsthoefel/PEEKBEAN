@@ -1,4 +1,4 @@
-# Everything Viewer
+# OPSIS
 
 View files of all kinds in the browser without uploading them. The site is purely static: files are read and processed only in the browser, and there is no server that could receive them.
 
@@ -76,17 +76,19 @@ A new viewer is a module with `mount({ file, container, toolbar, openFile, progr
 
 ## Privacy
 
+- What the host can see: viewers, web workers, WebAssembly modules and helper files (pdf.js CMaps and fonts, syntax modes for source code) are downloaded only when a file needs them. The server's access log therefore shows which of them a browser loads, and with that the kind of file ("a DWG was opened", "a PDF with Japanese text"), but never the file, its name or its content. Browsers cache these files, so a format shows up about once per browser and release. The "How your files stay local" dialog says this in short.
 - The production build sets a Content Security Policy that only allows connections to the site's own origin. It is in the page as a meta tag and in `dist/_headers` as an HTTP header (Netlify, Cloudflare Pages). **Only the HTTP header also applies to the web workers**, so make sure to send it when hosting.
 - `unsafe-eval` is not allowed. The CAD kernel (OpenCascade) normally creates its JS bindings with `new Function`; `vite.config.ts` replaces that at build time with Emscripten's eval-free variant.
 - HTML files and HTML e-mails run in a sandboxed iframe without scripts, with their own CSP and no network access. External images (such as tracking pixels in newsletters) are blocked.
 - Everything pdf.js loads on demand (CMaps, standard fonts, WASM decoders) ships with the site, so no CDN is contacted.
 - The one exception to "nothing leaves your computer": for photos and videos with GPS data, the info panel ("Properties") has a link to OpenStreetMap. It opens only when clicked, in a new tab, and then sends the coordinates to openstreetmap.org; the site itself loads no map tiles.
+- The GitHub links (header, "Feedback" in the file bar, "Report this problem" on errors, "Suggest a format" on the start page) also open only when clicked. Issue links are filled in with the file's extension, the detected format, the viewer and the app version, never the file name or content. The star count in the header is read from the GitHub API while building (`vite.config.ts`, optionally with `GITHUB_TOKEN`), not by the page; without network access the header shows the link without a count. Behind a proxy, set `NODE_USE_ENV_PROXY=1` for the build.
 
 ## License
 
 GPL-3.0-or-later, see [LICENSE](LICENSE).
 
-During the build, `rollup-plugin-license` checks every shipped dependency, including those in web workers, against an allowlist of GPL-compatible licenses (`vite.config.ts`) and writes all license texts to `dist/third-party-licenses.txt`, together with the licenses of the native code inside the WebAssembly modules. Before publishing, set `repository` in `package.json`, so that the site links to the source code of the deployed version (GPL).
+During the build, `rollup-plugin-license` checks every shipped dependency, including those in web workers, against an allowlist of GPL-compatible licenses (`vite.config.ts`) and writes all license texts to `dist/third-party-licenses.txt`, together with the licenses of the native code inside the WebAssembly modules. The site links to the source code of the deployed version (GPL) in the repository named by `repository` in `package.json`; keep it pointing at the public repository.
 
 Deliberately not used: the prebuilt `libarchive.js`, because its WebAssembly contains OpenSSL 1.0.2 (license not GPL-compatible), and `pptx-preview`, which is only distributed minified without source code.
 

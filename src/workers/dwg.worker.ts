@@ -2,14 +2,16 @@
 // Converts DWG to DXF with acadrust (MPL-2.0), compiled to WebAssembly from crates/dwg2dxf. The drawing stays open
 // here, so switching between model space and layouts does not read the file again. The viewer starts a fresh
 // worker per file and ends it when the tab closes; a reader crash never leaves a broken module behind.
-import init, { DwgDrawing } from '../wasm/dwg2dxf/dwg2dxf.js';
+import init, { DwgDrawing, dwg_convert } from '../wasm/dwg2dxf/dwg2dxf.js';
 import wasmUrl from '../wasm/dwg2dxf/dwg2dxf_bg.wasm?url';
 
-export type DwgRequest = { kind: 'open'; buffer: ArrayBuffer } | { kind: 'model' } | { kind: 'layout'; index: number };
+/** "convert" is for the converter: the whole model space with everything acadrust can write, not just what a viewer draws. */
+export type DwgRequest = { kind: 'open'; buffer: ArrayBuffer } | { kind: 'model' } | { kind: 'layout'; index: number } | { kind: 'convert'; buffer: ArrayBuffer };
 
 export type DwgResponse =
   | { ok: true; kind: 'open'; release: string; layouts: string[]; warnings: string[]; details: string[]; recovered: boolean; dxf: Uint8Array }
   | { ok: true; kind: 'dxf'; dxf: Uint8Array }
+  | { ok: true; kind: 'converted'; dxf: Uint8Array; warnings: string[] }
   | { ok: false; error: string };
 
 let drawing: DwgDrawing | null = null;
@@ -19,6 +21,12 @@ const post = (response: DwgResponse, transfer: Transferable[] = []) => (self as 
 self.onmessage = async (event: MessageEvent<DwgRequest>) => {
   const request = event.data;
   try {
+    if (request.kind === 'convert') {
+      await init({ module_or_path: wasmUrl });
+      const { dxf, warnings } = dwg_convert(new Uint8Array(request.buffer), true);
+      post({ ok: true, kind: 'converted', dxf, warnings }, [dxf.buffer as ArrayBuffer]);
+      return;
+    }
     if (request.kind === 'open') {
       await init({ module_or_path: wasmUrl });
       drawing = DwgDrawing.open(new Uint8Array(request.buffer));

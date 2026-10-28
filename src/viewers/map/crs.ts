@@ -2,13 +2,15 @@
 // Coordinate systems via proj4 (MIT): .prj files (WKT), GeoJSON "crs" members and the systems a user can pick for
 // files without one. Everything is computed here; proj4 never loads grids or definitions from anywhere.
 import proj4 from 'proj4';
-import { geographic, mercator, type Projector } from './model';
+import { geographic, identity, mercator, type Projector } from './model';
 
 export interface CoordinateSystem {
   /** Name to show, e.g. "ETRS89 / UTM zone 32N". */
   name: string;
   /** File coordinates → Web Mercator meters. */
   project: Projector;
+  /** File coordinates → WGS84 longitude and latitude in degrees, for the converter. */
+  toLonLat: Projector;
 }
 
 /**
@@ -64,20 +66,27 @@ export const PICKABLE: { code: number; name: string }[] = [
 ];
 
 function fromDefinition(definition: string, name: string): CoordinateSystem {
-  if (definition.startsWith('+proj=longlat +datum=WGS84')) return { name, project: geographic };
+  if (definition.startsWith('+proj=longlat +datum=WGS84')) return { name, project: geographic, toLonLat: identity };
   const converter = proj4(definition);
   const lonLat = [0, 0];
+  const toLonLat: Projector = (x, y, out) => {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+    lonLat[0] = x;
+    lonLat[1] = y;
+    const p = converter.inverse(lonLat);
+    if (!Number.isFinite(p[0]) || !Number.isFinite(p[1])) return false;
+    out[0] = p[0];
+    out[1] = p[1];
+    return true;
+  };
   return {
     name,
     project: (x, y, out) => {
-      if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
-      lonLat[0] = x;
-      lonLat[1] = y;
-      const p = converter.inverse(lonLat);
-      if (!Number.isFinite(p[0]) || !Number.isFinite(p[1])) return false;
-      mercator(p[0], p[1], out);
+      if (!toLonLat(x, y, out)) return false;
+      mercator(out[0], out[1], out);
       return true;
     },
+    toLonLat,
   };
 }
 
@@ -89,7 +98,7 @@ export function fromEpsg(code: number): CoordinateSystem | null {
 
 /** The "crs" member of older GeoJSON files, e.g. "urn:ogc:def:crs:EPSG::25832" or "EPSG:4326". */
 export function fromCrsName(name: string): CoordinateSystem | null {
-  if (/CRS84$/i.test(name)) return { name: 'WGS 84', project: geographic };
+  if (/CRS84$/i.test(name)) return { name: 'WGS 84', project: geographic, toLonLat: identity };
   const code = /EPSG:{1,2}(?:[\d.]*:)?(\d+)$/i.exec(name.trim())?.[1];
   return code ? fromEpsg(Number(code)) : null;
 }
@@ -107,7 +116,7 @@ export function fromWkt(wkt: string): CoordinateSystem | null {
   }
   // Longitude/latitude on WGS84 or ETRS89 (the same within a meter) needs no conversion.
   if (/^\s*GEOGC(?:S|RS)\[/i.test(text) && /DATUM\[\s*"(?:D_)?(?:WGS_?1984|WGS 84|World Geodetic System 1984|ETRS_?1989|European Terrestrial Reference System 1989)/i.test(text)) {
-    return { name, project: geographic };
+    return { name, project: geographic, toLonLat: identity };
   }
   try {
     return fromDefinition(text, name);

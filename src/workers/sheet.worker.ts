@@ -1,21 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Reads spreadsheets with SheetJS (Apache-2.0) off the main thread; for xlsx the formatting is added from the package.
 import * as XLSX from 'xlsx';
-import * as cptable from 'xlsx/dist/cpexcel.full';
 import type { GridCell } from '../viewers/grid';
+import { readWorkbook } from './sheet-read';
 import { addFormatting } from './sheet-styled';
 import type { SheetRequest, SheetResponse, SheetData } from './sheet-types';
-
-// Legacy .xls and DBF files store text in Windows code pages.
-XLSX.set_cptable(cptable);
-
-function decodeText(bytes: Uint8Array): string {
-  try {
-    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-  } catch {
-    return new TextDecoder('windows-1252').decode(bytes);
-  }
-}
 
 // SheetJS returns the cell's date and time as UTC, independent of the viewer's time zone.
 function formatDate(date: Date): string {
@@ -69,9 +58,7 @@ self.onmessage = async (event: MessageEvent<SheetRequest>) => {
   const { buffer, csv, styled } = event.data;
   try {
     const options: XLSX.ParsingOptions = { dense: true, cellDates: true, cellNF: false, cellStyles: false };
-    const workbook = csv
-      ? XLSX.read(decodeText(new Uint8Array(buffer)), { ...options, type: 'string', raw: false })
-      : XLSX.read(new Uint8Array(buffer), { ...options, type: 'array' });
+    const workbook = readWorkbook(buffer, csv, options);
     const sheets = workbook.SheetNames.map((name) => convert(name, workbook.Sheets[name]));
     let formatted = false;
     if (styled) {

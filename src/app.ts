@@ -3,10 +3,14 @@ import { extensionOf, formatBytes } from './core/bytes';
 import { h, setPressed } from './core/dom';
 import { icon, type IconName } from './core/icons';
 import { detectViewer, hexViewer, textViewer, viewers } from './core/registry';
-import { onThemeChange, setThemePreference, themePreference, type ThemePreference } from './core/theme';
+import { onThemeChange } from './core/theme';
 import type { Viewer, ViewerDefinition } from './core/types';
+import { issueLink, REPO_URL } from './github';
 import { InfoPanel } from './info-panel';
+import { converterForViewer } from './convert/modules';
+import { ExportDialog } from './export-dialog';
 import { MoreMenu } from './more-menu';
+import { brand, fileDrop, githubLink, LocalStatus, siteFooter, siteNav, themeControls } from './site';
 import { startPage } from './start-page';
 
 interface OpenFile {
@@ -18,16 +22,8 @@ interface OpenFile {
   kind?: string;
 }
 
-const THEMES: { value: ThemePreference; icon: IconName; label: string }[] = [
-  { value: 'system', icon: 'monitor', label: 'Follow system setting' },
-  { value: 'light', icon: 'sun', label: 'Light' },
-  { value: 'dark', icon: 'moon', label: 'Dark' },
-];
-
 /** 2D drawings bake the background into their WebGL scene, so they are drawn again when the theme changes. */
 const REDRAW_ON_THEME = new Set(['dxf', 'dwg', 'hpgl']);
-
-const SOURCE_URL = __SOURCE_URL__ ? `${__SOURCE_URL__}/tree/${__GIT_COMMIT__}` : '';
 
 /** Icon for a tab, from the extension; the content check only happens when the file is shown. */
 function iconFor(file: File): IconName {
@@ -90,43 +86,27 @@ export class App {
   private readonly tabs = h('nav', { class: 'tabs', 'aria-label': 'Open files' });
   /** Stands in for the tabs on phones: the current file, opening the list of all open files. */
   private readonly switcher = h('button', { type: 'button', class: 'switcher', 'aria-haspopup': 'dialog', onclick: () => this.openFilesSheet() });
-  private readonly localButton = h(
-    'button',
-    { type: 'button', class: 'local-status', 'aria-haspopup': 'dialog', title: 'How your files stay on this device', onclick: () => this.explainLocal() },
-    h('span', { class: 'dot' }),
-    h('span', { class: 'ls-text' }, 'Local only'),
-  );
-  private readonly themeGroup = h('div', { class: 'theme-seg', role: 'radiogroup', 'aria-label': 'Color theme' });
-  private readonly themeCycle = h('button', { type: 'button', class: 'ibtn theme-cycle', onclick: () => this.cycleTheme() });
+  private readonly local = new LocalStatus();
   private readonly header = this.buildHeader();
   private readonly stage = h('main', { class: 'stage' });
   private readonly picker = h('input', { type: 'file', multiple: true, hidden: true });
-  private readonly localDialog = this.buildLocalDialog();
   private readonly filesDialog = h('dialog', { class: 'sheet files-sheet', 'aria-labelledby': 'files-title' });
-  private readonly dropOverlay = h(
-    'div',
-    { class: 'drop-overlay', 'aria-hidden': 'true' },
-    h('div', { class: 'drop-card' }, icon('drop', 28, 1.6), h('b', {}, 'Drop to open')),
-  );
+  private readonly dropOverlay = fileDrop('Drop to open', (files) => this.open(files));
+  private readonly exporter = new ExportDialog();
 
   constructor(root: HTMLElement) {
-    root.append(this.header, this.stage, this.dropOverlay, this.picker, this.localDialog, this.filesDialog);
+    root.append(this.header, this.stage, this.dropOverlay, this.picker, this.local.dialog, this.filesDialog, this.exporter.dialog);
     this.picker.addEventListener('change', () => {
       this.open([...(this.picker.files ?? [])]);
       this.picker.value = '';
     });
-    for (const dialog of [this.localDialog, this.filesDialog]) {
-      // A click on the backdrop lands on the dialog element itself.
-      dialog.addEventListener('click', (event) => {
-        if (event.target === dialog) dialog.close();
-      });
-    }
-    this.renderThemeControls();
+    // A click on the backdrop lands on the dialog element itself.
+    this.filesDialog.addEventListener('click', (event) => {
+      if (event.target === this.filesDialog) this.filesDialog.close();
+    });
     onThemeChange(() => {
-      this.renderThemeControls();
       if (this.shownViewerId && REDRAW_ON_THEME.has(this.shownViewerId)) this.render();
     });
-    this.installDragAndDrop();
     this.render();
   }
 
@@ -160,25 +140,14 @@ export class App {
       void this.show(this.active);
     } else {
       if (this.filesDialog.open) this.filesDialog.close();
-      this.stage.append(startPage({ openFiles: () => this.picker.click(), explainLocal: () => this.explainLocal(), footer: this.footer() }));
+      this.stage.append(startPage({ openFiles: () => this.picker.click(), explainLocal: () => this.local.explain(), footer: siteFooter() }));
     }
   }
 
   // ---- Header ------------------------------------------------------------------------------------------------------
 
   private buildHeader(): HTMLElement {
-    return h(
-      'header',
-      { class: 'top' },
-      h('span', { class: 'brand' }, h('span', { class: 'logo-tile' }, icon('logo', 18, 1.8)), h('b', { class: 'brand-name' }, 'Everything Viewer')),
-      this.tabs,
-      this.switcher,
-      h('span', { class: 'grow' }),
-      this.localButton,
-      this.themeGroup,
-      this.themeCycle,
-      SOURCE_URL && h('a', { class: 'btn source-link', href: SOURCE_URL, target: '_blank', rel: 'noopener noreferrer' }, icon('code', 16, 1.8), 'Source code'),
-    );
+    return h('header', { class: 'top' }, brand(), siteNav('view'), this.tabs, this.switcher, h('span', { class: 'grow' }), this.local.button, ...themeControls(), githubLink());
   }
 
   private renderTabs(): void {
@@ -211,56 +180,7 @@ export class App {
     if (this.filesDialog.open) this.renderFilesSheet();
   }
 
-  private renderThemeControls(): void {
-    const current = themePreference();
-    this.themeGroup.replaceChildren(
-      ...THEMES.map((t) =>
-        h('button', { type: 'button', role: 'radio', 'aria-checked': String(t.value === current), 'aria-label': t.label, title: t.label, onclick: () => setThemePreference(t.value) }, icon(t.icon, 15, 1.8)),
-      ),
-    );
-    const theme = THEMES.find((t) => t.value === current)!;
-    this.themeCycle.replaceChildren(icon(theme.icon, 20, 1.8));
-    this.themeCycle.setAttribute('aria-label', `Color theme: ${theme.label}. Change theme`);
-    this.themeCycle.title = `Color theme: ${theme.label}`;
-  }
-
-  private cycleTheme(): void {
-    const index = THEMES.findIndex((t) => t.value === themePreference());
-    setThemePreference(THEMES[(index + 1) % THEMES.length].value);
-  }
-
   // ---- Dialogs -----------------------------------------------------------------------------------------------------
-
-  private buildLocalDialog(): HTMLDialogElement {
-    const fact = (num: string, title: string, text: string) => h('li', {}, h('span', { class: 'num' }, num), h('div', {}, h('b', {}, title), h('span', {}, text)));
-    const dialog = h(
-      'dialog',
-      { class: 'pop local-pop', 'aria-labelledby': 'local-title' },
-      h(
-        'div',
-        // Focus starts on the text, not on the close button, so opening shows no focus ring.
-        { class: 'dialog-body', tabindex: '-1', autofocus: true },
-        h('div', { class: 'dialog-hd' }, h('b', { id: 'local-title' }, 'Your files stay on this device'), h('span', { class: 'grow' }), h('button', { type: 'button', class: 'hb', 'aria-label': 'Close', onclick: () => dialog.close() }, icon('close', 14, 2.2))),
-        h(
-          'ol',
-          { class: 'local-facts' },
-          fact('01', 'No upload', 'Files are read and processed locally on your device.'),
-          fact('02', 'Protected by your browser', 'Your browser itself makes sure this page cannot send data to other websites.'),
-          fact('03', 'Open source', 'GPL-3.0. Anyone can check the code.'),
-        ),
-        SOURCE_URL && h('a', { class: 'link', href: SOURCE_URL, target: '_blank', rel: 'noopener noreferrer' }, 'View source code'),
-      ),
-    );
-    return dialog;
-  }
-
-  /** Opens the explanation below the header status (a bottom sheet on phones). */
-  private explainLocal(): void {
-    const anchor = this.localButton.getBoundingClientRect();
-    this.localDialog.style.setProperty('--pop-top', `${anchor.bottom + 6}px`);
-    this.localDialog.style.setProperty('--pop-right', `${Math.max(8, window.innerWidth - anchor.right)}px`);
-    this.localDialog.showModal();
-  }
 
   private openFilesSheet(): void {
     this.renderFilesSheet();
@@ -346,6 +266,17 @@ export class App {
     );
     this.infoButton = infoButton;
     this.infoHost = body;
+    // Appears once the format is known and a converter takes it.
+    const exportButton = h(
+      'button',
+      { type: 'button', class: 'btn sm export-btn', title: 'Save this file in another format', 'aria-label': 'Export', hidden: true },
+      icon('download', 15),
+      h('span', { class: 'lbl' }, 'Export'),
+    );
+    // Filled in with the format once it is detected.
+    const feedback = REPO_URL
+      ? h('a', { class: 'btn sm feedback-btn', target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Feedback', ...issueLink(entry.file) }, icon('feedback', 15), h('span', { class: 'lbl' }, 'Feedback'))
+      : null;
     const select = h('select', {
       class: 'select',
       title: 'View as',
@@ -357,6 +288,7 @@ export class App {
     const moreMenu = new MoreMenu(
       tools,
       h('label', { class: 'view-as' }, h('span', { class: 'c3' }, 'View as'), h('span', { class: 'select-wrap' }, select, icon('chevDown', 14, 2))),
+      ...(feedback ? [feedback] : []),
     );
     this.moreMenu = moreMenu;
     this.stage.append(
@@ -370,6 +302,7 @@ export class App {
           h('span', { class: 'vsep' }),
           moreMenu.panel,
           moreMenu.pinned,
+          exportButton,
           infoButton,
           moreMenu.button,
         ),
@@ -384,11 +317,18 @@ export class App {
     this.shownViewerId = definition.id;
     entry.kind = detected.label;
     meta.textContent = `${definition.label} · ${formatBytes(entry.file.size)}`;
+    const report = issueLink(entry.file, detected, definition);
+    if (feedback) Object.assign(feedback, report);
     select.append(
       h('option', { value: '' }, `Automatic (${detected.label})`),
       ...viewers.map((v) => h('option', { value: v.id }, v.label)),
     );
     select.value = entry.chosenViewer ?? '';
+    const converter = converterForViewer(definition.id);
+    if (converter) {
+      exportButton.hidden = false;
+      exportButton.addEventListener('click', () => this.exporter.open(entry.file, definition.id, converter, exportButton));
+    }
 
     const container = h('div', { class: `viewer-root viewer-${definition.id}` });
     const loading = new LoadingScreen(entry.file, definition.label);
@@ -418,7 +358,7 @@ export class App {
       if (token !== this.mountToken) return;
       console.error(error);
       tools.replaceChildren();
-      host.replaceChildren(this.errorBox(entry, definition, error));
+      host.replaceChildren(this.errorBox(entry, definition, error, report));
     } finally {
       loading.close();
     }
@@ -436,7 +376,7 @@ export class App {
     }
   }
 
-  private errorBox(entry: OpenFile, failed: ViewerDefinition, error: unknown): HTMLElement {
+  private errorBox(entry: OpenFile, failed: ViewerDefinition, error: unknown, report: { href: string; title: string }): HTMLElement {
     const message = error instanceof Error ? error.message : String(error);
     const fallbacks = [textViewer, hexViewer].filter((v) => v !== failed);
     return h(
@@ -461,46 +401,10 @@ export class App {
               `Show as ${v.label}`,
             ),
           ),
+          REPO_URL && h('a', { class: 'btn sm', target: '_blank', rel: 'noopener noreferrer', ...report }, icon('feedback', 14), 'Report this problem'),
         ),
       ),
     );
   }
 
-  private footer(): HTMLElement {
-    return h(
-      'footer',
-      { class: 'foot' },
-      h('span', {}, `Version ${__APP_VERSION__} (${__GIT_COMMIT__})`),
-      h('a', { href: 'https://www.gnu.org/licenses/gpl-3.0.html', target: '_blank', rel: 'noopener noreferrer' }, 'GPL-3.0-or-later'),
-      SOURCE_URL && h('a', { href: SOURCE_URL, target: '_blank', rel: 'noopener noreferrer' }, 'Source code'),
-      h('a', { href: 'third-party-licenses.txt', target: '_blank' }, 'Third-party licenses'),
-    );
-  }
-
-  private installDragAndDrop(): void {
-    let depth = 0;
-    const hasFiles = (e: DragEvent) => e.dataTransfer?.types.includes('Files') ?? false;
-    window.addEventListener('dragenter', (e) => {
-      if (!hasFiles(e)) return;
-      depth++;
-      this.dropOverlay.classList.add('visible');
-    });
-    window.addEventListener('dragleave', (e) => {
-      if (!hasFiles(e)) return;
-      depth = Math.max(0, depth - 1);
-      if (depth === 0) this.dropOverlay.classList.remove('visible');
-    });
-    window.addEventListener('dragover', (e) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-    });
-    window.addEventListener('drop', (e) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
-      depth = 0;
-      this.dropOverlay.classList.remove('visible');
-      this.open([...(e.dataTransfer?.files ?? [])]);
-    });
-  }
 }

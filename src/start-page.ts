@@ -4,6 +4,7 @@ import { h } from './core/dom';
 import { icon, type IconName } from './core/icons';
 import { textViewer, viewers } from './core/registry';
 import type { FormatCategory } from './core/types';
+import { issueLink, REPO_URL } from './github';
 
 /** Every extension a viewer is registered for; the format list counts them to show the range. */
 const ALL_EXTENSIONS = new Set([...viewers, textViewer].flatMap((v) => v.extensions));
@@ -33,6 +34,8 @@ export function startPage({ openFiles, explainLocal, footer }: StartPageOptions)
       h('h1', {}, 'View ', h('em', { class: 'any' }, 'ANY'), ' file.'),
       h('p', { class: 'lead' }, h('b', {}, 'Private and secure.'), ' Everything stays on your computer.'),
       h('button', { type: 'button', class: 'text-link', 'aria-haspopup': 'dialog', onclick: explainLocal }, 'How your files stay local', icon('chevRight', 16, 2)),
+      // On phones the header has no room for the site navigation.
+      h('a', { class: 'text-link site-switch', href: 'convert.html' }, 'Convert files instead', icon('chevRight', 16, 2)),
     ),
     h(
       'div',
@@ -104,6 +107,7 @@ function formats(): HTMLElement {
       { class: 'fmt-rest' },
       h('span', { class: 'fmt-ico' }, icon('binary', 18)),
       h('span', {}, h('b', {}, 'Everything else opens too: '), 'as text with syntax highlighting, or as hex view.'),
+      REPO_URL && h('a', { class: 'text-link', target: '_blank', rel: 'noopener noreferrer', ...issueLink() }, 'Suggest a format', icon('chevRight', 16, 2)),
     ),
   );
 }

@@ -5,6 +5,8 @@ import path from 'node:path';
 import { defineConfig, type Plugin, type PluginOption } from 'vite';
 import license, { type Dependency } from 'rollup-plugin-license';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+import { findPair, PAIRS, pairPage } from './src/convert/catalog';
+import { converterPageHtml } from './src/convert/prerender';
 
 const root = import.meta.dirname;
 const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
@@ -49,6 +51,7 @@ const EXTRA_NOTICES = [
   ['moo 0.5 (lexer, bundled in @tracespace/parser)', 'licenses/moo.txt'],
   // The npm package of laz-perf declares Apache-2.0 but ships no license text.
   ['laz-perf 0.0.7 (laz-perf.wasm)', 'licenses/laz-perf.txt'],
+  ['Lucide icons (GitHub mark and star in src/core/icons.ts)', 'licenses/lucide.txt'],
 ];
 
 // The page must not be able to talk to any server but its own origin; that is the privacy promise.
@@ -85,6 +88,71 @@ function contentSecurityPolicy(): Plugin {
     closeBundle() {
       const headers = [`/*`, `  Content-Security-Policy: ${CSP}`, '  X-Content-Type-Options: nosniff', '  Referrer-Policy: no-referrer', ''];
       writeFileSync(path.join(outDir, '_headers'), headers.join('\n'));
+    },
+  };
+}
+
+/**
+ * The header shows how many stars the repository has. They are counted while building, so the page itself never
+ * asks GitHub; without network or while the repository is private, the link shows no count.
+ */
+function githubStars(): Plugin {
+  return {
+    name: 'everythingviewer:github-stars',
+    apply: 'build',
+    async config() {
+      const repo = /^https:\/\/github\.com\/([^/]+\/[^/]+)$/.exec(sourceUrl)?.[1];
+      if (!repo) return;
+      try {
+        const headers: Record<string, string> = { Accept: 'application/vnd.github+json' };
+        // CI can pass its token to avoid the low rate limit for anonymous requests.
+        if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+        const response = await fetch(`https://api.github.com/repos/${repo}`, { headers, signal: AbortSignal.timeout(5000) });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const { stargazers_count: stars } = await response.json();
+        if (typeof stars === 'number') return { define: { __GITHUB_STARS__: JSON.stringify(stars) } };
+      } catch (error) {
+        console.warn(`GitHub star count not available (${error instanceof Error ? error.message : error}); the header shows the link without it.`);
+      }
+    },
+  };
+}
+
+/**
+ * The converter has a page for each conversion (jpg-to-png.html …), so that a search for "jpg to png" finds it. Each
+ * is the built convert.html with its own title, description and content (src/convert/prerender.ts) and the conversion
+ * in <html data-convert>. They sit next to index.html, so every relative path of the build works for them unchanged.
+ * The dev server makes them on request.
+ */
+function converterPages(): Plugin {
+  let outDir = path.join(root, 'dist');
+  let building = false;
+  return {
+    name: 'everythingviewer:converter-pages',
+    configResolved(config) {
+      outDir = path.resolve(config.root, config.build.outDir);
+      building = config.command === 'build';
+    },
+    transformIndexHtml: {
+      order: 'pre',
+      // convert.html itself becomes the general page; the pages of single conversions are already filled in.
+      handler: (html) => (html.includes('<!--prerender-->') && !html.includes('data-convert=') ? converterPageHtml(html, null) : html),
+    },
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const pair = findPair(/^\/([a-z0-9]+-to-[a-z0-9]+)\.html(?:\?|$)/.exec(req.url ?? '')?.[1] ?? '');
+        if (!pair) return next();
+        const html = converterPageHtml(readFileSync(path.join(root, 'convert.html'), 'utf8'), pair);
+        server.transformIndexHtml(req.url!, html).then((page) => {
+          res.setHeader('Content-Type', 'text/html');
+          res.end(page);
+        }, next);
+      });
+    },
+    closeBundle() {
+      if (!building) return;
+      const html = readFileSync(path.join(outDir, 'convert.html'), 'utf8');
+      for (const pair of PAIRS) writeFileSync(path.join(outDir, pairPage(pair)), converterPageHtml(html, pair));
     },
   };
 }
@@ -196,10 +264,16 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
     __GIT_COMMIT__: JSON.stringify(gitCommit()),
     __SOURCE_URL__: JSON.stringify(sourceUrl),
+    // Set by githubStars() when building.
+    __GITHUB_STARS__: 'null',
   },
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 2000,
+    // The viewer and the converter; the converter's pages per conversion are copies of convert.html (converterPages).
+    rolldownOptions: {
+      input: { main: path.join(root, 'index.html'), convert: path.join(root, 'convert.html') },
+    },
   },
   worker: {
     format: 'es',
@@ -230,7 +304,9 @@ export default defineConfig({
   },
   plugins: [
     contentSecurityPolicy(),
+    converterPages(),
     warnMissingSourceUrl(),
+    githubStars(),
     // pdf.js fetches these on demand; serving them ourselves keeps PDFs from triggering CDN requests.
     // Likewise the Rhino reader and the KTX2 (Basis Universal) transcoder, which three.js loads by URL into workers.
     viteStaticCopy({

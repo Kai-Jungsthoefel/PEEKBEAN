@@ -331,7 +331,7 @@ async function openParquet(file: File, progress: ViewerContext['progress']): Pro
 // ---- Arrow ----------------------------------------------------------------------------------------------------------
 
 /** LZ4 frames as Arrow writes compressed buffers (blocks may refer back into earlier blocks). */
-function lz4Frame(input: Uint8Array): Uint8Array {
+export function lz4Frame(input: Uint8Array): Uint8Array {
   const view = new DataView(input.buffer, input.byteOffset, input.byteLength);
   let out = new Uint8Array(Math.max(1024, input.length * 4));
   let o = 0;

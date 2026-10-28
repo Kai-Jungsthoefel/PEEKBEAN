@@ -77,7 +77,7 @@ svg.ic { display: block; flex-shrink: 0; }
 /* The tile stays dark in both themes, like SOMA's app icon. */
 .logo-tile { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #1b1e23; border: 1px solid #2d323a; color: var(--acc); }
 .brand-name { font-size: 15px; font-weight: 600; white-space: nowrap; }
-.top.has-files .brand-name, .top.has-files .source-link { display: none; }
+.top.has-files .brand-name, .top.has-files .gh-lbl { display: none; }
 
 .tabs { display: flex; align-items: center; min-width: 0; padding: 3px; border: 1px solid var(--line2); border-radius: 10px; background: var(--track); overflow-x: auto; scrollbar-width: none; }
 .tab { position: relative; height: 32px; display: flex; align-items: center; padding-right: 3px; border-radius: 7px; color: var(--tx2); min-width: 0; max-width: 240px; flex-shrink: 0; }
@@ -105,7 +105,11 @@ svg.ic { display: block; flex-shrink: 0; }
 .theme-seg button:hover { color: var(--tx); }
 .theme-seg button[aria-checked=true] { background: var(--seg-on); box-shadow: inset 0 0 0 1px var(--seg-ring), 0 1px 3px var(--seg-drop); color: var(--tx); }
 .theme-cycle { display: none; }
-.source-link { height: 34px; font-size: 13px; }
+/* GitHub link with the star count after a divider, as on SOMA's website; next to open files only icon and count. */
+.gh-link { height: 34px; font-size: 13px; color: var(--tx); }
+.gh-stars { display: flex; align-items: center; gap: 5px; height: 18px; margin-left: 2px; padding-left: 9px; border-left: 1px solid var(--line2); color: var(--tx2); font-variant-numeric: tabular-nums; }
+.gh-link:hover .gh-stars { color: var(--tx); }
+.top.has-files .gh-link { height: 32px; }
 
 /* ---- Stage and file view ------------------------------------------------------------------------------------ */
 .stage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -125,6 +129,10 @@ svg.ic { display: block; flex-shrink: 0; }
 .more-menu, .pinned-tools { display: contents; }
 .more-btn { display: none; }
 .view-as { display: flex; align-items: center; gap: 8px; font-size: 12.5px; flex-shrink: 0; }
+/* Last in the bar, after Info, as a square so the viewer's tools keep their room; on phones a row in the "⋯" menu. */
+.feedback-btn { order: 1; width: 30px; padding: 0; justify-content: center; color: var(--tx2); }
+.feedback-btn:hover { color: var(--tx); }
+.feedback-btn .lbl { display: none; }
 
 .viewer-body { flex: 1; min-height: 0; display: flex; position: relative; }
 .viewer-host { flex: 1; min-width: 0; min-height: 0; position: relative; overflow: hidden; }
@@ -214,6 +222,7 @@ svg.ic { display: block; flex-shrink: 0; }
 .fmt-item .ext { font: 12px/1.5 var(--mono); color: var(--tx3); overflow-wrap: anywhere; }
 .fmt-rest { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px dashed var(--line3); border-radius: 12px; font-size: 13.5px; color: var(--tx2); }
 .fmt-rest b { color: var(--tx); font-weight: 600; }
+.fmt-rest .text-link { margin-left: auto; align-self: center; flex-shrink: 0; white-space: nowrap; text-decoration: none; font-size: 13.5px; }
 
 /* ---- Footer, dialogs and drop overlay ------------------------------------------------------------------------ */
 .foot { margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; padding: 20px 0 32px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--tx3); }
@@ -276,7 +285,7 @@ dialog { color: var(--tx); }
   .switcher .sw-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .local-status { height: 44px; padding: 0 10px; border-radius: 10px; font-size: 13px; }
   .top.has-files .ls-text { display: none; }
-  .theme-seg, .source-link { display: none; }
+  .theme-seg, .gh-link { display: none; }
   .theme-cycle { display: flex; width: 44px; height: 44px; border-radius: 10px; }
 
   .start { width: calc(100% - 32px); padding-top: 20px; gap: 28px; }
@@ -291,6 +300,10 @@ dialog { color: var(--tx); }
   .fmt-grid { grid-template-columns: minmax(0, 1fr); }
   .fmt-panel { grid-row: auto; }
   .fmt-card { min-height: 64px; padding: 10px 12px 10px 14px; }
+  /* The text stays next to the icon, the link moves below it. */
+  .fmt-rest { flex-wrap: wrap; row-gap: 4px; }
+  .fmt-rest > span + span { flex: 1 1 200px; }
+  .fmt-rest .text-link { margin-left: 30px; }
 
   .pop { inset: auto 0 0 0; width: 100%; max-width: 100%; border-width: 1px 0 0; border-radius: 18px 18px 0 0; background: var(--s1); }
   .pop::backdrop { background: rgba(6, 7, 9, .55); }
@@ -310,6 +323,8 @@ dialog { color: var(--tx); }
   .more-menu .viewer-tools:empty { display: none; }
   .more-menu .view-as { justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }
   .more-menu .viewer-tools:empty + .view-as { padding-top: 0; border-top: 0; }
+  .more-menu .feedback-btn { width: auto; padding: 0 12px; font-size: 14px; }
+  .more-menu .feedback-btn .lbl { display: inline; }
   .info-panel { position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 41; width: auto; max-height: 75vh; border: 0; border-top: 1px solid var(--line2); border-radius: 18px 18px 0 0; box-shadow: 0 -12px 40px rgba(0, 0, 0, .3); }
   .info-panel::before { content: ''; align-self: center; flex-shrink: 0; width: 36px; height: 4px; margin-top: 8px; border-radius: 2px; background: var(--line3); }
   .info-backdrop { display: block; position: fixed; inset: 0; z-index: 40; background: var(--scrim); }
@@ -1034,4 +1049,342 @@ button.pv-tile:hover { border-color: var(--acc); }
 .mm-controls[hidden] { display: none; }
 @media (max-width: 640px) {
   .mm-details { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-width: none; max-height: 55%; }
+}
+
+/* ── Viewer and converter ── */
+/* The two parts of the site as a segmented control next to the brand; on phones a link on each page stands in. */
+.site-nav { display: flex; gap: 2px; padding: 3px; margin-left: 6px; border: 1px solid var(--line2); border-radius: 9px; background: var(--track); flex-shrink: 0; }
+.site-nav a { height: 26px; display: flex; align-items: center; padding: 0 12px; border-radius: 6px; color: var(--tx2); font-size: 12.5px; font-weight: 500; text-decoration: none; }
+.site-nav a:hover { color: var(--tx); }
+.site-nav a[aria-current=page] { background: var(--seg-on); box-shadow: inset 0 0 0 1px var(--seg-ring), 0 1px 3px var(--seg-drop); color: var(--tx); }
+.top.has-files .site-nav, .site-switch { display: none; }
+.site-switch { text-decoration: none; }
+
+/* ── Converter ── */
+/* Without files the page uses the start page's layout (hero, drop zone, section heads). With files it becomes a
+   workbench: the files on the left, grouped by kind, the selected file's input and output on the right. */
+.cv-lead-note { margin: 0; max-width: 480px; font-size: 13.5px; line-height: 1.5; color: var(--tx3); }
+.cv-page .hero-text a.text-link:not(:hover) { text-decoration: none; }
+
+/* Start page: a search over all conversions, the kinds of files with their formats, the three steps. */
+.cv-search { position: relative; display: flex; align-items: center; max-width: 640px; color: var(--tx3); }
+.cv-search svg { position: absolute; left: 14px; pointer-events: none; }
+.cv-search-input { width: 100%; height: 48px; padding: 0 14px 0 44px; border: 1px solid var(--line2); border-radius: 10px; background: var(--s1); color: var(--tx); font: inherit; font-size: 15px; }
+.cv-search-input:focus { outline: none; border-color: var(--acc-line); box-shadow: 0 0 0 3px var(--acc-tint); }
+.cv-results { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 34px; font-size: 13.5px; }
+.cv-results > .c3:first-child { margin-right: 4px; }
+.cv-results .text-link { text-decoration: none; }
+.cv-pair { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px; border: 1px solid var(--line2); border-radius: 8px; background: var(--s1); font: 500 12.5px/1 var(--mono); color: var(--tx); text-decoration: none; white-space: nowrap; }
+.cv-pair:hover { border-color: var(--acc-line); color: var(--acc-tx); }
+.cv-pair[aria-current=page] { background: var(--acc-tint); border-color: var(--acc-line); color: var(--acc-tx); }
+.cv-kinds { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; align-items: start; }
+.cv-kind { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--s1); }
+.cv-kind-hd { display: flex; align-items: center; gap: 12px; }
+.cv-kind-hd .ico { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--s3); color: var(--tx2); flex-shrink: 0; }
+.cv-kind-row { display: flex; flex-direction: column; gap: 6px; }
+.cv-kind-lbl { font: 500 11px/1 var(--mono); letter-spacing: .06em; color: var(--tx3); }
+.cv-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.cv-tag { display: inline-flex; align-items: center; height: 24px; padding: 0 7px; border-radius: 6px; background: var(--s3); font: 500 11.5px/1 var(--mono); color: var(--tx2); white-space: nowrap; }
+/* Orange marks what comes out, as in the workbench's target formats. */
+.cv-tag.to { background: var(--acc-tint); color: var(--acc-tx); }
+.cv-tag.more { border: 1px dashed var(--line3); background: none; }
+.cv-tag.more:hover { border-color: var(--tx3); color: var(--tx); }
+.cv-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.cv-step { display: flex; gap: 14px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--s1); }
+.cv-step .num { font: 500 12px/1.7 var(--mono); color: var(--acc-tx); }
+.cv-step b { display: block; margin-bottom: 2px; font-size: 15px; font-weight: 600; }
+.cv-step div span { font-size: 13.5px; color: var(--tx2); }
+
+/* The files: one gets a card of its own, several share a panel. Both sit in the middle of the page and grow with
+   their content until the list scrolls; with the preview open, the panel moves to the left edge. */
+.cv-bench { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center; padding: 32px 24px; }
+.cv-queue { width: min(720px, 100%); max-height: 100%; min-height: 0; flex-shrink: 0; display: flex; flex-direction: column; }
+.cv-bench.single .cv-queue { width: min(560px, 100%); gap: 14px; }
+.cv-bench.open { justify-content: flex-start; align-items: stretch; padding: 0; }
+.cv-bench.open .cv-queue { width: 440px; max-height: none; }
+.cv-panel, .cv-single { border: 1px solid var(--line); border-radius: 16px; background: var(--s1); box-shadow: 0 1px 2px light-dark(rgba(27, 30, 35, .04), rgba(0, 0, 0, .2)), 0 12px 32px light-dark(rgba(27, 30, 35, .07), rgba(0, 0, 0, .3)); }
+.cv-panel { min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.cv-bench.open .cv-panel { flex: 1; border-width: 0 1px 0 0; border-radius: 0; box-shadow: none; }
+.cv-panel-hd { display: flex; align-items: center; gap: 10px; padding: 16px 16px 14px 24px; }
+.cv-panel-hd h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.cv-list { flex: 0 1 auto; min-height: 0; overflow: auto; }
+.cv-bench.open .cv-list { flex-grow: 1; }
+/* One main action at a time at the foot; how far the run is beside it. */
+.cv-panel-ft { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 16px 12px 14px; border-top: 1px solid var(--line); background: var(--s2); }
+.cv-panel-ft .btn { height: 40px; padding: 0 18px; }
+.cv-panel-ft .btn:disabled { cursor: default; }
+.cv-panel-ft .btn.primary:disabled { opacity: .5; }
+.cv-hint { flex: 1; text-align: right; font-size: 12.5px; color: var(--tx3); }
+.cv-busy, .cv-busy:hover:not(:disabled) { background: var(--s3); border-color: var(--s3); color: var(--tx2); }
+.cv-busy .spinner { width: 14px; height: 14px; }
+.cv-ghost { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 10px; border-radius: 8px; color: var(--tx2); font-size: 13px; font-weight: 500; white-space: nowrap; }
+.cv-ghost:hover:not(:disabled) { background: var(--hover-ink); color: var(--tx); }
+.cv-ghost:disabled { opacity: .5; cursor: default; }
+.cv-link { padding: 0; color: var(--acc-tx); font-size: inherit; font-weight: 500; text-decoration: none; }
+.cv-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Files no converter takes: a compact warning above the groups. */
+.cv-banner { display: flex; align-items: flex-start; gap: 12px; margin: 0 16px 16px; padding: 12px 6px 12px 14px; border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: 10px; background: var(--warn-tint); }
+.cv-banner > svg { margin-top: 1px; color: var(--warn); }
+.cv-banner-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cv-banner-txt b { font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
+.cv-banner-txt span { font-size: 12.5px; line-height: 1.5; color: var(--tx2); }
+.cv-banner .hb.x { width: 32px; height: 32px; border-radius: 8px; }
+
+/* A group: icon, kind and count on the left edge, the arrow and the target formats on the right; options and
+   what the target loses below, aligned with the kind's name. */
+.cv-group { padding-bottom: 8px; border-top: 1px solid var(--line); }
+.cv-group-hd { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 16px 16px 10px 24px; }
+.cv-group-hd .ico { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--s3); color: var(--tx2); flex-shrink: 0; }
+.cv-group-title { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.cv-group-title b { font-size: 14.5px; font-weight: 600; }
+.cv-group-title span { font-size: 12.5px; color: var(--tx3); }
+.cv-to { display: flex; align-items: center; gap: 10px; min-width: 0; margin-left: auto; }
+/* Beside the preview the panel is narrow: the arrow and the formats get a line of their own below the kind. */
+.cv-bench.open .cv-to { flex: 1 1 100%; margin-left: 44px; }
+.cv-arrow { display: flex; color: var(--tx3); }
+.cv-group-opts { display: flex; flex-direction: column; gap: 8px; padding: 0 24px 10px 68px; }
+.cv-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.cv-ctl-lbl { font-size: 12.5px; color: var(--tx3); }
+.cv-loss { display: flex; align-items: flex-start; gap: 7px; margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--tx2); }
+.cv-loss svg { margin-top: 2px; color: var(--tx3); }
+.cv-loss.warn > svg { color: var(--warn); }
+.cv-loss .text-link { height: auto; margin-left: auto; flex-shrink: 0; font-size: 13px; text-decoration: none; }
+/* Segmented controls on a plain track; long choices ("Medium, 150 dpi") wrap inside their segment. */
+.cv-seg { display: flex; gap: 2px; max-width: 100%; padding: 3px; border-radius: 9px; background: var(--track); }
+.cv-seg button { min-width: 0; min-height: 26px; padding: 4px 10px; border-radius: 6px; color: var(--tx2); font-size: 12.5px; font-weight: 500; line-height: 1.2; }
+.cv-seg button:hover:not(:disabled) { color: var(--tx); }
+.cv-seg button[aria-checked=true] { background: var(--seg-on); box-shadow: inset 0 0 0 1px var(--seg-ring), 0 1px 3px var(--seg-drop); color: var(--tx); }
+.cv-seg button:disabled { opacity: .5; cursor: default; }
+/* The target formats in orange, the color of a choice: they decide what comes out. */
+.cv-targets { flex-wrap: wrap; }
+.cv-targets button { min-height: 28px; padding: 0 11px; font: 500 12.5px/1 var(--mono); white-space: nowrap; }
+.cv-targets button[aria-checked=true] { background: var(--acc-tint); box-shadow: inset 0 0 0 1px var(--acc-line); color: var(--acc-tx); }
+.cv-field { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.cv-field .select:disabled, .cv-ctl .select:disabled { opacity: .6; cursor: default; }
+
+/* A file: thumbnail, name and format on the left, its state and buttons on the right. */
+.cv-files { list-style: none; margin: 0; padding: 0; }
+.cv-file { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 12px 6px 24px; }
+.cv-file:hover { background: var(--s2); }
+.cv-file.sel { background: var(--acc-tint); }
+.cv-thumb { width: 32px; height: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 7px; background: var(--s3); color: var(--tx2); overflow: hidden; }
+.cv-thumb.checkerboard { background-size: 8px 8px; }
+.cv-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.cv-file[data-status=failed] .cv-thumb:not(.checkerboard) { background: var(--err-tint); color: var(--err); }
+.cv-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.cv-txt b { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cv-meta { font-size: 12px; color: var(--tx3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cv-state { display: flex; align-items: center; justify-content: flex-end; gap: 7px; min-width: 0; font-size: 12.5px; color: var(--tx3); }
+.cv-state > .spinner { width: 12px; height: 12px; flex-shrink: 0; }
+.cv-state .cv-progress { width: 170px; }
+.cv-bench.open .cv-state .cv-progress { width: 110px; }
+.cv-state .cv-progress-text { font-size: 12px; }
+.cv-done { display: flex; align-items: center; gap: 6px; color: var(--ok); white-space: nowrap; }
+.cv-row-actions { display: flex; align-items: center; gap: 2px; }
+.cv-file .hb { width: 32px; height: 32px; border-radius: 8px; color: var(--tx3); }
+.cv-file .hb:hover:not(:disabled) { color: var(--tx); }
+.cv-file .hb:disabled { opacity: .3; cursor: default; }
+.cv-look[aria-pressed=true] { background: var(--acc-tint); color: var(--acc-tx); }
+.cv-dl { height: 32px; margin-left: 4px; }
+/* Beside the preview the list is narrow; Download keeps its title but loses its label. */
+.cv-bench.open .cv-dl { width: 32px; padding: 0; justify-content: center; }
+.cv-bench.open .cv-dl .lbl { display: none; }
+.cv-file-note { font-size: 12px; color: var(--tx2); }
+.cv-out { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--tx2); }
+.cv-out span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cv-err { display: flex; align-items: flex-start; gap: 6px; color: var(--err); overflow-wrap: anywhere; }
+.cv-err svg { margin-top: 1px; }
+.cv-progress { width: 260px; max-width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.cv-progress-text { display: flex; align-items: center; gap: 8px; color: var(--tx2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cv-progress .spinner { width: 14px; height: 14px; flex-shrink: 0; }
+.cv-progress .lc-bar { margin: 0; }
+
+/* One file: a card with the file, its conversion in a box and one wide button; once converted the result, a
+   comparison strip for pictures and the download. */
+.cv-single { display: flex; flex-direction: column; gap: 18px; padding: 24px; }
+.cv-single-hd { display: flex; align-items: center; gap: 16px; }
+.cv-single-hd .cv-thumb { width: 88px; height: 88px; border: 1px solid var(--line); border-radius: 12px; }
+.cv-single-hd .cv-thumb.checkerboard { background-size: 12px 12px; }
+.cv-single-hd .cv-thumb img { object-fit: contain; }
+.cv-single-hd .cv-thumb svg { width: 32px; height: 32px; }
+.cv-single[data-status=unsupported] .cv-thumb:not(.checkerboard) { background: var(--warn-tint); color: var(--warn); }
+.cv-single-hd .cv-txt { gap: 2px; }
+.cv-single-hd .cv-txt b { font-size: 17px; font-weight: 600; }
+.cv-single-hd .cv-meta { font-size: 13px; white-space: normal; }
+.cv-single-hd .hb.x { align-self: flex-start; width: 32px; height: 32px; border-radius: 8px; }
+.cv-single-hd .hb.x:disabled { opacity: .3; cursor: default; }
+.cv-done-ico { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; background: var(--ok-tint); color: var(--ok); }
+.cv-route { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--s2); }
+.cv-route-main { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.cv-from { height: 38px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 9px; background: var(--s3); font: 500 13px/1 var(--mono); color: var(--tx2); }
+.cv-route .cv-targets button { min-height: 32px; padding: 0 14px; font-size: 13px; }
+.cv-wide { width: 100%; height: 48px; justify-content: center; border-radius: 12px; font-size: 15px; }
+.cv-wide-progress .cv-progress { width: 100%; }
+.cv-single .cv-banner { margin: 0; }
+.cv-single > .cv-err { font-size: 13px; }
+.cv-strip { position: relative; height: 200px; display: flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.cv-sl-tag { position: absolute; top: 10px; left: 10px; z-index: 1; height: 22px; display: flex; align-items: center; padding: 0 8px; border-radius: 6px; background: rgba(27, 30, 35, .72); color: #ffffff; font: 500 11px/1 var(--mono); pointer-events: none; }
+.cv-sl-tag.out { left: auto; right: 10px; }
+.cv-change { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin: -6px 0 0; font-size: 13px; color: var(--tx3); }
+.cv-more { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; font-size: 13px; }
+.cv-more .text-link { align-self: center; font-size: 13.5px; text-decoration: none; }
+
+/* Preview of the selected file: Input, Output or Compare in the site's viewers, then what changes. */
+.cv-preview { flex: 1; min-width: 0; min-height: 0; display: none; flex-direction: column; gap: 12px; padding: 16px 20px 20px; overflow: auto; }
+.cv-bench.open .cv-preview { display: flex; }
+.cv-pv-hd { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.cv-back { display: none; }
+.cv-close { margin-right: -6px; }
+.cv-back svg { transform: scaleX(-1); }
+.cv-pv-title { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cv-pv-title b { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cv-pv-sub { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 13px; color: var(--tx3); white-space: nowrap; }
+.cv-fmt { font-family: var(--mono); color: var(--tx2); }
+.cv-fmt.to { color: var(--acc-tx); }
+.cv-modes button { height: 30px; padding: 0 14px; font-size: 13px; }
+.cv-pv-download:disabled { opacity: .5; cursor: default; }
+.cv-pv-status { display: flex; align-items: center; gap: 8px; min-height: 20px; font-size: 13px; color: var(--tx2); }
+.cv-pv-status .cv-progress { width: min(420px, 100%); }
+.cv-stage { flex: 1 0 420px; min-height: 420px; display: flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--s2); }
+.cv-split { flex: 1; min-width: 0; display: flex; }
+.cv-split > .cv-pane + .cv-pane { border-left: 1px solid var(--line2); }
+.cv-pane { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.cv-pane-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-height: 44px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--s1); }
+/* The viewer's tools on a row of their own, shown on request. */
+.cv-pane-bar .viewer-tools { flex-basis: 100%; }
+.cv-pane:not(.tools) .cv-pane-bar .viewer-tools { display: none; }
+.cv-tools-btn[aria-pressed=true] { background: var(--acc-tint); border-color: var(--acc-line); color: var(--acc-tx); }
+.cv-pane .viewer-body { flex: 1; min-height: 0; }
+/* Viewers switch to their phone layout by the window's width; in a pane, half of the preview, the pane's width counts.
+   "Open in a new tab" has no tab to open here, so archive entries only offer saving. */
+.cv-pane { container-type: inline-size; }
+.cv-pane .tree-actions .btn.sm { display: none; }
+@container (max-width: 639px) {
+  .cv-pane .tree-row { grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; }
+  .cv-pane .tree-date { display: none; }
+}
+.cv-side { display: inline-flex; align-items: center; height: 26px; padding: 0 9px; border: 1px solid var(--line2); border-radius: 7px; font: 500 11.5px/1 var(--mono); color: var(--tx2); white-space: nowrap; }
+.cv-side.out { border-color: var(--acc-line); color: var(--acc-tx); }
+.cv-pick .select { max-width: 280px; }
+/* Pictures on top of each other; the handle shows the output to its right. */
+.cv-sl-area { --pos: 50%; position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.cv-sl-layer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.cv-sl-layer img { width: 100%; height: 100%; object-fit: contain; }
+.cv-sl-layer.out { clip-path: inset(0 0 0 var(--pos)); }
+.cv-sl-range { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
+.cv-sl-handle { position: absolute; top: 0; bottom: 0; left: var(--pos); z-index: 1; width: 2px; margin-left: -1px; background: var(--acc); pointer-events: none; }
+.cv-sl-knob { position: absolute; top: 50%; left: 50%; width: 36px; height: 36px; margin: -18px 0 0 -18px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--acc); color: var(--acc-ink); box-shadow: 0 2px 8px rgba(0, 0, 0, .3); }
+.cv-sl-knob svg { margin: 0 -4px; }
+.cv-sl-knob .flip { transform: scaleX(-1); }
+.cv-sl-range:focus-visible + .cv-sl-handle .cv-sl-knob { outline: 2px solid var(--acc); outline-offset: 3px; }
+.cv-pv-details { display: flex; flex-direction: column; gap: 10px; }
+.cv-facts { border: 1px solid var(--line); border-radius: 12px; background: var(--s1); overflow: hidden; }
+.cv-fact { display: grid; grid-template-columns: 140px repeat(2, minmax(0, 1fr)); gap: 12px; padding: 8px 16px; font-size: 13px; overflow-wrap: anywhere; }
+.cv-fact + .cv-fact { border-top: 1px solid var(--line); }
+.cv-fact.hd { background: var(--s2); font: 500 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--tx3); }
+.cv-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--tx2); }
+.cv-notes li { display: flex; gap: 8px; }
+.cv-notes svg { margin-top: 2px; color: var(--tx3); }
+.cv-notes li.warn svg { color: var(--warn); }
+
+/* The plain content convert.html carries for search engines, until the script replaces it. */
+.prerender { flex: 1; overflow: auto; width: min(760px, 100%); margin: 0 auto; padding: 40px 24px; font-size: 14px; line-height: 1.5; }
+.prerender a { color: var(--acc-tx); }
+
+@media (max-width: 1023px) {
+  .cv-bench.open .cv-queue { width: 360px; }
+  .cv-pv-title { flex-basis: 160px; }
+  .cv-pv-download { width: 34px; padding: 0; justify-content: center; }
+  .cv-pv-download span { display: none; }
+  .cv-stage { flex-basis: 360px; min-height: 360px; }
+  .cv-split { flex-direction: column; }
+  .cv-split > .cv-pane + .cv-pane { border-left: 0; border-top: 1px solid var(--line2); }
+}
+
+@media (max-width: 639px) {
+  .site-nav { display: none; }
+  .site-switch { display: flex; }
+  .cv-search-input { font-size: 16px; }
+  .cv-results .cv-pair { height: 40px; }
+  .cv-kinds { grid-template-columns: minmax(0, 1fr); }
+  /* Several files fill the screen with the actions at the bottom; one file stays a card in the middle. The list and
+     the preview take turns; a file's eye opens its preview, the arrow goes back. */
+  .cv-bench { padding: 0; align-items: stretch; }
+  .cv-bench.single { padding: 16px 12px; align-items: center; }
+  .cv-queue, .cv-bench.open .cv-queue { width: 100%; }
+  .cv-bench.open .cv-queue { display: none; }
+  .cv-panel { flex: 1; border: 0; border-radius: 0; box-shadow: none; }
+  .cv-panel-hd { padding: 12px 6px 10px 16px; }
+  .cv-ghost { height: 44px; }
+  .cv-banner { margin: 0 12px 12px; }
+  .cv-banner .hb.x { width: 40px; height: 40px; }
+  .cv-group-hd { padding: 14px 12px 10px 16px; }
+  .cv-to { flex: 1 1 100%; margin-left: 0; }
+  .cv-to .cv-targets { flex: 1; }
+  .cv-targets button { flex: 1; min-height: 38px; font-size: 13px; }
+  .cv-group-opts { padding: 0 12px 10px 16px; }
+  .cv-ctl-lbl { width: 100%; }
+  .cv-seg:not(.cv-targets) { width: 100%; }
+  .cv-seg:not(.cv-targets) button { flex: 1; min-height: 36px; font-size: 13px; }
+  /* A row: thumbnail, name with its state below, buttons on the right. */
+  .cv-file { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; column-gap: 12px; row-gap: 2px; min-height: 64px; padding: 8px 4px 8px 16px; }
+  .cv-file > .cv-thumb { grid-row: 1 / 3; width: 40px; height: 40px; }
+  .cv-file > .cv-txt { grid-column: 2; grid-row: 1; }
+  .cv-file:not([data-status=ready]) .cv-meta { display: none; }
+  .cv-file > .cv-state { grid-column: 2; grid-row: 2; justify-content: flex-start; }
+  .cv-file > .cv-row-actions { grid-column: 3; grid-row: 1 / 3; }
+  .cv-state .cv-progress { width: 100%; }
+  .cv-file .hb, .cv-dl { width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 10px; }
+  .cv-dl .lbl { display: none; }
+  .cv-panel-ft { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .cv-hint { display: none; }
+  .cv-panel-ft .btn { flex: 1 1 auto; height: 52px; justify-content: center; }
+  .cv-panel-ft .cv-ghost { height: 52px; }
+  .cv-single { gap: 16px; padding: 16px; }
+  .cv-single-hd { gap: 12px; }
+  .cv-single-hd .cv-thumb { width: 64px; height: 64px; }
+  .cv-route .cv-targets { flex: 1 1 auto; }
+  .cv-route .cv-targets button { min-height: 38px; }
+  .cv-wide { height: 52px; }
+  .cv-strip { height: 220px; }
+  .cv-loss { flex-wrap: wrap; }
+  .cv-loss .text-link { margin-left: 22px; }
+  .cv-more .text-link { height: 44px; }
+  .cv-preview { gap: 10px; padding: 8px 12px 16px; }
+  .cv-pv-hd { gap: 8px; }
+  .cv-back { display: flex; margin-left: -6px; }
+  .cv-close { display: none; }
+  .cv-pv-title { flex: 1 1 0; }
+  .cv-pv-download { width: 44px; height: 44px; padding: 0; justify-content: center; }
+  .cv-pv-download span { display: none; }
+  .cv-modes { order: 5; flex: 1 1 100%; }
+  .cv-modes button { flex: 1; height: 38px; font-size: 14px; }
+  .cv-stage { flex: 0 0 auto; height: 58vh; min-height: 320px; }
+  .cv-pane-bar .viewer-tools, .cv-tools-btn { display: none !important; }
+  .cv-fact { grid-template-columns: 92px repeat(2, minmax(0, 1fr)); gap: 10px; padding: 8px 12px; }
+}
+
+/* ── Export from the viewer ── */
+/* The converter's formats for the open file, below the button; a bottom sheet on phones like the other popovers. */
+.export-pop { width: 360px; }
+.export-file { font-size: 12.5px; color: var(--tx2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.export-targets { align-self: flex-start; flex-wrap: wrap; }
+.export-targets button { height: 28px; padding: 0 12px; }
+.export-targets button:disabled, .export-pop .hb:disabled { opacity: .5; cursor: default; }
+.export-fields { display: flex; flex-direction: column; gap: 8px; }
+.export-fields .cv-field { justify-content: space-between; }
+.export-note { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--tx2); }
+.export-pop .cv-progress { width: 100%; }
+.export-done { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; }
+.export-ft { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.export-ft .btn:disabled { opacity: .5; cursor: default; }
+.export-ft .text-link { font-size: 13px; text-decoration: none; }
+
+@media (max-width: 639px) {
+  .export-btn .lbl { display: none; }
+  .export-targets { align-self: stretch; }
+  .export-targets button { flex: 1; height: 40px; font-size: 14px; }
+  .export-fields .select { height: 40px; font-size: 14px; }
+  .export-ft .btn { flex: 1 1 100%; height: 48px; justify-content: center; font-size: 15px; }
 }

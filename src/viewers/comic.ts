@@ -3,7 +3,7 @@
 // Pages are unpacked only when they come near the visible area.
 import { h } from '../core/dom';
 import type { ViewerContext } from '../core/types';
-import { openArchive } from './archive';
+import { openArchive, type Entry } from './archive';
 import { createPagedView } from './paged';
 
 const PICTURE = /\.(jpe?g|png|gif|webp|avif|bmp)$/i;
@@ -12,12 +12,17 @@ const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' })
 // Placeholder shape until a page is loaded: a typical comic page.
 const PAGE_RATIO = 1.5;
 
+/** The pictures of a comic archive in reading order; the CBZ converter uses the same. */
+export function comicPages(entries: Entry[]): Entry[] {
+  return entries
+    .filter((e) => PICTURE.test(e.name) && !e.name.startsWith('.') && !e.dir.startsWith('__MACOSX'))
+    .sort((a, b) => collator.compare(a.dir + a.name, b.dir + b.name));
+}
+
 export async function mount({ file, container, toolbar, progress }: ViewerContext) {
   progress('Reading comic …');
   const archive = await openArchive(file);
-  const pages = archive.entries
-    .filter((e) => PICTURE.test(e.name) && !e.name.startsWith('.') && !e.dir.startsWith('__MACOSX'))
-    .sort((a, b) => collator.compare(a.dir + a.name, b.dir + b.name));
+  const pages = comicPages(archive.entries);
   if (pages.length === 0) {
     await archive.close();
     throw new Error('The comic archive contains no pictures.');

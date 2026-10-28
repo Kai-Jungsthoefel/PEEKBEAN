@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { extensionOf, startsWith } from '../core/bytes';
 import type { ViewerContext } from '../core/types';
 import type { OcctFormat, OcctMesh, OcctNode, OcctResponse } from '../workers/occt-types';
+import type { LoadedModel } from './model3d';
 import { mountScene } from './three/scene';
 
 function formatOf(file: File, head: Uint8Array): OcctFormat {
@@ -92,13 +93,19 @@ function buildNode(node: OcctNode, meshes: OcctMesh[]): THREE.Object3D {
   return group;
 }
 
-export async function mount(ctx: ViewerContext) {
-  const buffer = await ctx.file.arrayBuffer();
-  const format = formatOf(ctx.file, new Uint8Array(buffer, 0, Math.min(32, buffer.byteLength)));
-  ctx.progress('Loading CAD kernel …');
-  const { root, meshes } = await tessellate(format, buffer, ctx.progress);
-  ctx.progress('Building view …');
+/** The model tessellated by OpenCascade, as three.js objects; the converter uses this too. */
+export async function loadCadModel(file: File, progress: ViewerContext['progress']): Promise<LoadedModel & { title: string }> {
+  const buffer = await file.arrayBuffer();
+  const format = formatOf(file, new Uint8Array(buffer, 0, Math.min(32, buffer.byteLength)));
+  progress('Loading CAD kernel …');
+  const { root, meshes } = await tessellate(format, buffer, progress);
   if (meshes.length === 0) throw new Error('The file contains no surfaces that can be displayed.');
   // OpenCascade delivers millimeters with Z up, like most CAD systems.
-  return mountScene(ctx, buildNode(root, meshes), { zUp: true, unit: 'mm', title: root.name || ctx.file.name });
+  return { object: buildNode(root, meshes), zUp: true, unit: 'mm', title: root.name || file.name };
+}
+
+export async function mount(ctx: ViewerContext) {
+  const { object, zUp, unit, title } = await loadCadModel(ctx.file, ctx.progress);
+  ctx.progress('Building view …');
+  return mountScene(ctx, object, { zUp, unit, title });
 }

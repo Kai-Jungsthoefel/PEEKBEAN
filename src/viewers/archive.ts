@@ -19,12 +19,29 @@ export interface Entry {
   size: number;
   modified: Date | null;
   encrypted: boolean;
+  /** Unix permission bits (e.g. 0o755) where the archive records them; the converter keeps them in TAR. */
+  mode?: number;
+  /** A ZIP entry that is a Unix symbolic link: its data is the path it points to. */
+  symlink?: boolean;
   read(password?: string): Promise<Blob>;
+}
+
+/** A folder entry, for the converter: ZIP and TAR list them, so empty folders survive a conversion. */
+export interface FolderEntry {
+  /** Path with trailing slash. */
+  path: string;
+  modified: Date | null;
+  mode?: number;
 }
 
 export interface OpenedArchive {
   kind: string;
   entries: Entry[];
+  folders?: FolderEntry[];
+  /** Paths of links, devices … that are not listed as entries (TAR). */
+  skipped?: string[];
+  /** Set when listing stopped early because the archive is damaged or cut off. */
+  warning?: string | null;
   close(): Promise<void>;
 }
 
@@ -36,7 +53,10 @@ function splitPath(path: string): { dir: string; name: string } {
 
 async function openZip(file: File): Promise<OpenedArchive> {
   const reader = new ZipReader(new BlobReader(file));
-  const entries = (await reader.getEntries()).filter((e) => !e.directory);
+  const all = await reader.getEntries();
+  const entries = all.filter((e) => !e.directory);
+  // Only ZIPs made on Unix record permissions.
+  const mode = (unixMode: number | undefined) => (unixMode === undefined ? undefined : unixMode & 0o7777);
   return {
     kind: 'ZIP',
     entries: entries.map((entry) => ({
@@ -44,8 +64,13 @@ async function openZip(file: File): Promise<OpenedArchive> {
       size: entry.uncompressedSize,
       modified: entry.lastModDate ?? null,
       encrypted: entry.encrypted,
+      mode: mode(entry.unixMode),
+      symlink: entry.symlink,
       read: (password) => entry.getData!(new BlobWriter(), { password }),
     })),
+    folders: all
+      .filter((e) => e.directory)
+      .map((e) => ({ path: e.filename.replace(/\\/g, '/').replace(/\/?$/, '/'), modified: e.lastModDate ?? null, mode: mode(e.unixMode) })),
     close: () => reader.close(),
   };
 }
@@ -54,8 +79,10 @@ const decodeField = (bytes: Uint8Array) => new TextDecoder().decode(bytes.subarr
 const octal = (bytes: Uint8Array) => parseInt(decodeField(bytes).trim() || '0', 8);
 
 /** Reads TAR headers lazily from a Blob; the file data is only read when an entry is opened. */
-async function readTar(blob: Blob): Promise<Entry[]> {
+async function readTar(blob: Blob): Promise<Pick<OpenedArchive, 'entries' | 'folders' | 'skipped'>> {
   const entries: Entry[] = [];
+  const folders: FolderEntry[] = [];
+  const skipped: string[] = [];
   let offset = 0;
   let longName: string | null = null;
   let paxPath: string | null = null;
@@ -79,17 +106,22 @@ async function readTar(blob: Blob): Promise<Entry[]> {
     const prefix = startsWith(header, 'ustar', 257) ? decodeField(header.subarray(345, 500)) : '';
     const path = paxPath ?? longName ?? (prefix ? `${prefix}/` : '') + decodeField(header.subarray(0, 100));
     longName = paxPath = null;
-    if (type !== '0' && type !== '\0' && type !== '7') continue; // folders, links, devices
     const mtime = octal(header.subarray(136, 148));
+    const modified = mtime ? new Date(mtime * 1000) : null;
+    const mode = octal(header.subarray(100, 108)) & 0o7777;
+    if (type === '5') folders.push({ path: path.replace(/\/?$/, '/'), modified, mode });
+    else if ('12346'.includes(type)) skipped.push(path);
+    if (type !== '0' && type !== '\0' && type !== '7') continue; // folders, links, devices
     entries.push({
       ...splitPath(path),
       size,
-      modified: mtime ? new Date(mtime * 1000) : null,
+      modified,
       encrypted: false,
+      mode,
       read: async () => blob.slice(dataStart, dataStart + size),
     });
   }
-  return entries;
+  return { entries, folders, skipped };
 }
 
 async function gunzip(file: Blob): Promise<Blob> {
@@ -108,6 +140,11 @@ function gzipName(head: Uint8Array, fallback: string): string {
 /** Thrown when an entry needs a (different) password; the viewer then asks again. */
 class PasswordError extends Error {
   override name = 'PasswordError';
+}
+
+/** The entry could not be read for want of the right password (zip.js: "Invalid password", "File contains encrypted entry"). */
+export function isPasswordError(error: unknown): boolean {
+  return error instanceof PasswordError || /password|encrypted entry/i.test(String(error));
 }
 
 const LIBARCHIVE_ERRORS: Record<string, string> = {
@@ -157,6 +194,7 @@ async function openLibarchive(file: File): Promise<OpenedArchive> {
         return new Blob([r.data as Uint8Array<ArrayBuffer>]);
       },
     })),
+    warning: opened.warning,
     close: async () => worker.terminate(),
   };
 }
@@ -167,11 +205,11 @@ export async function openArchive(file: File): Promise<OpenedArchive> {
   if (startsWith(head, [0x1f, 0x8b])) {
     const data = await gunzip(file);
     const inner = new Uint8Array(await data.slice(0, 512).arrayBuffer());
-    if (startsWith(inner, 'ustar', 257)) return { kind: 'TAR.GZ', entries: await readTar(data), close: async () => {} };
+    if (startsWith(inner, 'ustar', 257)) return { kind: 'TAR.GZ', ...(await readTar(data)), close: async () => {} };
     const name = gzipName(head, file.name.replace(/\.gz$/i, '') || 'unpacked');
     return { kind: 'GZIP', entries: [{ dir: '', name, size: data.size, modified: null, encrypted: false, read: async () => data }], close: async () => {} };
   }
-  if (startsWith(head, 'ustar', 257) || extensionOf(file.name) === 'tar') return { kind: 'TAR', entries: await readTar(file), close: async () => {} };
+  if (startsWith(head, 'ustar', 257) || extensionOf(file.name) === 'tar') return { kind: 'TAR', ...(await readTar(file)), close: async () => {} };
   return openLibarchive(file);
 }
 
@@ -219,7 +257,7 @@ export async function mount({ file, container, toolbar, openFile, progress }: Vi
         const blob = await entry.read(password);
         return new File([blob], entry.name, { lastModified: entry.modified?.getTime() });
       } catch (error) {
-        if (entry.encrypted && (error instanceof PasswordError || /password/i.test(String(error)))) {
+        if (entry.encrypted && isPasswordError(error)) {
           password = undefined;
           continue;
         }

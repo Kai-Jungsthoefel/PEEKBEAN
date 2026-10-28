@@ -22,7 +22,7 @@ import type { ViewerContext } from '../core/types';
 import { mountScene } from './three/scene';
 import { expandSimpleProtos, isVrml1, parseVrml1 } from './three/vrml1';
 
-interface LoadedModel {
+export interface LoadedModel {
   object: THREE.Object3D;
   zUp: boolean;
   unit?: string;
@@ -191,7 +191,7 @@ async function loadRhino(buffer: ArrayBuffer): Promise<LoadedModel> {
   }
 }
 
-async function loadModel(file: File): Promise<LoadedModel> {
+export async function loadModel(file: File): Promise<LoadedModel> {
   const buffer = await file.arrayBuffer();
   const head = new Uint8Array(buffer, 0, Math.min(16, buffer.byteLength));
   const ext = extensionOf(file.name);

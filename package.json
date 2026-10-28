@@ -4,6 +4,10 @@
   "private": true,
   "description": "View almost any file format in the browser, without uploading anything.",
   "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kai-Jungsthoefel/OPSIS.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
