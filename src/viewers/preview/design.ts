@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Design files whose content OPSIS cannot draw but which carry a preview: Paint.NET (PNG in the XML header), Affinity
+// Design files whose content Peekbean cannot draw but which carry a preview: Paint.NET (PNG in the XML header), Affinity
 // (PNG record the header points to; PhotoCraft's notes), Figma local copies (thumbnail.png in a ZIP), and EPS files
 // with a TIFF or WMF preview in their DOS binary header.
 import { BlobReader, TextWriter, Uint8ArrayWriter, ZipReader, configure } from '@zip.js/zip.js';

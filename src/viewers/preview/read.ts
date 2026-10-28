@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Picks the reader for a file whose content OPSIS cannot draw but whose preview picture and properties it can show:
+// Picks the reader for a file whose content Peekbean cannot draw but whose preview picture and properties it can show:
 // CAD files of closed formats, Blender files and design documents. Runs in a worker.
 import { extensionOf, startsWith } from '../../core/bytes';
 import { blendCompression, readBlender } from './blender';
@@ -44,5 +44,5 @@ export async function readPreview(file: File, progress: (fraction: number) => vo
       extension,
     );
   }
-  throw new Error('This file holds no preview picture or properties that OPSIS can read.');
+  throw new Error('This file holds no preview picture or properties that Peekbean can read.');
 }

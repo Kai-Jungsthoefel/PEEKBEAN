@@ -148,7 +148,7 @@ export async function readOle(data: Uint8Array, extension: string, fileName: str
     images: picture ? [picture] : [],
     limits: solidEdge
       ? 'This is the preview picture Solid Edge saved in the file. The 3D model cannot be shown: Solid Edge files are a closed format. Save the model as STEP in Solid Edge to view it here in 3D.'
-      : 'This is an OLE compound document of an application OPSIS cannot show. Shown are the preview picture and the properties it carries.',
+      : 'This is an OLE compound document of an application Peekbean cannot show. Shown are the preview picture and the properties it carries.',
     sections: [
       section('Summary', labelledRows(summary, SUMMARY_LABELS)),
       section('Document', labelledRows(find(DOCUMENT_SUMMARY), DOCUMENT_SUMMARY_LABELS)),

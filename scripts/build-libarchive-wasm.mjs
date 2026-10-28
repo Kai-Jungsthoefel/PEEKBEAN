@@ -493,7 +493,7 @@ function writeLicenses(dirs, em) {
     '',
     'libarchive.wasm and libarchive.js are built by scripts/build-libarchive-wasm.mjs from the',
     'source releases listed below (SHA-256 verified) and the wrapper wasm/libarchive/wrapper.c',
-    '(GPL-3.0-or-later, part of OPSIS). No cryptography library, XML parser or iconv',
+    '(GPL-3.0-or-later, part of Peekbean). No cryptography library, XML parser or iconv',
     'is compiled in. Every component below is compatible with GPL-3.0-or-later.',
     '',
   ];

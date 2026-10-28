@@ -1,4 +1,4 @@
-# OPSIS
+# Peekbean
 
 View files of all kinds in the browser without uploading them. The site is purely static: files are read and processed only in the browser, and there is no server that could receive them.
 

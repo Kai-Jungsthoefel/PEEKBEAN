@@ -319,7 +319,7 @@ export async function readMindMap(file: File): Promise<MindMap> {
     if (/schemas\.mindjet\.com/.test(text.slice(0, 4096))) {
       return { format: 'MindManager', sheets: await readMindManager(text, { entries: [], urls: [] }), urls: [] };
     }
-    throw new Error('This is not a mind map OPSIS can read.');
+    throw new Error('This is not a mind map Peekbean can read.');
   }
   const zip = new ZipReader(new BlobReader(file));
   const archive: Archive = { entries: await zip.getEntries(), urls: [] };
@@ -336,7 +336,7 @@ export async function readMindMap(file: File): Promise<MindMap> {
     if (xml) return { format: 'XMind 8', sheets: await readXmindXml(xml, archive), urls: archive.urls };
     const document = await entryText(archive, 'Document.xml');
     if (document) return { format: 'MindManager', sheets: await readMindManager(document, archive), urls: archive.urls };
-    throw new Error('The archive holds no mind map OPSIS can read.');
+    throw new Error('The archive holds no mind map Peekbean can read.');
   } catch (error) {
     for (const url of archive.urls) URL.revokeObjectURL(url);
     throw error;

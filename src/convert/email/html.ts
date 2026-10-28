@@ -26,14 +26,14 @@ const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${c.char
 
 // The header block resets whatever the message's style sheet says about its elements.
 const HEAD_CSS = `
-#opsis-mail-head, #opsis-mail-head * { all: revert; }
-#opsis-mail-head { display: block; box-sizing: border-box; margin: 0 0 16px; padding: 16px 20px; background: #fff; color: #1b1e23; border-bottom: 1px solid #d9dce1; font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; text-align: left; color-scheme: light; }
-#opsis-mail-head h1 { margin: 0 0 10px; font-size: 20px; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
-#opsis-mail-head table { border-collapse: collapse; }
-#opsis-mail-head th { padding: 2px 14px 2px 0; text-align: left; vertical-align: top; font-weight: 400; color: #5b636e; white-space: nowrap; }
-#opsis-mail-head td { padding: 2px 0; overflow-wrap: anywhere; }
-#opsis-mail-head p { margin: 10px 0 0; font-size: 12px; color: #5b636e; }
-#opsis-mail-text { box-sizing: border-box; margin: 0; padding: 0 20px 20px; white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.5 ui-monospace, Consolas, monospace; }`;
+#peekbean-mail-head, #peekbean-mail-head * { all: revert; }
+#peekbean-mail-head { display: block; box-sizing: border-box; margin: 0 0 16px; padding: 16px 20px; background: #fff; color: #1b1e23; border-bottom: 1px solid #d9dce1; font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; text-align: left; color-scheme: light; }
+#peekbean-mail-head h1 { margin: 0 0 10px; font-size: 20px; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
+#peekbean-mail-head table { border-collapse: collapse; }
+#peekbean-mail-head th { padding: 2px 14px 2px 0; text-align: left; vertical-align: top; font-weight: 400; color: #5b636e; white-space: nowrap; }
+#peekbean-mail-head td { padding: 2px 0; overflow-wrap: anywhere; }
+#peekbean-mail-head p { margin: 10px 0 0; font-size: 12px; color: #5b636e; }
+#peekbean-mail-text { box-sizing: border-box; margin: 0; padding: 0 20px 20px; white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.5 ui-monospace, Consolas, monospace; }`;
 
 const DATE_FORMAT: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' };
 
@@ -129,7 +129,7 @@ export function mailPage(mail: Mail, body: Body): { html: string; blocked: numbe
     content && content.blocked > 0 && 'External images and content were blocked. They would tell the sender that the e-mail was opened.',
   ].filter(Boolean);
   const subject = mail.subject || '(no subject)';
-  const head = `<header id="opsis-mail-head"><h1>${escapeHtml(subject)}</h1><table>${rows}</table>${notes.map((n) => `<p>${n}</p>`).join('')}</header>`;
+  const head = `<header id="peekbean-mail-head"><h1>${escapeHtml(subject)}</h1><table>${rows}</table>${notes.map((n) => `<p>${n}</p>`).join('')}</header>`;
 
   const html = `<!doctype html>
 <html>
@@ -145,7 +145,7 @@ ${content?.styles ?? ''}
 </head>
 <body${content?.bodyAttributes ?? ''}>
 ${head}
-${content ? content.body : `<pre id="opsis-mail-text">${escapeHtml(body.text ?? '')}</pre>`}
+${content ? content.body : `<pre id="peekbean-mail-text">${escapeHtml(body.text ?? '')}</pre>`}
 </body>
 </html>
 `;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! DWG to DXF conversion for OPSIS, compiled to WebAssembly.
+//! DWG to DXF conversion for Peekbean, compiled to WebAssembly.
 //!
 //! The heavy lifting is done by acadrust (MPL-2.0). This crate reads a DWG from memory, makes the drawing
 //! exportable (custom entities such as AutoCAD Architecture walls become plain geometry, see [`custom`]), and

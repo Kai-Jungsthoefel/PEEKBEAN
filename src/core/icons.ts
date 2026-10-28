@@ -2,7 +2,8 @@
 
 // Line icons on a 24-unit grid, drawn for this project.
 const PATHS = {
-  logo: '<path d="M2.5 12S6.5 5 12 5s9.5 7 9.5 7-4 7-9.5 7-9.5-7-9.5-7Z"/><circle cx="12" cy="12" r="3" fill="currentColor"/>',
+  // The bean from the logo: one thick stroke with round ends, which keeps its own width.
+  logo: '<path d="M7.36 13.03A10.68 10.68 0 0 0 16.64 10.72" stroke-width="9.56"/>',
   open: '<path d="M3 19V6a1 1 0 0 1 1-1h5l2 2h8a1 1 0 0 1 1 1v2"/><path d="M3 19l2.6-8.2a1 1 0 0 1 1-.8H21l-2.7 8.3a1 1 0 0 1-1 .7Z"/>',
   drop: '<path d="M12 3v11m-4.5-4.5L12 14l4.5-4.5"/><path d="M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/>',
   lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/>',

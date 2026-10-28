@@ -36,7 +36,7 @@ export interface PreviewResult {
   /** Kind of document, e.g. "SolidWorks part". */
   kind: string;
   images: PreviewImage[];
-  /** What OPSIS cannot show of this file, and how to get a full view. */
+  /** What Peekbean cannot show of this file, and how to get a full view. */
   limits: string;
   sections: MetaSection[];
   lists: PreviewList[];

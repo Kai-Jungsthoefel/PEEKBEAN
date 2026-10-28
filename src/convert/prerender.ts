@@ -8,8 +8,8 @@ const escape = (text: string) => text.replace(/[&<>"]/g, (c) => ESCAPES[c]);
 
 export function pageTitle(pair: ConversionPair | null): string {
   return pair
-    ? `${pair.source.label} to ${pair.target.label} converter: free, private, no upload | OPSIS`
-    : 'File converter: free, private, no upload | OPSIS';
+    ? `${pair.source.label} to ${pair.target.label} converter: free, private, no upload | Peekbean`
+    : 'File converter: free, private, no upload | Peekbean';
 }
 
 export function pageDescription(pair: ConversionPair | null): string {

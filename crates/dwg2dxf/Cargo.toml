@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# DWG -> DXF converter for OPSIS, compiled to WebAssembly with acadrust.
+# DWG -> DXF converter for Peekbean, compiled to WebAssembly with acadrust.
 # Build: node scripts/build-dwg-wasm.mjs (writes src/wasm/dwg2dxf/), test: node scripts/test-dwg-wasm.mjs
 # Sample DWGs (samples/cad/, CC0):
 #   cargo run --release --example dxf_to_dwg -- ../../samples/cad/flange.dxf ../../samples/cad/flange-r2018.dwg R2018

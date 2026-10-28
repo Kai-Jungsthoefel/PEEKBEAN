@@ -12,8 +12,19 @@ const THEMES: { value: ThemePreference; icon: IconName; label: string }[] = [
   { value: 'dark', icon: 'moon', label: 'Dark' },
 ];
 
+// The logo: "peek" in line lettering in the text color, then the bean in the accent color.
+const WORDMARK =
+  '<svg class="wordmark" width="69" height="24" viewBox="0 8 242 84" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<g stroke="currentColor" stroke-width="7"><path d="M3.5 33.5V88.5"/><circle cx="20" cy="50" r="16.5"/>' +
+  '<path d="M50.5 50H83.5A16.5 16.5 0 1 0 79.64 60.61M97.5 50H130.5A16.5 16.5 0 1 0 126.64 60.61"/>' +
+  '<path d="M144.5 11.5V66.5M167.5 33.5L144.5 57M153.5 47.8L168 66.5"/></g>' +
+  '<path class="bean" d="M200.08 51.78A31.16 31.16 0 0 0 227.13 45.04" stroke-width="27.88"/></svg>';
+
+/** The logo where there is room; with files open only the bean in its tile, like the favicon. */
 export function brand(): HTMLElement {
-  return h('span', { class: 'brand' }, h('span', { class: 'logo-tile' }, icon('logo', 18, 1.8)), h('b', { class: 'brand-name' }, 'OPSIS'));
+  const template = document.createElement('template');
+  template.innerHTML = WORDMARK;
+  return h('span', { class: 'brand', role: 'img', 'aria-label': 'Peekbean' }, template.content.firstElementChild, h('span', { class: 'logo-tile' }, icon('logo', 26)));
 }
 
 /** Viewer and converter as a segmented control; links, so each part has its own address. */

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-OPSIS: a static website that shows almost any file format entirely in the browser, and converts many of them. No backend, no uploads, no network requests. See `README.md` for the format list and details.
+Peekbean: a static website that shows almost any file format entirely in the browser, and converts many of them. No backend, no uploads, no network requests. See `README.md` for the format list and details.
 
 ## Commands
 

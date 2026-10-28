@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Files whose content OPSIS cannot draw (closed CAD formats, Blender, design documents) but which carry a preview
+// Files whose content Peekbean cannot draw (closed CAD formats, Blender, design documents) but which carry a preview
 // picture: the pictures, the properties and the structure (components, objects, linked files), with a note on what is
 // missing and how to get a full view.
 import { h } from '../core/dom';

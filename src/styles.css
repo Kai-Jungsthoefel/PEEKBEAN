@@ -74,10 +74,12 @@ svg.ic { display: block; flex-shrink: 0; }
 .top { height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 24px; min-width: 0; background: var(--s1); border-bottom: 1px solid var(--line); }
 .top.has-files { height: 52px; padding: 0 16px 0 12px; }
 .brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.wordmark { display: block; }
+.wordmark .bean { stroke: var(--acc); }
 /* The tile stays dark in both themes, like SOMA's app icon. */
-.logo-tile { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #1b1e23; border: 1px solid #2d323a; color: var(--acc); }
-.brand-name { font-size: 15px; font-weight: 600; white-space: nowrap; }
-.top.has-files .brand-name, .top.has-files .gh-lbl { display: none; }
+.logo-tile { width: 32px; height: 32px; display: none; align-items: center; justify-content: center; border-radius: 8px; background: #1b1e23; border: 1px solid #2d323a; color: var(--acc); }
+.top.has-files .logo-tile { display: flex; }
+.top.has-files .wordmark, .top.has-files .gh-lbl { display: none; }
 
 .tabs { display: flex; align-items: center; min-width: 0; padding: 3px; border: 1px solid var(--line2); border-radius: 10px; background: var(--track); overflow-x: auto; scrollbar-width: none; }
 .tab { position: relative; height: 32px; display: flex; align-items: center; padding-right: 3px; border-radius: 7px; color: var(--tx2); min-width: 0; max-width: 240px; flex-shrink: 0; }

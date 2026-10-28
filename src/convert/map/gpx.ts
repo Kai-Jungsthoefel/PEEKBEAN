@@ -125,7 +125,7 @@ export function writeGpx(layers: FeatureLayer[], name: string, progress?: (fract
   const [minLat, minLon, maxLat, maxLon] = bounds.map(decimal);
   const head = [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    `<gpx version="1.1" creator="OPSIS" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"${extended ? ` xmlns:gpxtpx="${TPX}"` : ''} xsi:schemaLocation="${locations}">`,
+    `<gpx version="1.1" creator="Peekbean" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"${extended ? ` xmlns:gpxtpx="${TPX}"` : ''} xsi:schemaLocation="${locations}">`,
     `<metadata>${element('name', name)}<bounds minlat="${minLat}" minlon="${minLon}" maxlat="${maxLat}" maxlon="${maxLon}"/></metadata>`,
   ];
   return { lines: head.concat(waypoints, routes, tracks, ['</gpx>']).map((line) => `${line}\n`), notes };
