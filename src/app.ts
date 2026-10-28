@@ -9,6 +9,7 @@ import { issueLink, REPO_URL } from './github';
 import { InfoPanel } from './info-panel';
 import { converterForViewer } from './convert/modules';
 import { ExportDialog } from './export-dialog';
+import type { FormatPage } from './format-pages';
 import { MoreMenu } from './more-menu';
 import { brand, fileDrop, githubLink, LocalStatus, siteFooter, siteNav, themeControls } from './site';
 import { startPage } from './start-page';
@@ -94,8 +95,13 @@ export class App {
   private readonly dropOverlay = fileDrop('Drop to open', (files) => this.open(files));
   private readonly exporter = new ExportDialog();
 
-  constructor(root: HTMLElement) {
-    root.append(this.header, this.stage, this.dropOverlay, this.picker, this.local.dialog, this.filesDialog, this.exporter.dialog);
+  constructor(
+    root: HTMLElement,
+    /** The format the page is for (dwg-viewer.html …); its start page names it. */
+    private readonly format: FormatPage | null,
+  ) {
+    // Replaces the plain content the page carries for search engines.
+    root.replaceChildren(this.header, this.stage, this.dropOverlay, this.picker, this.local.dialog, this.filesDialog, this.exporter.dialog);
     this.picker.addEventListener('change', () => {
       this.open([...(this.picker.files ?? [])]);
       this.picker.value = '';
@@ -140,7 +146,7 @@ export class App {
       void this.show(this.active);
     } else {
       if (this.filesDialog.open) this.filesDialog.close();
-      this.stage.append(startPage({ openFiles: () => this.picker.click(), explainLocal: () => this.local.explain(), footer: siteFooter() }));
+      this.stage.append(startPage({ format: this.format, openFiles: () => this.picker.click(), explainLocal: () => this.local.explain(), footer: siteFooter() }));
     }
   }
 

@@ -68,6 +68,7 @@ The WebAssembly modules in `src/wasm/` are checked in prebuilt, so `npm run buil
 - Word and PowerPoint (`docx.ts`, `pptx.ts`) render through [ooxml-pages](https://github.com/Kai-Jungsthoefel/ooxml-pages), a separate MIT library from npm that lays out pages like Word and PowerPoint do
 - `src/workers/*.ts`: heavy work (CAD kernel, spreadsheets, DXF, image decoders) runs in web workers
 - `src/app.ts`: user interface (tabs, drag and drop, start page, loading screen)
+- `src/format-pages.ts`: a page per common format (`dwg-viewer.html` …) with what the format is and what the viewer shows of it; the build writes them next to `index.html`, as it does for each conversion of the converter (`jpg-to-png.html` …)
 - `src/metadata/`, `src/info-panel.ts`: metadata for the info panel, one reader per format family, loaded only when the panel opens
 - `src/wasm/`: our own WebAssembly builds: the DWG converter from `crates/dwg2dxf` (`npm run build:dwg-wasm`, Rust) and libarchive from `wasm/libarchive` (`npm run build:libarchive-wasm`, Emscripten)
 - `src/viewers/three/`: 3D view with view cube, parts tree, section view and measuring (after SOMA)

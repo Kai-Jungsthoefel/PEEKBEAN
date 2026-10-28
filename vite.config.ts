@@ -7,6 +7,8 @@ import license, { type Dependency } from 'rollup-plugin-license';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import { findPair, PAIRS, pairPage } from './src/convert/catalog';
 import { converterPageHtml } from './src/convert/prerender';
+import { findFormatPage, FORMAT_PAGES, formatPagePath } from './src/format-pages';
+import { viewerPageHtml } from './src/prerender';
 
 const root = import.meta.dirname;
 const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
@@ -119,30 +121,39 @@ function githubStars(): Plugin {
 }
 
 /**
- * The converter has a page for each conversion (jpg-to-png.html …), so that a search for "jpg to png" finds it. Each
- * is the built convert.html with its own title, description and content (src/convert/prerender.ts) and the conversion
- * in <html data-convert>. They sit next to index.html, so every relative path of the build works for them unchanged.
- * The dev server makes them on request.
+ * Pages that searches find: the viewer has one per common format (dwg-viewer.html …, src/format-pages.ts), the
+ * converter one per conversion (jpg-to-png.html …). Each is the built index.html or convert.html with its own title,
+ * description and content (src/prerender.ts, src/convert/prerender.ts) and the format in <html data-view> or the
+ * conversion in <html data-convert>. They sit next to index.html, so every relative path of the build works for them
+ * unchanged. The dev server makes them on request.
  */
-function converterPages(): Plugin {
+function landingPages(): Plugin {
   let outDir = path.join(root, 'dist');
   let building = false;
   return {
-    name: 'everythingviewer:converter-pages',
+    name: 'everythingviewer:landing-pages',
     configResolved(config) {
       outDir = path.resolve(config.root, config.build.outDir);
       building = config.command === 'build';
     },
     transformIndexHtml: {
       order: 'pre',
-      // convert.html itself becomes the general page; the pages of single conversions are already filled in.
-      handler: (html) => (html.includes('<!--prerender-->') && !html.includes('data-convert=') ? converterPageHtml(html, null) : html),
+      // index.html and convert.html become the general pages; the pages of single formats and conversions are already
+      // filled in.
+      handler: (html, { path: page }) => {
+        if (!html.includes('<!--prerender-->') || /<html [^>]*data-(?:view|convert)=/.test(html)) return html;
+        return page.endsWith('/convert.html') ? converterPageHtml(html, null) : viewerPageHtml(html, null);
+      },
     },
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        const pair = findPair(/^\/([a-z0-9]+-to-[a-z0-9]+)\.html(?:\?|$)/.exec(req.url ?? '')?.[1] ?? '');
-        if (!pair) return next();
-        const html = converterPageHtml(readFileSync(path.join(root, 'convert.html'), 'utf8'), pair);
+        const name = /^\/([a-z0-9-]+)\.html(?:\?|$)/.exec(req.url ?? '')?.[1] ?? '';
+        const pair = findPair(name);
+        const format = findFormatPage(/^(.+)-viewer$/.exec(name)?.[1] ?? '');
+        if (!pair && !format) return next();
+        const html = pair
+          ? converterPageHtml(readFileSync(path.join(root, 'convert.html'), 'utf8'), pair)
+          : viewerPageHtml(readFileSync(path.join(root, 'index.html'), 'utf8'), format!);
         server.transformIndexHtml(req.url!, html).then((page) => {
           res.setHeader('Content-Type', 'text/html');
           res.end(page);
@@ -151,8 +162,10 @@ function converterPages(): Plugin {
     },
     closeBundle() {
       if (!building) return;
-      const html = readFileSync(path.join(outDir, 'convert.html'), 'utf8');
-      for (const pair of PAIRS) writeFileSync(path.join(outDir, pairPage(pair)), converterPageHtml(html, pair));
+      const viewer = readFileSync(path.join(outDir, 'index.html'), 'utf8');
+      for (const format of FORMAT_PAGES) writeFileSync(path.join(outDir, formatPagePath(format)), viewerPageHtml(viewer, format));
+      const converter = readFileSync(path.join(outDir, 'convert.html'), 'utf8');
+      for (const pair of PAIRS) writeFileSync(path.join(outDir, pairPage(pair)), converterPageHtml(converter, pair));
     },
   };
 }
@@ -270,7 +283,7 @@ export default defineConfig({
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 2000,
-    // The viewer and the converter; the converter's pages per conversion are copies of convert.html (converterPages).
+    // The viewer and the converter; the pages per format and per conversion are copies of these two (landingPages).
     rolldownOptions: {
       input: { main: path.join(root, 'index.html'), convert: path.join(root, 'convert.html') },
     },
@@ -304,7 +317,7 @@ export default defineConfig({
   },
   plugins: [
     contentSecurityPolicy(),
-    converterPages(),
+    landingPages(),
     warnMissingSourceUrl(),
     githubStars(),
     // pdf.js fetches these on demand; serving them ourselves keeps PDFs from triggering CDN requests.

@@ -19,7 +19,8 @@ There is no test suite. Verify with `npm run build` and by opening the matching 
 - `src/viewers/<id>.ts` (+ folder for larger ones): one lazily loaded module per viewer, `mount(ctx)` → `{ destroy() }`, types in `src/core/types.ts`
 - `src/workers/`: heavy parsing and decoding in web workers
 - `src/metadata/`: readers for the info panel, loaded only when it opens
-- `src/convert/`: the converter. `catalog.ts` lists what converts into what (plain data, the build also reads it), `converters/<id>.ts` reuse the viewers' readers, `page.ts` is `convert.html`; `vite.config.ts` writes one page per conversion (`jpg-to-png.html` …). The viewer's "Export" (`src/export-dialog.ts`) runs the same modules
+- `src/convert/`: the converter. `catalog.ts` lists what converts into what (plain data, the build also reads it), `converters/<id>.ts` reuse the viewers' readers, `page.ts` is `convert.html`; `vite.config.ts` writes one page per conversion (`jpg-to-png.html` …); conversions from a `minor` source to a `minor` target get `noindex`. The viewer's "Export" (`src/export-dialog.ts`) runs the same modules
+- `src/format-pages.ts`: the viewer's pages per format (`dwg-viewer.html` …) with their own texts, `src/prerender.ts` their HTML for search engines. A format gets a page only with text of its own and real searches for it; near-identical pages count as doorway pages
 - `src/site.ts`: header parts, footer and file drop shared by the viewer and the converter
 - `src/wasm/`: prebuilt WebAssembly (checked in). Sources: `crates/dwg2dxf` (Rust, acadrust) and `wasm/libarchive` (Emscripten); rebuild only via `npm run build:*-wasm`
 - Word and PowerPoint render through the separate MIT library [ooxml-pages](https://github.com/Kai-Jungsthoefel/ooxml-pages) from npm; rendering bugs get fixed there, not patched here

@@ -189,6 +189,9 @@ svg.ic { display: block; flex-shrink: 0; }
 .hero h1 .any { font-style: normal; color: var(--acc-tx); }
 .lead { margin: 4px 0 0; max-width: 480px; font-size: 17px; line-height: 1.5; color: var(--tx2); }
 .lead b { font-weight: 600; color: var(--tx); }
+/* What a format's or a conversion's page cannot do, right under the lead. */
+.lead-note { margin: 0; max-width: 480px; font-size: 13.5px; line-height: 1.5; color: var(--tx3); }
+.hero-text a.text-link:not(:hover) { text-decoration: none; }
 .text-link { align-self: flex-start; display: flex; align-items: center; gap: 6px; height: 32px; color: var(--acc-tx); font-size: 14px; }
 .text-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .dropzone { flex: 1.45 1 480px; min-width: 0; min-height: 340px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 36px 24px; border: 1.5px dashed var(--line3); border-radius: 16px; background: var(--s1); text-align: center; cursor: pointer; }
@@ -225,6 +228,21 @@ svg.ic { display: block; flex-shrink: 0; }
 .fmt-rest { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px dashed var(--line3); border-radius: 12px; font-size: 13.5px; color: var(--tx2); }
 .fmt-rest b { color: var(--tx); font-weight: 600; }
 .fmt-rest .text-link { margin-left: auto; align-self: center; flex-shrink: 0; white-space: nowrap; text-decoration: none; font-size: 13.5px; }
+
+/* A format's own page: what the format is next to what the viewer shows of it, then the conversions of its files. */
+.fp-about { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 48px; align-items: start; }
+.fp-text { margin: 0; max-width: 560px; font-size: 15px; line-height: 1.6; color: var(--tx2); }
+.fp-features { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.45; }
+.fp-features li { display: flex; gap: 10px; }
+.fp-features svg { margin-top: 2px; color: var(--acc-tx); }
+.fp-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; font-size: 13.5px; }
+/* The pages of all formats, one row per category. */
+.fp-groups { display: flex; flex-direction: column; gap: 14px; }
+.fp-group { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 8px 16px; align-items: baseline; }
+.fp-group-lbl { font: 500 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--tx3); }
+.fp-link { display: inline-flex; align-items: center; height: 32px; padding: 0 11px; border: 1px solid var(--line2); border-radius: 8px; background: var(--s1); font-size: 13px; font-weight: 500; color: var(--tx); text-decoration: none; white-space: nowrap; }
+.fp-link:hover { border-color: var(--acc-line); color: var(--acc-tx); }
+.fp-link[aria-current=page] { border-color: var(--acc-line); background: var(--acc-tint); color: var(--acc-tx); }
 
 /* ---- Footer, dialogs and drop overlay ------------------------------------------------------------------------ */
 .foot { margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; padding: 20px 0 32px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--tx3); }
@@ -306,6 +324,8 @@ dialog { color: var(--tx); }
   .fmt-rest { flex-wrap: wrap; row-gap: 4px; }
   .fmt-rest > span + span { flex: 1 1 200px; }
   .fmt-rest .text-link { margin-left: 30px; }
+  .fp-about, .fp-group { grid-template-columns: minmax(0, 1fr); }
+  .fp-text { font-size: 14.5px; }
 
   .pop { inset: auto 0 0 0; width: 100%; max-width: 100%; border-width: 1px 0 0; border-radius: 18px 18px 0 0; background: var(--s1); }
   .pop::backdrop { background: rgba(6, 7, 9, .55); }
@@ -1065,8 +1085,6 @@ button.pv-tile:hover { border-color: var(--acc); }
 /* ── Converter ── */
 /* Without files the page uses the start page's layout (hero, drop zone, section heads). With files it becomes a
    workbench: the files on the left, grouped by kind, the selected file's input and output on the right. */
-.cv-lead-note { margin: 0; max-width: 480px; font-size: 13.5px; line-height: 1.5; color: var(--tx3); }
-.cv-page .hero-text a.text-link:not(:hover) { text-decoration: none; }
 
 /* Start page: a search over all conversions, the kinds of files with their formats, the three steps. */
 .cv-search { position: relative; display: flex; align-items: center; max-width: 640px; color: var(--tx3); }
@@ -1299,7 +1317,7 @@ button.pv-tile:hover { border-color: var(--acc); }
 .cv-notes svg { margin-top: 2px; color: var(--tx3); }
 .cv-notes li.warn svg { color: var(--warn); }
 
-/* The plain content convert.html carries for search engines, until the script replaces it. */
+/* The plain content index.html and convert.html carry for search engines, until the script replaces it. */
 .prerender { flex: 1; overflow: auto; width: min(760px, 100%); margin: 0 auto; padding: 40px 24px; font-size: 14px; line-height: 1.5; }
 .prerender a { color: var(--acc-tx); }
 

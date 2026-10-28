@@ -2,6 +2,7 @@
 // The converter's pages as the build writes them (vite.config.ts): title, description and a plain version of the
 // content for search engines and for browsers without JavaScript. The page script replaces that content on load.
 import { CONVERTERS, PAIRS, pairPage, type ConversionPair } from './catalog';
+import { formatPageFor, formatPagePath } from '../format-pages';
 
 const ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
 const escape = (text: string) => text.replace(/[&<>"]/g, (c) => ESCAPES[c]);
@@ -28,9 +29,15 @@ function content(pair: ConversionPair | null): string {
   // A conversion's page links its neighbors: the same file type to other formats, other file types to the same one.
   const lists = pair
     ? `<h2>Related conversions</h2><ul>${PAIRS.filter((p) => p !== pair && p.converter === pair.converter && (p.source === pair.source || p.target === pair.target)).map(link).join('')}</ul>` +
-      '<p><a href="convert.html">All conversions</a></p>'
+      `<p><a href="convert.html">All conversions</a>${viewerLink(pair)}</p>`
     : CONVERTERS.map((c) => `<h2>${escape(c.label)}</h2><ul>${PAIRS.filter((p) => p.converter === c).map(link).join('')}</ul>`).join('');
   return `<main class="prerender">${intro}<noscript><p>The converter runs in your browser and needs JavaScript.</p></noscript>${lists}</main>`;
+}
+
+/** The viewer's page of the source format, for those who only want to look at their file. */
+function viewerLink(pair: ConversionPair): string {
+  const page = formatPageFor(pair.source.extensions);
+  return page ? ` · <a href="${formatPagePath(page)}">View ${escape(page.label)} files</a>` : '';
 }
 
 function replaceOnce(html: string, pattern: RegExp, replacement: string): string {
@@ -47,5 +54,6 @@ export function converterPageHtml(html: string, pair: ConversionPair | null): st
   html = replaceOnce(html, /<meta property="og:title" content="[^"]*"/, `<meta property="og:title" content="${title}"`);
   html = replaceOnce(html, /<meta property="og:description" content="[^"]*"/, `<meta property="og:description" content="${description}"`);
   html = replaceOnce(html, /<html lang="en"[^>]*>/, pair ? `<html lang="en" data-convert="${pair.slug}">` : '<html lang="en">');
+  if (pair && !pair.indexed) html = replaceOnce(html, /<\/head>/, '  <meta name="robots" content="noindex" />\n  </head>');
   return replaceOnce(html, /<!--prerender-->[\s\S]*?<!--\/prerender-->/, `<!--prerender-->${content(pair)}<!--/prerender-->`);
 }

@@ -8,6 +8,9 @@ import '@fontsource/ibm-plex-mono/500.css';
 import './styles.css';
 import { App } from './app';
 import { initTheme } from './core/theme';
+import { findFormatPage } from './format-pages';
 
 initTheme();
-new App(document.querySelector<HTMLElement>('#app')!);
+// The page of a single format (dwg-viewer.html …) names it in <html data-view>.
+const slug = document.documentElement.dataset.view;
+new App(document.querySelector<HTMLElement>('#app')!, (slug && findFormatPage(slug)) || null);

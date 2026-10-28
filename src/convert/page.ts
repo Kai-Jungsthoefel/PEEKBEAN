@@ -9,6 +9,7 @@
 import { extensionOf, formatBytes } from '../core/bytes';
 import { h } from '../core/dom';
 import { icon } from '../core/icons';
+import { formatPageFor, formatPagePath } from '../format-pages';
 import { conversionIssueLink, REPO_URL } from '../github';
 import { brand, fileDrop, githubLink, LocalStatus, siteFooter, siteNav, themeControls } from '../site';
 import { CONVERTERS, PAIRS, defaultTarget, findPair, initialOptions, optionsFor, pairPage, sourceFor, type ConversionPair, type ConvertOption, type ConverterInfo, type TargetFormat } from './catalog';
@@ -112,6 +113,7 @@ export class ConverterPage {
       ? ` Your ${pair.source.label} files become ${pair.target.label} on your computer and are never uploaded.`
       : ' Images, documents, spreadsheets, 3D models and more are converted on your computer. Compare input and output before you download.';
     const notes = pair ? [pair.source.note, pair.target.loss].filter(Boolean) : [];
+    const viewerPage = pair && formatPageFor(pair.source.extensions);
     return h(
       'div',
       { class: 'hero' },
@@ -121,9 +123,10 @@ export class ConverterPage {
         h('span', { class: 'eyebrow' }, 'CLIENT-SIDE FILE CONVERTER'),
         title,
         h('p', { class: 'lead' }, h('b', {}, 'Private and secure.'), lead),
-        notes.length > 0 && h('p', { class: 'cv-lead-note' }, notes.join(' ')),
+        notes.length > 0 && h('p', { class: 'lead-note' }, notes.join(' ')),
         h('button', { type: 'button', class: 'text-link', 'aria-haspopup': 'dialog', onclick: () => this.local.explain() }, 'How your files stay local', icon('chevRight', 16, 2)),
         pair && h('a', { class: 'text-link', href: 'convert.html' }, 'All conversions', icon('chevRight', 16, 2)),
+        viewerPage && h('a', { class: 'text-link', href: formatPagePath(viewerPage) }, `View ${viewerPage.label} files without converting`, icon('chevRight', 16, 2)),
         h('a', { class: 'text-link site-switch', href: './' }, 'View files instead', icon('chevRight', 16, 2)),
       ),
       h(

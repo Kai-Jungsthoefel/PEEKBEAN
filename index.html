@@ -3,14 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="View files of all kinds in the browser. Nothing is uploaded." />
+    <meta name="description" content="" />
+    <meta property="og:title" content="" />
+    <meta property="og:description" content="" />
     <meta name="referrer" content="no-referrer" />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Peekbean</title>
   </head>
   <body>
-    <div id="app"></div>
+    <!-- Title, description and the content between the markers come from src/prerender.ts. -->
+    <div id="app"><!--prerender--><!--/prerender--></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
