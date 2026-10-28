@@ -7,9 +7,9 @@ View files of all kinds in the browser without uploading them. The site is purel
 | Viewer | Formats | Library |
 |---|---|---|
 | PDF | `.pdf` (search, show and hide layers, password-protected PDFs) | pdf.js |
-| Word | `.docx .docm .dotx` (pages laid out like Word: floating pictures, shapes, text boxes, form fields and check boxes, tables, headers and footers, footnotes, charts) | [ooxml-pages](https://github.com/Kai-Jungsthoefel/ooxml-pages) |
+| Word | `.docx .docm .dotx` (pages laid out like Word: floating pictures, shapes, text boxes, form fields and check boxes, tables, headers and footers, footnotes, charts); export to PDF with real text and embedded fonts | [ooxml-pages](https://github.com/Kai-Jungsthoefel/ooxml-pages), pdf-lib (@cantoo fork) |
 | Spreadsheet | `.xlsx .xlsm .xlsb .xls .ods .numbers .csv .tsv`, xlsx with formatting | SheetJS, own style reader |
-| Presentation | `.pptx .pptm .ppsx .potx` (shapes, text, pictures, tables, charts, layouts and masters) | [ooxml-pages](https://github.com/Kai-Jungsthoefel/ooxml-pages) |
+| Presentation | `.pptx .pptm .ppsx .potx` (shapes, text, pictures, tables, charts, layouts and masters); export to PDF like Word | [ooxml-pages](https://github.com/Kai-Jungsthoefel/ooxml-pages), pdf-lib (@cantoo fork) |
 | Rich Text | `.rtf` (also `.doc` files that are really RTF): formatting, lists, tables, pictures including EMF/WMF, headers and footers | own reader, ooxml-pages |
 | DXF / DWG | `.dxf` (text DXF), `.dwg` R12 to 2018+, model space and layouts, AutoCAD Architecture objects as geometry | dxf-viewer, acadrust (Rust → WebAssembly) |
 | HPGL plot | `.plt .hpgl .hpg .hgl` (HP-GL and HP-GL/2, also in PCL/PJL wrappers): one layer per pen, measuring in mm; gnuplot `.plt` scripts open as text | own converter to DXF, dxf-viewer |
@@ -92,7 +92,7 @@ During the build, `rollup-plugin-license` checks every shipped dependency, inclu
 
 Deliberately not used: the prebuilt `libarchive.js`, because its WebAssembly contains OpenSSL 1.0.2 (license not GPL-compatible), and `pptx-preview`, which is only distributed minified without source code.
 
-The design follows [SOMA](https://github.com/Kai-Jungsthoefel/SOMA), with a light and a dark theme. Typeface: IBM Plex (OFL-1.1).
+The design follows [SOMA](https://github.com/Kai-Jungsthoefel/SOMA), with a light and a dark theme. Typeface: IBM Plex (OFL-1.1). PDFs made from Word and PowerPoint files embed open fonts with the same widths as Office's (Carlito, Caladea, Arimo, Tinos, Cousine) and Noto Sans Symbols, Noto Sans Math and STIX Two Math, all from @fontsource and loaded only when a document needs them.
 
 ## Planned
 

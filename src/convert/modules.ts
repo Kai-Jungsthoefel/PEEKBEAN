@@ -8,6 +8,7 @@ import type { ConverterModule } from './types';
 const MODULES: Record<string, () => Promise<ConverterModule>> = {
   image: () => import('./converters/image'),
   pdf: () => import('./converters/pdf'),
+  office: () => import('./converters/office'),
   spreadsheet: () => import('./converters/spreadsheet'),
   model3d: () => import('./converters/model3d'),
   drawing: () => import('./converters/drawing'),

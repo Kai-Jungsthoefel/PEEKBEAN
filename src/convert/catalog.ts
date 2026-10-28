@@ -153,6 +153,24 @@ export const CONVERTERS: ConverterInfo[] = [
     ],
   },
   {
+    id: 'office',
+    label: 'Word and PowerPoint',
+    icon: 'doc',
+    viewers: ['docx', 'pptx'],
+    sources: [
+      { slug: 'docx', label: 'DOCX', extensions: ['docx', 'docm', 'dotx', 'dotm'] },
+      { slug: 'pptx', label: 'PPTX', extensions: ['pptx', 'pptm', 'ppsx', 'potx'] },
+    ],
+    targets: [
+      {
+        id: 'pdf',
+        label: 'PDF',
+        extension: 'pdf',
+        loss: 'Office fonts such as Calibri and Arial are replaced by open fonts with the same widths; shadows, glow and picture effects are simplified.',
+      },
+    ],
+  },
+  {
     id: 'spreadsheet',
     label: 'Spreadsheets',
     icon: 'table',
