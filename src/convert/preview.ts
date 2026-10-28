@@ -241,8 +241,14 @@ class Pane {
 
   constructor(file: File, viewer: string, label: (Node | null)[]) {
     const tools = h('div', { class: 'viewer-tools' });
-    const text = h('span', {}, 'Loading viewer …');
-    const loading = h('div', { class: 'status' }, h('span', { class: 'spinner' }), text);
+    const text = h('span', { class: 'lc-text' }, 'Loading viewer …');
+    const bar = h('div', { class: 'lc-bar indet' }, h('div'));
+    // The viewer's loading card: it covers the status some viewers show themselves while they build up underneath.
+    const loading = h(
+      'div',
+      { class: 'loading', role: 'status', 'aria-live': 'polite' },
+      h('div', { class: 'loading-card' }, h('div', { class: 'lc-hd' }, h('span', { class: 'spinner' }), h('b', { title: file.name }, file.name)), h('div', { class: 'lc-sub' }, text), bar),
+    );
     const host = h('div', { class: 'viewer-host' }, loading);
     // Zoom, measuring and the like are a click away; the pane opens with just the file.
     const toggle = h('button', {
@@ -257,12 +263,18 @@ class Pane {
       },
     }, icon('ruler', 14), h('span', {}, 'Tools'));
     this.element = h('div', { class: 'cv-pane' }, h('div', { class: 'cv-pane-bar' }, ...label, h('span', { class: 'grow' }), toggle, tools), h('div', { class: 'viewer-body' }, host));
-    void this.mount(file, viewer, host, tools, loading, text).then(() => {
+    const progress = (message: string, fraction?: number) => {
+      text.textContent = message;
+      const determinate = fraction !== undefined && Number.isFinite(fraction);
+      bar.classList.toggle('indet', !determinate);
+      (bar.firstChild as HTMLElement).style.width = determinate ? `${Math.round(Math.min(1, Math.max(0, fraction)) * 100)}%` : '';
+    };
+    void this.mount(file, viewer, host, tools, loading, progress).then(() => {
       toggle.hidden = tools.childElementCount === 0;
     });
   }
 
-  private async mount(file: File, id: string, host: HTMLElement, tools: HTMLElement, loading: HTMLElement, text: HTMLElement): Promise<void> {
+  private async mount(file: File, id: string, host: HTMLElement, tools: HTMLElement, loading: HTMLElement, progress: (message: string, fraction?: number) => void): Promise<void> {
     try {
       const definition = viewers.find((v) => v.id === id) ?? (await detectViewer(file));
       const module = await definition.load();
@@ -270,16 +282,14 @@ class Pane {
       const container = h('div', { class: `viewer-root viewer-${definition.id}` });
       // The viewer builds up underneath; the loading message stays on top until it is done.
       host.replaceChildren(container, loading);
-      text.textContent = 'Reading file …';
+      progress('Reading file …');
       const viewer = await module.mount({
         file,
         container,
         toolbar: tools,
         // Archive entries and attachments open in the viewer, not here.
         openFile: () => {},
-        progress: (message) => {
-          text.textContent = message;
-        },
+        progress,
       });
       if (this.disposed) {
         viewer.destroy();
