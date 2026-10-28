@@ -61,9 +61,8 @@ The WebAssembly modules in `src/wasm/` are checked in prebuilt, so `npm run buil
 ## Structure
 
 - `src/core/registry.ts`: list of all viewers and the format detection
-- `src/viewers/*.ts`: one module per viewer, loaded only when a matching file is opened
-- `src/viewers/pptx/`: the PowerPoint renderer (package, inheritance from layout and master, colors, text, geometry, tables, charts)
-- `src/viewers/docx/`: the Word renderer (styles, numbering, line breaking, pagination, tables, floating objects, VML, equations); DrawingML shapes and charts go through the PowerPoint renderer
+- `src/viewers/*.ts`: one module per viewer, loaded only when a matching file is opened; larger viewers keep their parts in a folder of the same name (`ifc/`, `map/`, `rtf/` …)
+- Word and PowerPoint (`docx.ts`, `pptx.ts`) render through [ooxml-pages](https://github.com/Kai-Jungsthoefel/ooxml-pages), a separate MIT library from npm that lays out pages like Word and PowerPoint do
 - `src/workers/*.ts`: heavy work (CAD kernel, spreadsheets, DXF, image decoders) runs in web workers
 - `src/app.ts`: user interface (tabs, drag and drop, start page, loading screen)
 - `src/metadata/`, `src/info-panel.ts`: metadata for the info panel, one reader per format family, loaded only when the panel opens
@@ -88,9 +87,9 @@ During the build, `rollup-plugin-license` checks every shipped dependency, inclu
 
 Deliberately not used: the prebuilt `libarchive.js`, because its WebAssembly contains OpenSSL 1.0.2 (license not GPL-compatible), and `pptx-preview`, which is only distributed minified without source code.
 
-The design follows [SOMA](https://github.com/Kai-Jungsthoefel/SOMA), in a light color scheme. Typeface: IBM Plex (OFL-1.1).
+The design follows [SOMA](https://github.com/Kai-Jungsthoefel/SOMA), with a light and a dark theme. Typeface: IBM Plex (OFL-1.1).
 
 ## Planned
 
-- Older Office formats (DOC, PPT), IFC (BIM), EPUB, camera raw files
+- Older Office formats (DOC, PPT)
 - Offline use as a PWA
