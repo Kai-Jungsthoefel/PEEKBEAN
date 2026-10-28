@@ -1131,25 +1131,25 @@ button.pv-tile:hover { border-color: var(--acc); }
 .cv-banner-txt span { font-size: 12.5px; line-height: 1.5; color: var(--tx2); }
 .cv-banner .hb.x { width: 32px; height: 32px; border-radius: 8px; }
 
-/* A group: icon, kind and count on the left edge, the arrow and the target formats on the right; options and
-   what the target loses below, aligned with the kind's name. */
-.cv-group { padding-bottom: 8px; border-top: 1px solid var(--line); }
-.cv-group-hd { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 16px 16px 10px 24px; }
-.cv-group-hd .ico { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--s3); color: var(--tx2); flex-shrink: 0; }
-.cv-group-title { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-.cv-group-title b { font-size: 14.5px; font-weight: 600; }
+/* A group: a tinted band with the kind and its count on the left, the arrow and the target formats on the right,
+   options and what the target loses below; the files follow on the plain surface. */
+.cv-group { border-top: 1px solid var(--line); }
+.cv-group-set { border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--s3) 55%, var(--s1)); }
+.cv-group-hd { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-height: 52px; padding: 10px 16px 10px 24px; }
+.cv-group-hd .ico { width: auto; height: auto; display: flex; border-radius: 0; background: none; color: var(--tx3); flex-shrink: 0; }
+.cv-group-title { flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.cv-group-title b { font-size: 13.5px; font-weight: 600; }
 .cv-group-title span { font-size: 12.5px; color: var(--tx3); }
 .cv-to { display: flex; align-items: center; gap: 10px; min-width: 0; margin-left: auto; }
 /* Beside the preview the panel is narrow: the arrow and the formats get a line of their own below the kind. */
-.cv-bench.open .cv-to { flex: 1 1 100%; margin-left: 44px; }
+.cv-bench.open .cv-to { flex: 1 1 100%; margin-left: 26px; }
 .cv-arrow { display: flex; color: var(--tx3); }
-.cv-group-opts { display: flex; flex-direction: column; gap: 8px; padding: 0 24px 10px 68px; }
+.cv-group-opts { display: flex; flex-direction: column; gap: 8px; padding: 0 24px 12px 50px; }
 .cv-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .cv-ctl-lbl { font-size: 12.5px; color: var(--tx3); }
 .cv-loss { display: flex; align-items: flex-start; gap: 7px; margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--tx2); }
 .cv-loss svg { margin-top: 2px; color: var(--tx3); }
 .cv-loss.warn > svg { color: var(--warn); }
-.cv-loss .text-link { height: auto; margin-left: auto; flex-shrink: 0; font-size: 13px; text-decoration: none; }
 /* Segmented controls on a plain track; long choices ("Medium, 150 dpi") wrap inside their segment. */
 .cv-seg { display: flex; gap: 2px; max-width: 100%; padding: 3px; border-radius: 9px; background: var(--track); }
 .cv-seg button { min-width: 0; min-height: 26px; padding: 4px 10px; border-radius: 6px; color: var(--tx2); font-size: 12.5px; font-weight: 500; line-height: 1.2; }
@@ -1164,18 +1164,22 @@ button.pv-tile:hover { border-color: var(--acc); }
 .cv-field .select:disabled, .cv-ctl .select:disabled { opacity: .6; cursor: default; }
 
 /* A file: thumbnail, name and format on the left, its state and buttons on the right. */
-.cv-files { list-style: none; margin: 0; padding: 0; }
+.cv-files { list-style: none; margin: 0; padding: 4px 0 6px; }
 .cv-file { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 12px 6px 24px; }
 .cv-file:hover { background: var(--s2); }
 .cv-file.sel { background: var(--acc-tint); }
 .cv-thumb { width: 32px; height: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 7px; background: var(--s3); color: var(--tx2); overflow: hidden; }
 .cv-thumb.checkerboard { background-size: 8px 8px; }
 .cv-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.cv-thumb.ext { font: 600 10px/1 var(--mono); letter-spacing: .02em; color: var(--tx2); }
 .cv-file[data-status=failed] .cv-thumb:not(.checkerboard) { background: var(--err-tint); color: var(--err); }
 .cv-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .cv-txt b { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cv-meta { font-size: 12px; color: var(--tx3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cv-state { display: flex; align-items: center; justify-content: flex-end; gap: 7px; min-width: 0; font-size: 12.5px; color: var(--tx3); }
+.cv-state { display: flex; align-items: center; justify-content: flex-end; gap: 7px; min-width: 0; max-width: 55%; font-size: 12.5px; color: var(--tx3); }
+.cv-state .cv-err { align-items: center; min-width: 0; }
+.cv-state .cv-err span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cv-file .cv-txt { min-width: 80px; }
 .cv-state > .spinner { width: 12px; height: 12px; flex-shrink: 0; }
 .cv-state .cv-progress { width: 170px; }
 .cv-bench.open .cv-state .cv-progress { width: 110px; }
@@ -1200,19 +1204,23 @@ button.pv-tile:hover { border-color: var(--acc); }
 .cv-progress .spinner { width: 14px; height: 14px; flex-shrink: 0; }
 .cv-progress .lc-bar { margin: 0; }
 
-/* One file: a card with the file, its conversion in a box and one wide button; once converted the result, a
-   comparison strip for pictures and the download. */
+/* One file: a card with the file, its conversion in a box and one wide button; once converted the result, the
+   download and a button that opens the comparison. */
 .cv-single { display: flex; flex-direction: column; gap: 18px; padding: 24px; }
 .cv-single-hd { display: flex; align-items: center; gap: 16px; }
 .cv-single-hd .cv-thumb { width: 88px; height: 88px; border: 1px solid var(--line); border-radius: 12px; }
 .cv-single-hd .cv-thumb.checkerboard { background-size: 12px 12px; }
 .cv-single-hd .cv-thumb img { object-fit: contain; }
 .cv-single-hd .cv-thumb svg { width: 32px; height: 32px; }
+.cv-single-hd .cv-thumb.ext { font-size: 17px; }
 .cv-single[data-status=unsupported] .cv-thumb:not(.checkerboard) { background: var(--warn-tint); color: var(--warn); }
 .cv-single-hd .cv-txt { gap: 2px; }
 .cv-single-hd .cv-txt b { font-size: 17px; font-weight: 600; }
 .cv-single-hd .cv-meta { font-size: 13px; white-space: normal; }
-.cv-single-hd .hb.x { align-self: flex-start; width: 32px; height: 32px; border-radius: 8px; }
+/* Feedback and remove in the corner of the card. */
+.cv-single-tools { align-self: flex-start; display: flex; gap: 2px; }
+.cv-single-tools .hb { width: 32px; height: 32px; border-radius: 8px; color: var(--tx3); }
+.cv-single-tools .hb:hover:not(:disabled) { color: var(--tx); }
 .cv-single-hd .hb.x:disabled { opacity: .3; cursor: default; }
 .cv-done-ico { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; background: var(--ok-tint); color: var(--ok); }
 .cv-route { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--s2); }
@@ -1222,10 +1230,10 @@ button.pv-tile:hover { border-color: var(--acc); }
 .cv-wide { width: 100%; height: 48px; justify-content: center; border-radius: 12px; font-size: 15px; }
 .cv-wide-progress .cv-progress { width: 100%; }
 .cv-single .cv-banner { margin: 0; }
-.cv-single > .cv-err { font-size: 13px; }
-.cv-strip { position: relative; height: 200px; display: flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-.cv-sl-tag { position: absolute; top: 10px; left: 10px; z-index: 1; height: 22px; display: flex; align-items: center; padding: 0 8px; border-radius: 6px; background: rgba(27, 30, 35, .72); color: #ffffff; font: 500 11px/1 var(--mono); pointer-events: none; }
-.cv-sl-tag.out { left: auto; right: 10px; }
+.cv-fail { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; font-size: 13px; }
+.cv-done-actions { display: flex; gap: 10px; }
+.cv-done-actions .cv-wide { flex: 1; width: auto; }
+.cv-compare { height: 48px; padding: 0 20px; gap: 8px; justify-content: center; border-radius: 12px; font-size: 15px; }
 .cv-change { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin: -6px 0 0; font-size: 13px; color: var(--tx3); }
 .cv-more { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; font-size: 13px; }
 .cv-more .text-link { align-self: center; font-size: 13.5px; text-decoration: none; }
@@ -1244,6 +1252,7 @@ button.pv-tile:hover { border-color: var(--acc); }
 .cv-fmt.to { color: var(--acc-tx); }
 .cv-modes button { height: 30px; padding: 0 14px; font-size: 13px; }
 .cv-pv-download:disabled { opacity: .5; cursor: default; }
+.cv-pv-feedback { text-decoration: none; }
 .cv-pv-status { display: flex; align-items: center; gap: 8px; min-height: 20px; font-size: 13px; color: var(--tx2); }
 .cv-pv-status .cv-progress { width: min(420px, 100%); }
 .cv-stage { flex: 1 0 420px; min-height: 420px; display: flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--s2); }
@@ -1295,8 +1304,8 @@ button.pv-tile:hover { border-color: var(--acc); }
 @media (max-width: 1023px) {
   .cv-bench.open .cv-queue { width: 360px; }
   .cv-pv-title { flex-basis: 160px; }
-  .cv-pv-download { width: 34px; padding: 0; justify-content: center; }
-  .cv-pv-download span { display: none; }
+  .cv-pv-download, .cv-pv-feedback { width: 34px; padding: 0; justify-content: center; }
+  .cv-pv-download span, .cv-pv-feedback span { display: none; }
   .cv-stage { flex-basis: 360px; min-height: 360px; }
   .cv-split { flex-direction: column; }
   .cv-split > .cv-pane + .cv-pane { border-left: 0; border-top: 1px solid var(--line2); }
@@ -1319,7 +1328,7 @@ button.pv-tile:hover { border-color: var(--acc); }
   .cv-ghost { height: 44px; }
   .cv-banner { margin: 0 12px 12px; }
   .cv-banner .hb.x { width: 40px; height: 40px; }
-  .cv-group-hd { padding: 14px 12px 10px 16px; }
+  .cv-group-hd { padding: 10px 12px 10px 16px; }
   .cv-to { flex: 1 1 100%; margin-left: 0; }
   .cv-to .cv-targets { flex: 1; }
   .cv-targets button { flex: 1; min-height: 38px; font-size: 13px; }
@@ -1332,7 +1341,7 @@ button.pv-tile:hover { border-color: var(--acc); }
   .cv-file > .cv-thumb { grid-row: 1 / 3; width: 40px; height: 40px; }
   .cv-file > .cv-txt { grid-column: 2; grid-row: 1; }
   .cv-file:not([data-status=ready]) .cv-meta { display: none; }
-  .cv-file > .cv-state { grid-column: 2; grid-row: 2; justify-content: flex-start; }
+  .cv-file > .cv-state { grid-column: 2; grid-row: 2; justify-content: flex-start; max-width: none; }
   .cv-file > .cv-row-actions { grid-column: 3; grid-row: 1 / 3; }
   .cv-state .cv-progress { width: 100%; }
   .cv-file .hb, .cv-dl { width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 10px; }
@@ -1347,17 +1356,18 @@ button.pv-tile:hover { border-color: var(--acc); }
   .cv-route .cv-targets { flex: 1 1 auto; }
   .cv-route .cv-targets button { min-height: 38px; }
   .cv-wide { height: 52px; }
-  .cv-strip { height: 220px; }
+  .cv-done-actions { flex-direction: column; }
+  .cv-done-actions .cv-wide { flex: none; width: 100%; }
   .cv-loss { flex-wrap: wrap; }
-  .cv-loss .text-link { margin-left: 22px; }
   .cv-more .text-link { height: 44px; }
   .cv-preview { gap: 10px; padding: 8px 12px 16px; }
   .cv-pv-hd { gap: 8px; }
   .cv-back { display: flex; margin-left: -6px; }
   .cv-close { display: none; }
   .cv-pv-title { flex: 1 1 0; }
-  .cv-pv-download { width: 44px; height: 44px; padding: 0; justify-content: center; }
-  .cv-pv-download span { display: none; }
+  .cv-pv-download, .cv-pv-feedback { width: 44px; height: 44px; padding: 0; justify-content: center; }
+  .cv-pv-download span, .cv-pv-feedback span { display: none; }
+  .cv-single-tools .hb { width: 44px; height: 44px; }
   .cv-modes { order: 5; flex: 1 1 100%; }
   .cv-modes button { flex: 1; height: 38px; font-size: 14px; }
   .cv-stage { flex: 0 0 auto; height: 58vh; min-height: 320px; }

@@ -291,7 +291,7 @@ export default defineConfig({
   // the running worker with outdated URLs. Bundling them at startup avoids that.
   optimizeDeps: {
     include: [
-      'utif2', 'ag-psd', 'decode-dxt', 'occt-import-js', 'xlsx', 'xlsx/dist/cpexcel.full', 'dxf-viewer', '@zip.js/zip.js', 'web-ifc',
+      'utif2', 'ag-psd', 'decode-dxt', 'occt-import-js', 'xlsx', 'xlsx/dist/cpexcel.full', 'dxf-viewer', 'dxf-viewer/src/DxfScene.js', '@zip.js/zip.js', 'web-ifc',
       'three/addons/loaders/DDSLoader.js', 'three/addons/loaders/EXRLoader.js', 'three/addons/loaders/HDRLoader.js', 'three/addons/loaders/TGALoader.js',
       '@tracespace/parser', '@tracespace/plotter', '@tracespace/identify-layers', 'shpjs', 'proj4', 'topojson-client',
       'jxl-oxide-wasm', 'laz-perf/lib/worker/laz-perf.js', 'fzstd',

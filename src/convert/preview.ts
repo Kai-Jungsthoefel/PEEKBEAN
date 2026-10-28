@@ -27,6 +27,8 @@ export interface PreviewItem {
   outputs: File[] | null;
   /** Progress, error or a hint, below the header. */
   status: (Node | string)[];
+  /** New GitHub issue about this conversion, as the viewer's "Feedback"; null without a repository or a converter. */
+  report: { href: string; title: string } | null;
   facts: { label: string; input: string; output: string }[];
   notes: { text: string; warn: boolean }[];
 }
@@ -144,6 +146,7 @@ export class Preview {
         ),
       ),
       download,
+      ...(item.report ? [h('a', { class: 'btn cv-pv-feedback', target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Feedback', ...item.report }, icon('feedback', 16), h('span', {}, 'Feedback'))] : []),
       h('button', { type: 'button', class: 'ibtn cv-close', 'aria-label': 'Close the preview', title: 'Close', onclick: () => this.actions.close() }, icon('close', 18, 2)),
     );
   }
@@ -218,6 +221,14 @@ export class Preview {
   }
 }
 
+/** A viewer may fail with a bare event from a worker; that says nothing as text. */
+function errorText(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error instanceof ErrorEvent && error.message) return error.message;
+  if (error instanceof Event) return 'A part of the viewer stopped unexpectedly. Reload the page and try again.';
+  return String(error);
+}
+
 function tag(side: string, format: string, size: number, output: boolean): HTMLElement {
   return h('span', { class: output ? 'cv-side out' : 'cv-side' }, `${side} · ${format} · ${formatBytes(size)}`);
 }
@@ -288,7 +299,7 @@ class Pane {
             'div',
             { class: 'error-card' },
             h('div', { class: 'error-hd' }, icon('alert', 18, 1.8), h('b', {}, 'No preview for this file')),
-            h('p', { class: 'c2' }, error instanceof Error ? error.message : String(error)),
+            h('p', { class: 'c2' }, errorText(error)),
           ),
         ),
       );
@@ -302,49 +313,31 @@ class Pane {
   }
 }
 
-/** The slider in a pane of the preview, with the formats and sizes above it. */
+/** Input and output picture on top of each other; the handle shows the output to its right. */
 class Slider {
-  readonly element: HTMLElement;
-  private readonly compare: PictureCompare;
-
-  constructor(input: File, output: File, inputTag: HTMLElement, outputTag: (Node | null)[]) {
-    this.compare = new PictureCompare(input, output);
-    this.element = h('div', { class: 'cv-pane' }, h('div', { class: 'cv-pane-bar' }, inputTag, h('span', { class: 'grow' }), ...outputTag), this.compare.element);
-  }
-
-  destroy(): void {
-    this.compare.destroy();
-  }
-}
-
-/**
- * Input and output picture on top of each other; the handle shows the output to its right. Used by the preview and,
- * as a strip with the two formats in its corners, by the card of a single converted file.
- */
-export class PictureCompare {
   readonly element: HTMLElement;
   private readonly urls: string[] = [];
   private disposed = false;
 
-  constructor(input: File, output: File, labels?: [string, string]) {
+  constructor(input: File, output: File, inputTag: HTMLElement, outputTag: (Node | null)[]) {
     const before = h('img', { alt: 'Input' });
     const after = h('img', { alt: 'Output' });
     const range = h('input', { type: 'range', min: '0', max: '100', value: '50', class: 'cv-sl-range', 'aria-label': 'Compare input and output' });
     const flipped = icon('chevRight', 18, 2.2);
     flipped.classList.add('flip');
     // Each layer has its own checkerboard, so transparent parts of the output do not show the input below.
-    this.element = h(
+    const area = h(
       'div',
       { class: 'cv-sl-area' },
       h('div', { class: 'cv-sl-layer checkerboard' }, before),
       h('div', { class: 'cv-sl-layer out checkerboard' }, after),
-      ...(labels ? [h('span', { class: 'cv-sl-tag', 'aria-hidden': 'true' }, labels[0]), h('span', { class: 'cv-sl-tag out', 'aria-hidden': 'true' }, labels[1])] : []),
       range,
       h('div', { class: 'cv-sl-handle', 'aria-hidden': 'true' }, h('span', { class: 'cv-sl-knob' }, flipped, icon('chevRight', 18, 2.2))),
     );
-    const move = () => this.element.style.setProperty('--pos', `${range.value}%`);
+    const move = () => area.style.setProperty('--pos', `${range.value}%`);
     range.addEventListener('input', move);
     move();
+    this.element = h('div', { class: 'cv-pane' }, h('div', { class: 'cv-pane-bar' }, inputTag, h('span', { class: 'grow' }), ...outputTag), area);
     void this.load(input, output, before, after);
   }
 

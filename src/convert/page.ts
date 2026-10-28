@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The converter page. Without files it is a start page: the drop zone, a search over all conversions and the kinds of
 // files with their formats. One file gets a card of its own: the conversion, one button, and once converted the
-// download with a look at what changed. Several files share one panel, grouped by kind, each group with its target
+// download and a button to compare. Several files share one panel, grouped by kind, each group with its target
 // format and options in its first line; each file downloads from its row. Input and output open on demand next to the
 // list (preview.ts), so nobody who only wants the converted file waits for viewers. The files are converted here in
 // the browser, one after another. Pages such as jpg-to-png.html are this page with one conversion chosen; there files
@@ -9,12 +9,12 @@
 import { extensionOf, formatBytes } from '../core/bytes';
 import { h } from '../core/dom';
 import { icon } from '../core/icons';
-import { issueLink, REPO_URL } from '../github';
+import { conversionIssueLink, REPO_URL } from '../github';
 import { brand, fileDrop, githubLink, LocalStatus, siteFooter, siteNav, themeControls } from '../site';
 import { CONVERTERS, PAIRS, defaultTarget, findPair, initialOptions, optionsFor, pairPage, sourceFor, type ConversionPair, type ConvertOption, type ConverterInfo, type TargetFormat } from './catalog';
 import { baseName, download, zipFiles } from './files';
 import { converterFor, loadConverter } from './modules';
-import { PictureCompare, Preview, type PreviewItem } from './preview';
+import { Preview, type PreviewItem } from './preview';
 import type { ConvertResult } from './types';
 
 type Status = 'detecting' | 'ready' | 'working' | 'done' | 'failed' | 'unsupported';
@@ -40,8 +40,6 @@ interface Job {
   /** Thumbnail of a picture the browser shows itself; made once, as the row is redrawn often. */
   thumb?: HTMLElement;
   thumbUrl?: string;
-  /** Input and output of a single converted picture in its card; made once per result. */
-  strip?: PictureCompare;
 }
 
 /** Target and options per converter; they apply to all files of that kind. */
@@ -159,7 +157,7 @@ export class ConverterPage {
       if (label) items.unshift(h('span', { class: 'c3' }, label));
       if (pairs.length === 0 && query) {
         items.push(h('span', { class: 'c2' }, `No conversion matches “${query}” yet.`));
-        if (REPO_URL) items.push(h('a', { class: 'text-link', target: '_blank', rel: 'noopener noreferrer', ...issueLink() }, 'Suggest a format', icon('chevRight', 16, 2)));
+        if (REPO_URL) items.push(h('a', { class: 'text-link', target: '_blank', rel: 'noopener noreferrer', ...conversionIssueLink() }, 'Suggest a converter', icon('chevRight', 16, 2)));
       }
       results.replaceChildren(...items);
     };
@@ -229,6 +227,14 @@ export class ConverterPage {
       { class: 'formats', 'aria-labelledby': 'kinds-title' },
       h('div', { class: 'formats-head' }, h('h2', { id: 'kinds-title' }, 'Browse by kind'), h('span', { class: 'c3' }, 'Every format of a kind converts to each of its targets.')),
       h('div', { class: 'cv-kinds' }, ...cards),
+      REPO_URL &&
+        h(
+          'div',
+          { class: 'fmt-rest' },
+          h('span', { class: 'fmt-ico' }, icon('feedback', 18)),
+          h('span', {}, h('b', {}, 'Missing a conversion? '), 'Tell us which formats you need.'),
+          h('a', { class: 'text-link', target: '_blank', rel: 'noopener noreferrer', ...conversionIssueLink() }, 'Suggest a converter', icon('chevRight', 16, 2)),
+        ),
     );
   }
 
@@ -313,8 +319,7 @@ export class ConverterPage {
 
   /** Back to waiting for "Convert", without the result of an earlier run. */
   private reset(job: Job): void {
-    job.strip?.destroy();
-    Object.assign(job, { status: 'ready', message: '', result: undefined, strip: undefined });
+    Object.assign(job, { status: 'ready', message: '', result: undefined });
   }
 
   /** New settings make earlier results stale; those files are converted again on the next run. */
@@ -399,11 +404,19 @@ export class ConverterPage {
   private singleCard(job: Job): HTMLElement[] {
     const card = h('section', { class: 'cv-single', 'aria-label': 'File to convert' });
     card.dataset.status = job.status;
-    const remove = h('button', { type: 'button', class: 'hb x', 'aria-label': `Remove ${job.file.name}`, title: 'Remove', disabled: job.status === 'working', onclick: () => this.remove(job) }, icon('close', 15, 2.2));
+    // Preview, feedback and remove in the corner, as in the list and the viewer's file bar. Once converted, Compare
+    // below takes the preview's place; a file no converter takes asks for one in its warning.
+    const tools = h(
+      'div',
+      { class: 'cv-single-tools' },
+      job.status !== 'detecting' && job.status !== 'done' ? this.previewButton(job, false) : null,
+      job.converter ? this.feedbackLink(job) : null,
+      h('button', { type: 'button', class: 'hb x', 'aria-label': `Remove ${job.file.name}`, title: 'Remove', disabled: job.status === 'working', onclick: () => this.remove(job) }, icon('close', 15, 2.2)),
+    );
     if (job.status === 'done') {
-      card.append(...this.singleDone(job, remove));
+      card.append(...this.singleDone(job, tools));
     } else {
-      card.append(h('div', { class: 'cv-single-hd' }, this.thumb(job), h('div', { class: 'cv-txt' }, h('b', { title: job.file.name }, job.file.name), h('span', { class: 'cv-meta' }, job.status === 'detecting' ? 'Detecting format …' : this.info(job))), remove));
+      card.append(h('div', { class: 'cv-single-hd' }, this.thumb(job), h('div', { class: 'cv-txt' }, h('b', { title: job.file.name }, job.file.name), h('span', { class: 'cv-meta' }, job.status === 'detecting' ? 'Detecting format …' : this.info(job))), tools));
       if (job.converter) {
         card.append(this.route(job), ...this.singleAction(job));
       } else if (job.status !== 'detecting') {
@@ -432,35 +445,46 @@ export class ConverterPage {
     switch (job.status) {
       case 'working':
         return [h('div', { class: 'cv-wide-progress' }, this.progress(job))];
-      case 'failed':
-        return [h('span', { class: 'cv-err' }, icon('alert', 15, 1.8), h('span', {}, job.message)), convert('Try again')];
+      case 'failed': {
+        const report = this.report(job);
+        return [
+          h(
+            'div',
+            { class: 'cv-fail' },
+            h('span', { class: 'cv-err' }, icon('alert', 15, 1.8), h('span', {}, job.message)),
+            report && h('a', { class: 'cv-link', target: '_blank', rel: 'noopener noreferrer', ...report }, 'Report this problem'),
+          ),
+          convert('Try again'),
+        ];
+      }
       default:
         return [convert(`Convert to ${target.label}`)];
     }
   }
 
-  private singleDone(job: Job, remove: HTMLElement): HTMLElement[] {
+  private singleDone(job: Job, tools: HTMLElement): HTMLElement[] {
     const files = job.result!.files;
     const target = this.targetOf(job)!;
     const total = files.reduce((sum, f) => sum + f.size, 0);
-    const picture = job.converter!.id === 'image';
     const parts: HTMLElement[] = [
       h(
         'div',
         { class: 'cv-single-hd' },
         h('span', { class: 'cv-done-ico' }, icon('check', 20, 2.4)),
         h('div', { class: 'cv-txt' }, h('b', {}, files.length === 1 ? files[0].name : plural(files.length, 'file', 'files')), h('span', { class: 'cv-meta' }, `from ${job.file.name} · ${formatBytes(total)}${this.sizeChange(job.file.size, total)}`)),
-        remove,
+        tools,
       ),
     ];
-    // A picture compares right here; anything else opens the preview.
-    if (picture) {
-      job.strip ??= new PictureCompare(job.file, files[0], [sourceFor(job.converter!, job.file.name)?.label ?? 'Input', target.label]);
-      parts.push(h('div', { class: 'cv-strip' }, job.strip.element));
-    }
-    const compare = h('button', { type: 'button', class: 'text-link', onclick: () => this.openPreview(job) }, picture ? 'Full comparison' : 'Compare input and output', icon('chevRight', 16, 2));
-    parts.push(target.loss ? h('div', { class: 'cv-loss warn' }, icon('alert', 15, 1.8), h('span', {}, target.loss), compare) : h('div', { class: 'cv-loss' }, compare));
-    parts.push(this.downloadButton(job, true));
+    if (target.loss) parts.push(h('p', { class: 'cv-loss warn' }, icon('alert', 15, 1.8), h('span', {}, target.loss)));
+    // Download first; comparing opens the preview with input and output in full size.
+    parts.push(
+      h(
+        'div',
+        { class: 'cv-done-actions' },
+        this.downloadButton(job, true),
+        h('button', { type: 'button', class: 'btn cv-compare', title: 'Compare input and output', onclick: () => this.openPreview(job) }, icon('eye', 18), 'Compare'),
+      ),
+    );
     const options = optionsFor(job.converter!, target.id).map((o) => `${o.label}: ${o.choices.find((c) => c.value === this.settings.get(job.converter!.id)!.options[o.id])?.label ?? ''}`);
     parts.push(
       h(
@@ -536,11 +560,29 @@ export class ConverterPage {
     return [
       `${text} `,
       h('a', { class: 'cv-link', href: './', title: 'Opens the viewer; drop the file there' }, 'Open in the viewer'),
-      ...(REPO_URL ? [' · ', h('a', { class: 'cv-link', target: '_blank', rel: 'noopener noreferrer', ...issueLink() }, 'Suggest a converter')] : []),
+      // One file names its format in the request; several may be of different formats.
+      ...(REPO_URL ? [' · ', h('a', { class: 'cv-link', target: '_blank', rel: 'noopener noreferrer', ...(jobs.length === 1 ? conversionIssueLink(jobs[0].file, jobs[0].kind || undefined) : conversionIssueLink()) }, 'Suggest a converter')] : []),
     ];
   }
 
-  /** A kind of file: its name and count, an arrow and the target formats; below, options and what gets lost. */
+  /** New issue about converting this file: its formats and options, never its name or content. */
+  private report(job: Job): { href: string; title: string } | null {
+    const target = this.targetOf(job);
+    if (!REPO_URL || !job.converter || !target) return null;
+    const settings = this.settings.get(job.converter.id)!;
+    const options = optionsFor(job.converter, target.id).map((o) => `${o.label}: ${o.choices.find((c) => c.value === settings.options[o.id])?.label ?? settings.options[o.id]}`);
+    return conversionIssueLink(job.file, job.kind || undefined, { from: sourceFor(job.converter, job.file.name)?.label ?? job.kind, to: target.label, options });
+  }
+
+  private feedbackLink(job: Job): HTMLElement | null {
+    const report = this.report(job);
+    return report && h('a', { class: 'hb cv-feedback', target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Feedback', ...report }, icon('feedback', 15));
+  }
+
+  /**
+   * A kind of file: a tinted band with its name and count, the arrow and the target formats, then options and what
+   * gets lost; the files below it on the plain surface, so the band never reads as one more file.
+   */
   private group(converter: ConverterInfo): HTMLElement {
     const jobs = this.jobs.filter((job) => job.converter === converter);
     const settings = this.settings.get(converter.id)!;
@@ -551,12 +593,16 @@ export class ConverterPage {
       { class: 'cv-group', 'aria-label': converter.label },
       h(
         'div',
-        { class: 'cv-group-hd' },
-        h('span', { class: 'ico' }, icon(converter.icon, 17)),
-        h('div', { class: 'cv-group-title' }, h('b', {}, converter.label), h('span', {}, plural(jobs.length, 'file', 'files'))),
-        h('div', { class: 'cv-to' }, h('span', { class: 'cv-arrow', 'aria-hidden': 'true' }, icon('arrowRight', 22, 1.8)), this.targets(converter, settings)),
+        { class: 'cv-group-set' },
+        h(
+          'div',
+          { class: 'cv-group-hd' },
+          h('span', { class: 'ico' }, icon(converter.icon, 16)),
+          h('div', { class: 'cv-group-title' }, h('b', {}, converter.label), h('span', {}, plural(jobs.length, 'file', 'files'))),
+          h('div', { class: 'cv-to' }, h('span', { class: 'cv-arrow', 'aria-hidden': 'true' }, icon('arrowRight', 22, 1.8)), this.targets(converter, settings)),
+        ),
+        ...(details.length > 0 ? [h('div', { class: 'cv-group-opts' }, ...details)] : []),
       ),
-      ...(details.length > 0 ? [h('div', { class: 'cv-group-opts' }, ...details)] : []),
       h('ul', { class: 'cv-files' }, ...jobs.map((job) => this.row(job))),
     );
   }
@@ -565,7 +611,7 @@ export class ConverterPage {
     return h(
       'section',
       { class: 'cv-group' },
-      h('div', { class: 'cv-group-hd' }, h('span', { class: 'ico' }, icon('file', 17)), h('div', { class: 'cv-group-title' }, h('b', {}, 'Detecting the format'), h('span', {}, plural(jobs.length, 'file', 'files')))),
+      h('div', { class: 'cv-group-set' }, h('div', { class: 'cv-group-hd' }, h('span', { class: 'ico' }, icon('file', 16)), h('div', { class: 'cv-group-title' }, h('b', {}, 'Detecting the format'), h('span', {}, plural(jobs.length, 'file', 'files'))))),
       h('ul', { class: 'cv-files' }, ...jobs.map((job) => this.row(job))),
     );
   }
@@ -620,6 +666,9 @@ export class ConverterPage {
       job.row.classList.toggle('sel', shown);
       const actions = h('div', { class: 'cv-row-actions' });
       if (job.status !== 'detecting') actions.append(this.previewButton(job, shown));
+      // A failed conversion offers its report right in the row; the others have it in the preview.
+      const feedback = job.status === 'failed' && this.feedbackLink(job);
+      if (feedback) actions.append(feedback);
       if (job.status === 'done') actions.append(this.downloadButton(job, false));
       else actions.append(h('button', { type: 'button', class: 'hb x', 'aria-label': `Remove ${job.file.name}`, title: 'Remove', disabled: job.status === 'working', onclick: () => this.remove(job) }, icon('close', 14, 2.2)));
       job.row.replaceChildren(
@@ -683,7 +732,11 @@ export class ConverterPage {
         this.drawRow(job);
       });
     }
-    return job.thumb ?? h('span', { class: 'cv-thumb' }, icon(job.converter ? job.converter.icon : job.status === 'detecting' ? 'file' : 'alert', 18));
+    if (job.thumb) return job.thumb;
+    // Without a picture the file shows its extension, so it never looks like the icon of its kind above it.
+    const ext = extensionOf(job.file.name);
+    if (job.status !== 'unsupported' && ext && ext.length <= 4) return h('span', { class: 'cv-thumb ext' }, ext.toUpperCase());
+    return h('span', { class: 'cv-thumb' }, icon(job.converter ? job.converter.icon : job.status === 'detecting' ? 'file' : 'alert', 18));
   }
 
   /** The right side of a row: waiting, progress, the result or what went wrong. */
@@ -696,7 +749,8 @@ export class ConverterPage {
       case 'unsupported':
         return ['No converter'];
       case 'failed':
-        return [h('span', { class: 'cv-err' }, icon('alert', 15, 1.8), h('span', {}, job.message))];
+        // One line in the row; the whole message is in the tooltip and in the preview.
+        return [h('span', { class: 'cv-err', title: job.message }, icon('alert', 15, 1.8), h('span', {}, job.message))];
       case 'working':
         return [this.progress(job)];
       case 'done': {
@@ -789,6 +843,7 @@ export class ConverterPage {
       picture: converter?.id === 'image',
       outputs,
       status: this.previewStatus(job),
+      report: this.report(job),
       facts,
       notes: [
         ...(target?.loss ? [{ text: `${target.label}: ${target.loss}`, warn: true }] : []),

@@ -101,6 +101,10 @@ export async function mountDrawing({ container, toolbar, progress }: ViewerConte
     console.debug(`[dxf] done after ${((performance.now() - started) / 1000).toFixed(1)} s`);
   } catch (error) {
     viewer.Destroy();
+    // dxf-viewer passes on the worker's error event as it is, which would read "[object Event]".
+    if (error instanceof Event) {
+      throw new Error(error instanceof ErrorEvent && error.message ? error.message : 'The drawing worker stopped unexpectedly. Reload the page and try again.');
+    }
     throw error;
   } finally {
     status.remove();
