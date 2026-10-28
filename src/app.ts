@@ -138,6 +138,14 @@ export class App {
     }
   }
 
+  /** Back to the start page of this page; false when it already shows, so the logo link goes to the main page. */
+  private closeAll(): boolean {
+    if (this.files.length === 0) return false;
+    this.files = [];
+    this.activate(null);
+    return true;
+  }
+
   private render(): void {
     this.renderTabs();
     this.unmount();
@@ -153,7 +161,7 @@ export class App {
   // ---- Header ------------------------------------------------------------------------------------------------------
 
   private buildHeader(): HTMLElement {
-    return h('header', { class: 'top' }, brand(), siteNav('view'), this.tabs, this.switcher, h('span', { class: 'grow' }), this.local.button, ...themeControls(), githubLink());
+    return h('header', { class: 'top' }, brand(() => this.closeAll()), siteNav('view'), this.tabs, this.switcher, h('span', { class: 'grow' }), this.local.button, ...themeControls(), githubLink());
   }
 
   private renderTabs(): void {

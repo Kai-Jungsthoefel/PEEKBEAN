@@ -190,11 +190,14 @@ function faceSet(node: VrmlNode, state: State): THREE.Mesh | null {
   if (!positions.length) return null;
   let geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  if (colors.length === positions.length) geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors.map((c) => THREE.SRGBToLinear(c)), 3));
+  if (colors.length === positions.length) geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors.map(srgbToLinear), 3));
   geometry.applyMatrix4(state.matrix);
   geometry = toCreasedNormals(geometry, state.creaseAngle);
   return new THREE.Mesh(geometry, material(state, colors.length === positions.length));
 }
+
+/** Vertex colors are sRGB in the file; three.js works with linear colors (three no longer exports this helper). */
+const srgbToLinear = (c: number) => (c < 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
 
 function lineSet(node: VrmlNode, state: State): THREE.LineSegments | null {
   const index = numbers(node, 'coordIndex', []);
