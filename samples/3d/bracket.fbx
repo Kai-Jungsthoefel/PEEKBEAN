@@ -3,7 +3,7 @@
 FBXHeaderExtension:  {
 	FBXHeaderVersion: 1003
 	FBXVersion: 7300
-	Creator: "OPSIS sample generator"
+	Creator: "Peekbean sample generator"
 }
 Objects:  {
 	Geometry: 1000, "Geometry::Base plate", "Mesh" {

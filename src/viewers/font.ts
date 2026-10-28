@@ -40,7 +40,7 @@ function readInfo(buffer: ArrayBuffer): FontInfo {
 
 export async function mount({ file, container, toolbar }: ViewerContext) {
   const buffer = await file.arrayBuffer();
-  const family = `everything-viewer-font-${crypto.randomUUID()}`;
+  const family = `peekbean-font-${crypto.randomUUID()}`;
   const face = new FontFace(family, buffer);
   try {
     await face.load();

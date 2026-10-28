@@ -266,7 +266,7 @@ function tiff(w, h, rgba) {
 
 const postscript = `%!PS-Adobe-3.0 EPSF-3.0
 %%Title: Drawing
-%%Creator: OPSIS sample generator
+%%Creator: Peekbean sample generator
 %%CreationDate: 2026-01-01
 %%BoundingBox: 0 0 240 150
 %%LanguageLevel: 2

@@ -189,7 +189,7 @@ const xy = (x, y) => `X${coordinate(x)}Y${coordinate(y)}`;
 function gerber(fileFunction, polarity) {
   const lines = [];
   if (fileFunction) {
-    lines.push('%TF.GenerationSoftware,Everything Viewer,generate-plot-samples.mjs,1.0*%');
+    lines.push('%TF.GenerationSoftware,Peekbean,generate-plot-samples.mjs,1.0*%');
     lines.push('%TF.SameCoordinates,Original*%');
     lines.push(`%TF.FileFunction,${fileFunction}*%`);
     lines.push(`%TF.FilePolarity,${polarity}*%`);

@@ -103,7 +103,7 @@ function fbx() {
   return [
     '; FBX 7.3.0 project file',
     '; Angle bracket (sample file)',
-    'FBXHeaderExtension:  {\n\tFBXHeaderVersion: 1003\n\tFBXVersion: 7300\n\tCreator: "OPSIS sample generator"\n}',
+    'FBXHeaderExtension:  {\n\tFBXHeaderVersion: 1003\n\tFBXVersion: 7300\n\tCreator: "Peekbean sample generator"\n}',
     'Objects:  {',
     ...objects,
     '}',
@@ -136,7 +136,7 @@ function collada() {
   return [
     '<?xml version="1.0" encoding="utf-8"?>',
     '<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">',
-    '<asset><contributor><authoring_tool>OPSIS sample generator</authoring_tool></contributor><unit name="millimeter" meter="0.001"/><up_axis>Z_UP</up_axis></asset>',
+    '<asset><contributor><authoring_tool>Peekbean sample generator</authoring_tool></contributor><unit name="millimeter" meter="0.001"/><up_axis>Z_UP</up_axis></asset>',
     `<library_effects>${effects.join('')}</library_effects>`,
     `<library_materials>${materials.join('')}</library_materials>`,
     `<library_geometries>${geometries.join('\n')}</library_geometries>`,
@@ -348,7 +348,7 @@ function dotbim() {
     element(2, 'Roof', 'Roof plate', [-0.2, -0.2, 3.3], { r: 200, g: 110, b: 60, a: 255 }),
     element(3, 'Wall', 'Glass wall', [0.3, 5.7, 0.4], { r: 120, g: 190, b: 230, a: 110 }, { Material: 'Laminated glass' }),
   ];
-  return `${JSON.stringify({ schema_version: '1.1.0', meshes, elements, info: { Name: 'Pavilion', Author: 'OPSIS sample generator' } }, null, 1)}\n`;
+  return `${JSON.stringify({ schema_version: '1.1.0', meshes, elements, info: { Name: 'Pavilion', Author: 'Peekbean sample generator' } }, null, 1)}\n`;
 }
 
 function vox() {
@@ -661,7 +661,7 @@ function emf() {
   rec(84, rect(0, 0, -1, -1), u32(1), f32(0), f32(0), i32(260), i32(706), u32(chars), u32(offString), u32(0), rect(0, 0, -1, -1), u32(offString + padded.length), padded, dx);
   rec(14, u32(0), u32(16), u32(20)); // EOF
   const body = Buffer.concat(records);
-  const description = Buffer.from('OPSIS\0Flange sample\0\0', 'utf16le');
+  const description = Buffer.from('Peekbean\0Flange sample\0\0', 'utf16le');
   const headerSize = 88 + description.length;
   const header = Buffer.concat([
     u32(1), u32(headerSize), rect(120, 40, 880, 760), rect(3168, 1056, 23232, 20064), u32(0x464d4520), u32(0x10000),
@@ -853,7 +853,7 @@ function tar(entries) {
 
 const CALENDAR = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//OPSIS//Sample generator//EN
+PRODID:-//Peekbean//Sample generator//EN
 X-WR-CALNAME:Workshop planning
 BEGIN:VTIMEZONE
 TZID:Europe/Berlin
@@ -873,7 +873,7 @@ RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
 END:STANDARD
 END:VTIMEZONE
 BEGIN:VEVENT
-UID:design-review@samples.opsis
+UID:design-review@samples.peekbean
 DTSTAMP:20261027T080000Z
 DTSTART;TZID=Europe/Berlin:20261103T100000
 DTEND;TZID=Europe/Berlin:20261103T113000
@@ -886,7 +886,7 @@ DESCRIPTION:Check the drilling pattern and the material list.\\nBring the latest
 URL:https://example.com/projects/flange
 END:VEVENT
 BEGIN:VEVENT
-UID:standup@samples.opsis
+UID:standup@samples.peekbean
 DTSTAMP:20261027T080000Z
 DTSTART;TZID=Europe/Berlin:20261102T090000
 DTEND;TZID=Europe/Berlin:20261102T091500
@@ -895,7 +895,7 @@ SUMMARY:Stand-up
 LOCATION:Workshop
 END:VEVENT
 BEGIN:VEVENT
-UID:trade-fair@samples.opsis
+UID:trade-fair@samples.peekbean
 DTSTAMP:20261027T080000Z
 DTSTART;VALUE=DATE:20261110
 DTEND;VALUE=DATE:20261113
@@ -903,7 +903,7 @@ SUMMARY:Trade fair
 LOCATION:Exhibition centre, hall 4
 END:VEVENT
 BEGIN:VTODO
-UID:order-material@samples.opsis
+UID:order-material@samples.peekbean
 DTSTAMP:20261027T080000Z
 DUE;VALUE=DATE:20261105
 SUMMARY:Order steel plates

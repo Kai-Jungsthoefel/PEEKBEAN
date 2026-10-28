@@ -10,7 +10,7 @@ endobj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
 endobj
 4 0 obj
-<< /Title (Layer test) /Author (Everything Viewer) /Producer (generate-samples.mjs) >>
+<< /Title (Layer test) /Author (Peekbean) /Producer (generate-samples.mjs) >>
 endobj
 5 0 obj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R >> /Properties << /L0 7 0 R /L1 8 0 R /L2 9 0 R /L3 10 0 R /L4 11 0 R >> >> /Contents 6 0 R >>
@@ -76,15 +76,15 @@ xref
 0000000204 00000 n 
 0000000261 00000 n 
 0000000358 00000 n 
-0000000460 00000 n 
-0000000656 00000 n 
-0000002547 00000 n 
-0000002595 00000 n 
-0000002648 00000 n 
-0000002699 00000 n 
-0000002746 00000 n 
+0000000451 00000 n 
+0000000647 00000 n 
+0000002538 00000 n 
+0000002586 00000 n 
+0000002639 00000 n 
+0000002690 00000 n 
+0000002737 00000 n 
 trailer
 << /Size 12 /Root 1 0 R /Info 4 0 R >>
 startxref
-2798
+2789
 %%EOF

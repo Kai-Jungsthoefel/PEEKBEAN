@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
-<asset><contributor><authoring_tool>OPSIS sample generator</authoring_tool></contributor><unit name="millimeter" meter="0.001"/><up_axis>Z_UP</up_axis></asset>
+<asset><contributor><authoring_tool>Peekbean sample generator</authoring_tool></contributor><unit name="millimeter" meter="0.001"/><up_axis>Z_UP</up_axis></asset>
 <library_effects><effect id="effect0"><profile_COMMON><technique sid="common"><phong><diffuse><color>0.6 0.64 0.7 1</color></diffuse></phong></technique></profile_COMMON></effect><effect id="effect1"><profile_COMMON><technique sid="common"><phong><diffuse><color>0.18 0.5 0.84 1</color></diffuse></phong></technique></profile_COMMON></effect><effect id="effect2"><profile_COMMON><technique sid="common"><phong><diffuse><color>0.95 0.6 0.22 1</color></diffuse></phong></technique></profile_COMMON></effect></library_effects>
 <library_materials><material id="material0" name="Base plate"><instance_effect url="#effect0"/></material><material id="material1" name="Upright"><instance_effect url="#effect1"/></material><material id="material2" name="Rib"><instance_effect url="#effect2"/></material></library_materials>
 <library_geometries><geometry id="geometry0" name="Base plate"><mesh>

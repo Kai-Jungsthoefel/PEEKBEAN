@@ -50,7 +50,7 @@ const usedGuids = new Set();
 function guid(key) {
   if (usedGuids.has(key)) throw new Error(`GlobalId key used twice: ${key}`);
   usedGuids.add(key);
-  const bytes = createHash('sha256').update(`opsis-small-building/${key}`).digest().subarray(0, 16);
+  const bytes = createHash('sha256').update(`peekbean-small-building/${key}`).digest().subarray(0, 16);
   // Version 4 / variant bits, like a random UUID.
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
@@ -68,7 +68,7 @@ function guid(key) {
 const person = add(`IFCPERSON($,${str('Example')},$,$,$,$,$,$)`);
 const organization = add(`IFCORGANIZATION($,${str('Example')},$,$,$)`);
 const personOrg = add(`IFCPERSONANDORGANIZATION(${person},${organization},$)`);
-const application = add(`IFCAPPLICATION(${organization},${str('1.0')},${str('OPSIS sample generator')},${str('OPSIS')})`);
+const application = add(`IFCAPPLICATION(${organization},${str('1.0')},${str('Peekbean sample generator')},${str('Peekbean')})`);
 const owner = add(`IFCOWNERHISTORY(${personOrg},${application},$,.ADDED.,$,$,$,${TIMESTAMP})`);
 
 const point = (x, y, z) => add(`IFCCARTESIANPOINT(${list(z === undefined ? [real(x), real(y)] : [real(x), real(y), real(z)])})`);
@@ -354,12 +354,12 @@ for (const [index, storeyName] of ['Ground floor', 'Upper floor'].entries()) {
   add(`IFCRELCONTAINEDINSPATIALSTRUCTURE(${guid(`contains/${storeyKey}`)},${owner},$,$,${list(contained)},${storey})`);
   if (index === 0) {
     // A property set of our own: several value types, and text beyond ASCII.
-    propertySet('custom', 'OPSIS_SampleInfo', contained.slice(0, 1), [
+    propertySet('custom', 'Peekbean_SampleInfo', contained.slice(0, 1), [
       single('Purpose', text('Test file for the IFC viewer')),
       single('Revision', 'IFCINTEGER(3)'),
       single('Note', text('Floor area 79.92 m² · ±0.00 = 34.5 m above sea level')),
     ]);
-    quantitySet('custom', 'OPSIS_Counts', contained[0], [count('Windows', 3), count('Doors', 1)]);
+    quantitySet('custom', 'Peekbean_Counts', contained[0], [count('Windows', 3), count('Doors', 1)]);
   }
 }
 add(`IFCRELAGGREGATES(${guid('rel/building-storeys')},${owner},$,$,${building},${list(storeys)})`);
@@ -373,7 +373,7 @@ const header = [
   'ISO-10303-21;',
   'HEADER;',
   "FILE_DESCRIPTION(('ViewDefinition [ReferenceView_V1.2]'),'2;1');",
-  `FILE_NAME('small-building.ifc','2024-01-01T00:00:00',('Example'),('Example'),'OPSIS sample generator','OPSIS sample generator','');`,
+  `FILE_NAME('small-building.ifc','2024-01-01T00:00:00',('Example'),('Example'),'Peekbean sample generator','Peekbean sample generator','');`,
   "FILE_SCHEMA(('IFC4'));",
   'ENDSEC;',
   'DATA;',

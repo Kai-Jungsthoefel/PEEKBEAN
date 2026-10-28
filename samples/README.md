@@ -118,7 +118,7 @@ Test files for all viewers. Except for the exceptions below, all files are self-
 | `certs/expired.cer` | PEM certificate in a `.cer` file, expired in 2021 |
 | `certs/identity.p12` | PKCS#12 with the chain and an encrypted RSA key (AES-256), password `sample`; the key is described, never shown |
 | `text/windows-1252.txt`, `text/utf-16le.txt` | character set detection |
-| `binary/random.bin` | hex view, marker `EVERYTHING-VIEWER-SAMPLE` at offset 0x400 |
+| `binary/random.bin` | hex view, marker `PEEKBEAN-SAMPLE` at offset 0x400 |
 | `edge-cases/broken.pdf` | damaged file, expected: an error message with a way out |
 | `edge-cases/truncated.png` | truncated PNG, the browser shows the readable part |
 | `edge-cases/empty.txt` | empty file |

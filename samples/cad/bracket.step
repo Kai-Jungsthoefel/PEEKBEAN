@@ -1,7 +1,7 @@
 ISO-10303-21;
 HEADER;
-FILE_DESCRIPTION(('Everything Viewer sample'),'2;1');
-FILE_NAME('Bracket.step','2026-10-26T00:00:00',('Everything Viewer'),(''),'generate-samples.mjs','','');
+FILE_DESCRIPTION(('Peekbean sample'),'2;1');
+FILE_NAME('Bracket.step','2026-10-26T00:00:00',('Peekbean'),(''),'generate-samples.mjs','','');
 FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'));
 ENDSEC;
 DATA;

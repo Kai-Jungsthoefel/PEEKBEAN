@@ -1,6 +1,6 @@
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//OPSIS//Sample generator//EN
+PRODID:-//Peekbean//Sample generator//EN
 X-WR-CALNAME:Workshop planning
 BEGIN:VTIMEZONE
 TZID:Europe/Berlin
@@ -20,7 +20,7 @@ RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
 END:STANDARD
 END:VTIMEZONE
 BEGIN:VEVENT
-UID:design-review@samples.opsis
+UID:design-review@samples.peekbean
 DTSTAMP:20261027T080000Z
 DTSTART;TZID=Europe/Berlin:20261103T100000
 DTEND;TZID=Europe/Berlin:20261103T113000
@@ -33,7 +33,7 @@ DESCRIPTION:Check the drilling pattern and the material list.\nBring the latest 
 URL:https://example.com/projects/flange
 END:VEVENT
 BEGIN:VEVENT
-UID:standup@samples.opsis
+UID:standup@samples.peekbean
 DTSTAMP:20261027T080000Z
 DTSTART;TZID=Europe/Berlin:20261102T090000
 DTEND;TZID=Europe/Berlin:20261102T091500
@@ -42,7 +42,7 @@ SUMMARY:Stand-up
 LOCATION:Workshop
 END:VEVENT
 BEGIN:VEVENT
-UID:trade-fair@samples.opsis
+UID:trade-fair@samples.peekbean
 DTSTAMP:20261027T080000Z
 DTSTART;VALUE=DATE:20261110
 DTEND;VALUE=DATE:20261113
@@ -50,7 +50,7 @@ SUMMARY:Trade fair
 LOCATION:Exhibition centre, hall 4
 END:VEVENT
 BEGIN:VTODO
-UID:order-material@samples.opsis
+UID:order-material@samples.peekbean
 DTSTAMP:20261027T080000Z
 DUE;VALUE=DATE:20261105
 SUMMARY:Order steel plates

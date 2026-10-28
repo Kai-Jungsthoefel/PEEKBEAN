@@ -3,17 +3,17 @@
 <description>
 <title-info>
 <genre>adventure</genre>
-<author><nickname>OPSIS sample generator</nickname></author>
+<author><nickname>Peekbean sample generator</nickname></author>
 <book-title>The Lighthouse Keeper’s Notebook</book-title>
-<annotation><p>Three short chapters about an island light, written as a sample for the OPSIS e-book reader.</p></annotation>
+<annotation><p>Three short chapters about an island light, written as a sample for the Peekbean e-book reader.</p></annotation>
 <keywords>sample, lighthouse</keywords>
 <date value="2026-10-27">2026</date>
 <coverpage><image l:href="#cover.png"/></coverpage>
 <lang>en</lang>
-<sequence name="OPSIS samples" number="1"/>
+<sequence name="Peekbean samples" number="1"/>
 </title-info>
 <document-info>
-<author><nickname>OPSIS sample generator</nickname></author>
+<author><nickname>Peekbean sample generator</nickname></author>
 <program-used>scripts/generate-book-samples.mjs</program-used>
 <date value="2026-10-27">2026-10-27</date>
 <id>6f1c2a54-3d8e-4b7a-9c21-5e0d4f8a7b13</id>

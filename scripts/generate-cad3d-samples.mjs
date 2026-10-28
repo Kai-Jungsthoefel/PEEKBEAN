@@ -602,7 +602,7 @@ function las(points, version) {
   header.writeUInt16LE(modern ? 0x11 : 0x01, 6);
   header[24] = 1;
   header[25] = modern ? 4 : 2;
-  header.write('OPSIS sample generator', 26, 32, 'latin1');
+  header.write('Peekbean sample generator', 26, 32, 'latin1');
   header.write('generate-cad3d-samples.mjs', 58, 32, 'latin1');
   header.writeUInt16LE(300, 90);
   header.writeUInt16LE(2026, 92);

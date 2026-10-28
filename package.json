@@ -1,12 +1,12 @@
 {
-  "name": "everythingviewer",
-  "version": "0.1.0",
+  "name": "peekbean",
+  "version": "1.0.0",
   "private": true,
   "description": "View almost any file format in the browser, without uploading anything.",
   "license": "GPL-3.0-or-later",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Kai-Jungsthoefel/OPSIS.git"
+    "url": "git+https://github.com/Kai-Jungsthoefel/PEEKBEAN.git"
   },
   "type": "module",
   "scripts": {
@@ -94,5 +94,6 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vite-plugin-static-copy": "^4.1.1"
-  }
+  },
+  "homepage": "https://peekbean.com"
 }

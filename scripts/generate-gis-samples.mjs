@@ -129,7 +129,7 @@ function gpx() {
     return `    <rtept lat="${lat}" lon="${lon}"/>`;
   });
   return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="everythingviewer sample generator" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="peekbean sample generator" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata><name>Lake loop (sample)</name><time>2026-05-16T07:30:00Z</time></metadata>
 ${wpt('Start / finish', loop[0], 'Flag, Blue', 'Start and finish of the loop')}
 ${wpt('Footbridge', [-360, 20], 'Bridge', 'Narrow wooden bridge')}

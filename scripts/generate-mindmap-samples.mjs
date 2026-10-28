@@ -186,7 +186,7 @@ function xmindJson(topic, root = false) {
     'mindmaps/launch-plan.xmind',
     zip([
       ['content.json', JSON.stringify(sheets)],
-      ['metadata.json', JSON.stringify({ dataStructureVersion: '2', creator: { name: 'OPSIS sample generator', version: '1.0' } })],
+      ['metadata.json', JSON.stringify({ dataStructureVersion: '2', creator: { name: 'Peekbean sample generator', version: '1.0' } })],
       ['manifest.json', JSON.stringify({ 'file-entries': { 'content.json': {}, 'metadata.json': {}, 'resources/badge.png': {}, 'Thumbnails/thumbnail.png': {} } })],
       ['resources/badge.png', badge],
       ['Thumbnails/thumbnail.png', thumbnail],
@@ -217,7 +217,7 @@ write(
       'content.xml',
       `<?xml version="1.0" encoding="UTF-8" standalone="no"?><xmap-content xmlns="urn:xmind:xmap:xmlns:content:2.0" xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:xlink="http://www.w3.org/1999/xlink" version="2.0"><sheet id="s1">${xmindXml(PLAN, true)}<title>Plan</title><relationships><relationship id="r1" end1="${RELATION.from}" end2="${RELATION.to}"><title>${RELATION.title}</title></relationship></relationships></sheet></xmap-content>`,
     ],
-    ['meta.xml', '<?xml version="1.0" encoding="UTF-8" standalone="no"?><meta xmlns="urn:xmind:xmap:xmlns:meta:2.0" version="2.0"><Creator><Name>OPSIS sample generator</Name></Creator></meta>'],
+    ['meta.xml', '<?xml version="1.0" encoding="UTF-8" standalone="no"?><meta xmlns="urn:xmind:xmap:xmlns:meta:2.0" version="2.0"><Creator><Name>Peekbean sample generator</Name></Creator></meta>'],
     ['META-INF/manifest.xml', '<?xml version="1.0" encoding="UTF-8" standalone="no"?><manifest xmlns="urn:xmind:xmap:xmlns:manifest:1.0"><file-entry full-path="content.xml" media-type="text/xml"/><file-entry full-path="attachments/badge.png" media-type="image/png"/></manifest>'],
     ['attachments/badge.png', badge],
     ['Thumbnails/thumbnail.png', thumbnail],
