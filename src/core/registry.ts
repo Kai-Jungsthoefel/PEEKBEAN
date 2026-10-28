@@ -15,6 +15,8 @@ function containsAscii(head: Uint8Array, needle: string, within: number): boolea
 const latin1 = (head: Uint8Array, length = 512) => String.fromCharCode(...head.subarray(0, length));
 
 // ISO base media files (MP4, MOV, HEIC, AVIF, Canon CR3) all start with an "ftyp" box; the brand tells them apart.
+// OLE compound files: Office 97–2003, Outlook messages, Inventor, Solid Edge, SolidWorks up to 2014.
+const OLE_SIGNATURE = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
 const IMAGE_BRANDS = ['avif', 'avis', 'heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1', 'crx '];
 function ftypBrand(head: Uint8Array): string | null {
   return startsWith(head, 'ftyp', 4) ? latin1(head.subarray(8, 12)) : null;
@@ -212,13 +214,34 @@ export const viewers: ViewerDefinition[] = [
     load: () => import('../viewers/pointcloud'),
   },
   {
+    id: 'cadpreview',
+    label: 'CAD model (preview picture)',
+    category: 'cad',
+    icon: 'cad',
+    // Closed formats: the preview picture the application saved, the properties and the component tree.
+    extensions: [
+      'sldprt', 'sldasm', 'slddrw', 'ipt', 'iam', 'idw', 'ipn', 'prt', 'par', 'psm', 'pwd', 'dft', 'catpart', 'catproduct',
+      'catdrawing', 'blend', 'blend1',
+    ],
+    // NX, CATIA V5, Creo (also "part.prt.3"), Blender, and OLE compound files: Inventor, Solid Edge, SolidWorks up to
+    // 2014. OLE is shared with Word, Excel and Outlook files, so their viewers win by extension.
+    sniff: (head) =>
+      startsWith(head, 'SPLMSSTR') ||
+      startsWith(head, 'V5_CFV2\0') ||
+      startsWith(head, '#UGC:') ||
+      startsWith(head, 'BLENDER') ||
+      startsWith(head, OLE_SIGNATURE),
+    container: (head) => startsWith(head, OLE_SIGNATURE),
+    load: () => import('../viewers/preview'),
+  },
+  {
     id: 'image',
     label: 'Image',
     category: 'media',
     icon: 'image',
     extensions: [
       'png', 'apng', 'jpg', 'jpeg', 'jfif', 'pjpeg', 'gif', 'webp', 'avif', 'bmp', 'ico', 'cur', 'svg',
-      'tif', 'tiff', 'psd', 'heic', 'heif', 'tga', 'dds', 'exr', 'hdr', 'ktx2', 'emf', 'wmf', 'emz', 'wmz', 'jxl',
+      'tif', 'tiff', 'psd', 'heic', 'heif', 'tga', 'dds', 'exr', 'hdr', 'ktx2', 'emf', 'wmf', 'emz', 'wmz', 'jxl', 'kra', 'krz', 'ora',
       // Camera raw (the embedded preview is shown).
       'dng', 'cr2', 'cr3', 'crw', 'nef', 'nrw', 'arw', 'srf', 'sr2', 'orf', 'rw2', 'rwl', 'raf', 'pef', 'srw', '3fr', 'iiq',
       'erf', 'kdc', 'dcr', 'mos', 'mrw', 'x3f',
@@ -247,6 +270,21 @@ export const viewers: ViewerDefinition[] = [
       startsWith(head, 'HEAPCCDR', 6) ||
       IMAGE_BRANDS.includes(ftypBrand(head) ?? ''),
     load: () => import('../viewers/image'),
+  },
+  {
+    id: 'designpreview',
+    label: 'Design file (preview picture)',
+    category: 'media',
+    icon: 'image',
+    // Illustrator files with a PDF part open in the PDF viewer by their signature.
+    extensions: ['pdn', 'afphoto', 'afdesign', 'afpub', 'af', 'indd', 'indt', 'fig', 'eps', 'epsf', 'ai'],
+    sniff: (head) =>
+      startsWith(head, 'PDN3') ||
+      startsWith(head, [0x00, 0xff, 0x4b, 0x41]) ||
+      startsWith(head, [0x06, 0x06, 0xed, 0xf5, 0xd8, 0x1d, 0x46, 0xe5, 0xbd, 0x31, 0xef, 0xe7, 0xfe, 0x74, 0xb7, 0x1d]) ||
+      startsWith(head, 'fig-kiwi') ||
+      startsWith(head, [0xc5, 0xd0, 0xd3, 0xc6]),
+    load: () => import('../viewers/preview'),
   },
   {
     id: 'media',
@@ -368,6 +406,17 @@ export const viewers: ViewerDefinition[] = [
     load: () => import('../viewers/notebook'),
   },
   {
+    id: 'mindmap',
+    label: 'Mind map',
+    category: 'documents',
+    icon: 'tree',
+    // XMind and MindManager files are ZIPs (their extension decides); FreeMind and Freeplane maps are XML. .mm is also
+    // Objective-C++: the viewer shows such files as text.
+    extensions: ['xmind', 'mmap', 'mmat', 'xmmap', 'mm'],
+    sniff: (head) => /^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*<map\s+version=/.test(latin1(head).replace(/^\xef\xbb\xbf/, '')),
+    load: () => import('../viewers/mindmap'),
+  },
+  {
     id: 'map',
     label: 'Map data (GIS)',
     category: 'data',
@@ -438,9 +487,12 @@ export async function detectViewer(file: File): Promise<ViewerDefinition> {
   const head = new Uint8Array(await file.slice(0, SNIFF_LENGTH).arrayBuffer());
   const ext = extensionOf(file.name) || file.name.toLowerCase();
   const sniffed = viewers.filter((v) => v.sniff?.(head));
+  const container = (v: ViewerDefinition) => (typeof v.container === 'function' ? v.container(head) : !!v.container);
   // A specific signature (an EPUB's mimetype entry) beats a container one (any ZIP).
-  const bySignature = sniffed.find((v) => !v.container) ?? sniffed[0];
+  const bySignature = sniffed.find((v) => !container(v)) ?? sniffed[0];
   const byExtension = viewers.find((v) => v.extensions.includes(ext));
-  if (bySignature && !(bySignature.container && byExtension)) return bySignature;
+  // A source code extension says nothing about binary data (a Solid Edge assembly is an .asm file too).
+  const textByName = byExtension === textViewer && !looksLikeText(head);
+  if (bySignature && !(container(bySignature) && byExtension && !textByName)) return bySignature;
   return byExtension ?? bySignature ?? (looksLikeText(head) ? textViewer : hexViewer);
 }

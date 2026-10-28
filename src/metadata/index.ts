@@ -10,6 +10,17 @@ const IMAGE = new Set(['jpg', 'jpeg', 'jpe', 'jfif', 'tif', 'tiff', 'heic', 'hei
 const MEDIA = new Set(['mp4', 'm4v', 'm4a', 'mov', 'qt', '3gp', '3g2', 'mp3', 'flac', 'webm', 'mkv', 'ogg', 'oga', 'ogv', 'opus', 'wav', 'aac']);
 const OFFICE = new Set(['docx', 'docm', 'dotx', 'dotm', 'xlsx', 'xlsm', 'xltx', 'xltm', 'pptx', 'pptm', 'potx', 'potm', 'ppsx', 'ppsm']);
 const OPEN_DOCUMENT = new Set(['odt', 'ods', 'odp', 'odg', 'ott', 'ots', 'otp']);
+/** CAD and design files the preview viewer reads (closed formats with an embedded preview and properties). */
+const PREVIEW = new Set([
+  'sldprt', 'sldasm', 'slddrw', 'ipt', 'iam', 'idw', 'ipn', 'prt', 'par', 'psm', 'pwd', 'dft', 'catpart', 'catproduct', 'catdrawing', 'blend',
+  'blend1', 'pdn', 'afphoto', 'afdesign', 'afpub', 'af', 'indd', 'indt', 'fig', 'eps', 'epsf', 'ai',
+]);
+const PREVIEW_SIGNATURES: (string | number[])[] = [
+  'SPLMSSTR', 'V5_CFV2\0', '#UGC:', 'BLENDER', 'PDN3', [0x00, 0xff, 0x4b, 0x41], [0xc5, 0xd0, 0xd3, 0xc6],
+  // OLE compound files: Inventor, Solid Edge, old SolidWorks; also old Office files, which carry the same summary properties.
+  [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1],
+  [0x06, 0x06, 0xed, 0xf5, 0xd8, 0x1d, 0x46, 0xe5, 0xbd, 0x31, 0xef, 0xe7, 0xfe, 0x74, 0xb7, 0x1d],
+];
 
 async function formatSections(file: File, extension: string, head: Uint8Array): Promise<MetaSection[]> {
   const isJpeg = startsWith(head, [0xff, 0xd8, 0xff]);
@@ -28,6 +39,12 @@ async function formatSections(file: File, extension: string, head: Uint8Array): 
   if (extension === 'rtf' || startsWith(head, '{\\rtf')) return (await import('./books')).rtfMetadata(file);
   if (extension === 'epub' || (startsWith(head, 'PK\x03\x04') && startsWith(head, 'mimetypeapplication/epub+zip', 30))) return (await import('./books')).epubMetadata(file);
   if (extension === 'fb2') return (await import('./books')).fb2Metadata(file);
+  if (['xmind', 'mmap', 'mmat', 'xmmap'].includes(extension) || (extension === 'mm' && /<map\s+version=/.test(await file.slice(0, 2048).text()))) {
+    return [{ title: 'Mind map', rows: await (await import('../viewers/mindmap/read')).mindMapSummary(file) }];
+  }
+  if (PREVIEW.has(extension) || PREVIEW_SIGNATURES.some((s) => startsWith(head, s))) {
+    return (await (await import('../viewers/preview/client')).readPreviewInWorker(file)).sections;
+  }
   return [];
 }
 

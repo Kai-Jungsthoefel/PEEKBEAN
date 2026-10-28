@@ -20,6 +20,7 @@ import { XYZLoader } from 'three/addons/loaders/XYZLoader.js';
 import { extensionOf, startsWith } from '../core/bytes';
 import type { ViewerContext } from '../core/types';
 import { mountScene } from './three/scene';
+import { expandSimpleProtos, isVrml1, parseVrml1 } from './three/vrml1';
 
 interface LoadedModel {
   object: THREE.Object3D;
@@ -237,9 +238,12 @@ async function loadModel(file: File): Promise<LoadedModel> {
       return { object: new AMFLoader().parse(buffer), zUp: true };
     case 'wrl':
     case 'vrml':
-      return { object: new VRMLLoader(offlineManager()).parse(text(), ''), zUp: false };
-    case 'wrz':
-      return { object: new VRMLLoader(offlineManager()).parse(new TextDecoder().decode(await gunzip(buffer)), ''), zUp: false };
+    case 'wrz': {
+      const source = ext === 'wrz' ? new TextDecoder().decode(await gunzip(buffer)) : text();
+      // three.js reads VRML 2.0 (VRML97) only; CAD systems still write 1.0.
+      if (isVrml1(source)) return { object: parseVrml1(source), zUp: false };
+      return { object: new VRMLLoader(offlineManager()).parse(expandSimpleProtos(source), ''), zUp: false };
+    }
     case 'vtk':
     case 'vtp':
       return { object: fromGeometry(new VTKLoader().parse(buffer, '')), zUp: true };

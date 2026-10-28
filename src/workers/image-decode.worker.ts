@@ -4,7 +4,7 @@
 // (three.js loaders, MIT; DXT blocks via decode-dxt, MIT), DNG raw data (raw-develop.ts) and JPEG XL (jxl-oxide, MIT OR
 // Apache-2.0; handed back as PNG). High dynamic range images are tone mapped.
 import * as UTIF from 'utif2';
-import { readPsd } from 'ag-psd';
+import { initializeCanvas, readPsd } from 'ag-psd';
 import decodeDxt from 'decode-dxt';
 import { FloatType, RGBAFormat, RGBA_S3TC_DXT3_Format, RGBA_S3TC_DXT5_Format, RGB_S3TC_DXT1_Format, RGFormat } from 'three';
 import { DDSLoader } from 'three/addons/loaders/DDSLoader.js';
@@ -14,6 +14,12 @@ import { TGALoader } from 'three/addons/loaders/TGALoader.js';
 import type { DecodeRequest, DecodeResponse } from './image-decode-types';
 import { developRaw } from './raw-develop';
 import { toneMap } from './tonemap';
+
+// ag-psd makes its pixel buffers with a canvas; a worker has no document, so it gets OffscreenCanvas and ImageData.
+initializeCanvas(
+  (width, height) => new OffscreenCanvas(width, height) as unknown as HTMLCanvasElement,
+  (width, height) => new ImageData(width, height),
+);
 
 type Pixels = { width: number; height: number; data: Uint8ClampedArray; pages: number; png?: boolean; note?: string };
 

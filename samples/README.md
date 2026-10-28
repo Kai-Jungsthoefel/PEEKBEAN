@@ -13,6 +13,8 @@ Test files for all viewers. Except for the exceptions below, all files are self-
 - `scripts/generate-photo-samples.mjs` writes `images/camera.dng` (a Bayer mosaic of the motif with `motif.jpg` as full-size preview, camera "Example Sample Camera") and `images/motif.jxl` (lossless with transparency, encoded with libjxl from `@jsquash/jxl`).
 - `scripts/generate-data-samples.mjs` writes `database/parts.parquet` (hyparquet-writer) and `database/parts.arrow` (apache-arrow), a fictional certificate chain in `certs/` (PKI.js; fresh random keys, so it differs on every run) and `database/parts.mdb`, which the Jet 4.0 engine writes through ADOX/ADO in the 32-bit Windows PowerShell (Windows only, skipped elsewhere). The only private key is the one inside `certs/identity.p12`, encrypted with the password `sample`.
 - `scripts/generate-book-samples.mjs` writes `office/formatting.rtf`, `books/sample-book.epub` and `books/sample-book.fb2` from our own text and pictures.
+- `scripts/generate-design-samples.mjs` writes `images/layers.ora` (OpenRaster with two layers), `images/layers.psd` (the same layers in Photoshop format, written with ag-psd), `images/layers.kra` (a minimal Krita document: flattened picture and preview, its one layer without pixel data) and `images/drawing.eps` (PostScript with a DOS binary header and a TIFF preview). Closed formats (SolidWorks, Inventor, NX, Creo, CATIA, Blender, Affinity, InDesign, Figma, Paint.NET) have no samples here: we cannot write them, and freely licensed files are rare.
+- `scripts/generate-mindmap-samples.mjs` writes the mind maps in `mindmaps/` (a made-up product launch): XMind 2020+ and XMind 8, FreeMind and Freeplane, and a MindManager file written after the structure of MindManager's `Document.xml` but not checked in MindManager itself.
 - **Exception:** `fonts/` contains IBM Plex Sans under the SIL Open Font License 1.1 (`fonts/OFL-IBM-Plex.txt`), copied from `@fontsource/ibm-plex-sans`.
 - **Exception:** `archives/libarchive-test.7z` and `libarchive-test.rar` come from the test suite of libarchive v3.8.10 (commit `0c48412be2d94afe1859a807ea7896a18d8900bd`, files `test/test_read_format_7zip_lzma1_2.7z.uu` and `test/test_read_format_rar5_unicode.rar.uu`, uudecoded), BSD-2-Clause, copyright Tim Kientzle and the libarchive authors.
 
@@ -52,6 +54,7 @@ Test files for all viewers. Except for the exceptions below, all files are self-
 | `3d/colored-cube.glb`, `colored-cube.gltf` | glTF binary and with embedded data, vertex colors |
 | `3d/bracket.fbx`, `.dae`, `.3ds`, `.amf`, `.usda`, `.usdz`, `.vtp` | the same angle bracket of three colored parts (base plate, upright, rib) in each exchange format: ASCII FBX, COLLADA (unit m, Z up), 3D Studio, AMF, USD as text and as package, VTK XML |
 | `3d/bracket.wrl`, `bracket.wrz` | VRML97 with the bracket plus a cylinder primitive, plain and gzip-compressed |
+| `3d/bracket-vrml1.wrl` | the same bracket in VRML 1.0 (Separators, Material, Coordinate3, IndexedFaceSet, a Cylinder), as SolidWorks exports it |
 | `3d/bracket.3dm` | Rhino 7 file in mm: the bracket as meshes on three colored layers, four hole circles on a layer of their own |
 | `3d/torus.vtk`, `torus.off` | legacy VTK polydata; OFF with vertex colors (COFF) |
 | `3d/dome-scan.pcd`, `terrain.xyz` | point clouds: ASCII PCD without colors, XYZ with colors |
@@ -73,6 +76,15 @@ Test files for all viewers. Except for the exceptions below, all files are self-
 | `images/flange.wmf`, `flange.emf` | Windows metafiles: filled circles, lines and text |
 | `images/camera.dng` | camera raw: the embedded JPEG preview is shown, sensor size in the toolbar, EXIF in the info panel (camera, lens, exposure, time with time zone) |
 | `images/motif.jxl` | JPEG XL, lossless with transparency (decoded by jxl-oxide in browsers without native support) |
+| `images/layers.ora` | OpenRaster: the flattened picture (`mergedimage.png`) in the image viewer |
+| `images/layers.psd` | Photoshop with two layers: the composite image |
+| `images/layers.kra` | Krita: the flattened picture in the image viewer |
+| `images/drawing.eps` | EPS with a TIFF preview: preview picture, title, creator, size from the bounding box |
+| `mindmaps/launch-plan.xmind` | XMind 2020+: two sheets (map and logic chart), markers, labels, notes, a link, a picture, a folded branch, a relationship, a floating topic, a summary |
+| `mindmaps/launch-plan-xmind8.xmind` | XMind 8 (content.xml) with the same features |
+| `mindmaps/launch-plan.mmap` | MindManager: icons, task progress and due date, notes, link, text labels, picture, collapsed topic, floating topic, relationship |
+| `mindmaps/launch-plan.mm` | FreeMind 1.0.1: branch sides, folding, link, icons, a note, an arrow link |
+| `mindmaps/launch-plan-freeplane.mm` | Freeplane: HTML node text, details, attributes |
 | `media/tone.wav`, `media/clip.webm` | audio and video |
 | `archives/example.zip`, `example.tar`, `example.tar.gz` | folder structure, non-ASCII file name, files open in a new tab |
 | `archives/encrypted.zip` | encrypted ZIP, password `everything` |

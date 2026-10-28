@@ -171,6 +171,33 @@ async function blobSource(blob: Blob): Promise<Source | null> {
   }
 }
 
+/** Krita and OpenRaster files are ZIPs of layers that also hold the flattened picture (mergedimage.png). */
+const LAYERED_EXTENSIONS = ['kra', 'krz', 'ora'];
+
+async function layeredSource(file: File): Promise<Source> {
+  const { BlobReader, Uint8ArrayWriter, ZipReader, configure } = await import('@zip.js/zip.js');
+  configure({ useWebWorkers: false, useCompressionStream: true });
+  const zip = new ZipReader(new BlobReader(file));
+  try {
+    const entries = await zip.getEntries();
+    const app = extensionOf(file.name) === 'ora' ? 'The application' : 'Krita';
+    // .krz files leave out the merged image; then only the small preview is left.
+    for (const [name, label, title] of [
+      ['mergedimage.png', '', `The flattened picture ${app} saved with the layers.`],
+      ['preview.png', 'Preview', `${app} saved no flattened picture, only this small preview. The layers are not shown.`],
+      ['Thumbnails/thumbnail.png', 'Preview', 'The file holds no flattened picture, only this small preview. The layers are not shown.'],
+    ]) {
+      const entry = entries.find((e) => e.filename === name && !e.directory);
+      if (!entry || !('getData' in entry) || !entry.getData) continue;
+      const source = await blobSource(new Blob([(await entry.getData(new Uint8ArrayWriter())) as Uint8Array<ArrayBuffer>], { type: 'image/png' }));
+      if (source) return { ...source, label: label || undefined, title };
+    }
+    throw new Error('The file contains no flattened picture.');
+  } finally {
+    await zip.close();
+  }
+}
+
 const PREVIEW_NOTE = 'The JPEG picture the camera stored in the raw file. The raw sensor data is not developed.';
 const THUMBNAIL_NOTE = 'The only picture this raw file holds is a small thumbnail. The raw sensor data is not developed.';
 
@@ -208,12 +235,16 @@ async function rawSource(file: File, progress: (message: string) => void): Promi
 export async function mount({ file, container, toolbar, progress }: ViewerContext) {
   const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
   const raw = isCameraRaw(file, head);
-  const format = raw ? null : decoderFormat(file, head);
-  const special = raw ? null : mainThreadFormat(file, head);
+  const layered = !raw && LAYERED_EXTENSIONS.includes(extensionOf(file.name)) && startsWith(head, 'PK\x03\x04');
+  const format = raw || layered ? null : decoderFormat(file, head);
+  const special = raw || layered ? null : mainThreadFormat(file, head);
   // Safari shows TIFF, HEIC and JPEG XL natively; the other decoded formats no browser shows.
-  const native = !raw && !special && (!format || format === 'tiff' || format === 'heic' || (format === 'jxl' && (await browserDecodesJxl())));
+  const native = !raw && !layered && !special && (!format || format === 'tiff' || format === 'heic' || (format === 'jxl' && (await browserDecodesJxl())));
   let source = native ? await nativeSource(file) : null;
-  if (raw) {
+  if (layered) {
+    progress('Reading the flattened picture …');
+    source = await layeredSource(file);
+  } else if (raw) {
     progress('Reading camera preview …');
     source = await rawSource(file, progress);
   } else if (!source && special) {

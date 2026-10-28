@@ -36,9 +36,9 @@ export interface ViewerDefinition {
   sniff?: (head: Uint8Array) => boolean;
   /**
    * The signature is shared with more specific formats (a ZIP signature also matches DOCX and 3MF),
-   * so a matching extension of another viewer wins over it.
+   * so a matching extension of another viewer wins over it. A function decides by the signature found.
    */
-  container?: boolean;
+  container?: boolean | ((head: Uint8Array) => boolean);
   /**
    * The viewer can show several files of an archive together (a board's Gerber files, shapefiles): the archive viewer
    * then offers "Open as …" for archives it accepts, by entry names and archive kind.
