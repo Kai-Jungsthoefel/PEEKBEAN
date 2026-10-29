@@ -137,6 +137,7 @@ export function siteFooter(): HTMLElement {
     h('a', { href: 'https://www.gnu.org/licenses/gpl-3.0.html', target: '_blank', rel: 'noopener noreferrer' }, 'GPL-3.0-or-later'),
     SOURCE_URL && h('a', { href: SOURCE_URL, target: '_blank', rel: 'noopener noreferrer' }, 'Source code'),
     h('a', { href: 'third-party-licenses.txt', target: '_blank' }, 'Third-party licenses'),
+    h('a', { href: 'legal.html' }, 'Imprint & privacy'),
   );
 }
 
