@@ -14,6 +14,12 @@ const MEMORY_ERRORS = {
   refused: 'The browser gave the CAD kernel no more memory. Close other tabs or reload the page and try again.',
 };
 
+class MemoryError extends Error {
+  constructor(readonly kind: 'limit' | 'refused') {
+    super(MEMORY_ERRORS[kind]);
+  }
+}
+
 function tessellate(kernel: Occt, format: OcctFormat, buffer: ArrayBuffer): { response: Extract<OcctResponse, { ok: true }>; transfer: ArrayBuffer[] } {
   kernel.heapFull = undefined;
   const result = kernel.ReadFile(format, new Uint8Array(buffer), {
@@ -22,7 +28,7 @@ function tessellate(kernel: Occt, format: OcctFormat, buffer: ArrayBuffer): { re
     linearDeflection: 0.001,
     angularDeflection: 0.5,
   });
-  if (kernel.heapFull) throw new Error(MEMORY_ERRORS[kernel.heapFull]);
+  if (kernel.heapFull) throw new MemoryError(kernel.heapFull);
   if (!result.success) throw new Error('OpenCascade could not read the file.');
 
   // Typed arrays can be transferred instead of copied.
@@ -37,7 +43,11 @@ function tessellate(kernel: Occt, format: OcctFormat, buffer: ArrayBuffer): { re
   return { response: { ok: true, root: result.root, meshes }, transfer };
 }
 
-const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
+const failure = (error: unknown) => ({
+  ok: false as const,
+  error: error instanceof Error ? error.message : String(error),
+  ...(error instanceof MemoryError ? { memory: error.kind } : {}),
+});
 
 self.onmessage = async (event: MessageEvent<OcctRequest | OcctBatchRequest>) => {
   const post = (response: OcctResponse | OcctBatchResponse, transfer: ArrayBuffer[] = []) => (self as unknown as Worker).postMessage(response, transfer);
@@ -53,7 +63,7 @@ self.onmessage = async (event: MessageEvent<OcctRequest | OcctBatchRequest>) => 
           const { response, transfer } = tessellate(kernel, format, buffer);
           post({ index, ...response }, transfer);
         } catch (error) {
-          post({ index, ok: false, error: message(error) });
+          post({ index, ...failure(error) });
         }
       });
       post({ ok: 'done' });
@@ -62,6 +72,6 @@ self.onmessage = async (event: MessageEvent<OcctRequest | OcctBatchRequest>) => 
     const { response, transfer } = tessellate(kernel, request.format, request.buffer);
     post(response, transfer);
   } catch (error) {
-    post({ ok: false, error: message(error) });
+    post(failure(error));
   }
 };

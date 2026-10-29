@@ -30,7 +30,8 @@ export interface OcctMesh {
 
 export type OcctResponse =
   | { ok: true; root: OcctNode; meshes: OcctMesh[] }
-  | { ok: false; error: string }
+  /** `memory` when OpenCascade ran out of memory: at the 4 GB limit, or because the browser gave no more. */
+  | { ok: false; error: string; memory?: 'limit' | 'refused' }
   /** Sent once the CAD kernel is loaded and tessellation starts. */
   | { ok: 'progress' };
 
