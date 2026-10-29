@@ -40,7 +40,7 @@ const CSS_ONLY_PACKAGES = ['@fontsource/ibm-plex-sans', '@fontsource/ibm-plex-mo
 
 // License texts of native code compiled to WebAssembly, which no package.json describes completely.
 const EXTRA_NOTICES = [
-  ['OpenCascade (in occt-import-js.wasm)', 'node_modules/occt-import-js/dist/license.occt.txt'],
+  ['occt-import-js and OpenCascade (in occt-import-js.wasm)', 'src/wasm/occt/THIRD_PARTY_LICENSES.txt'],
   ['pdf.js decoders (OpenJPEG, JBIG2, QCMS)', 'node_modules/pdfjs-dist/wasm/LICENSE_OPENJPEG'],
   ['acadrust and Rust crates (in dwg2dxf.wasm)', 'src/wasm/dwg2dxf/THIRD_PARTY_LICENSES.txt'],
   ['libarchive and compression libraries (in libarchive.wasm)', 'src/wasm/libarchive/THIRD_PARTY_LICENSES.txt'],
@@ -202,7 +202,7 @@ function patch(code: string, library: string, replacements: [string, string][]):
  * forbids (no 'unsafe-eval'). These swap in generic wrappers like the ones Emscripten itself emits with
  * DYNAMIC_EXECUTION=0. Same behavior, a little slower per call.
  *
- * The first set fits the Emscripten version of occt-import-js and of the Basis Universal transcoder.
+ * The first set fits the Emscripten version of the Basis Universal transcoder.
  */
 const INVOKER = 'var invokerFn=newFunc(Function,args)(...closureArgs);';
 const GENERIC_INVOKER = `var invokerFn=(function(){var expected=argCount-2;var argsWired=new Array(expected);var destructors=[];return function(...callArgs){if(callArgs.length!==expected){throwBindingError(\`function \${humanName} called with \${callArgs.length} arguments, expected \${expected}\`)}destructors.length=0;var thisWired;var invokerArgs=[cppTargetFunc];if(isClassMethodFunc){thisWired=argTypes[1].toWireType(destructors,this);invokerArgs.push(thisWired)}for(var i=0;i<expected;++i){argsWired[i]=argTypes[i+2].toWireType(destructors,callArgs[i]);invokerArgs.push(argsWired[i])}var rv=cppInvokerFunc(...invokerArgs);var done=function(rv){if(needsDestructorStack){runDestructors(destructors)}else{for(var i=isClassMethodFunc?1:2;i<argTypes.length;i++){var param=i===1?thisWired:argsWired[i-2];if(argTypes[i].destructorFunction!==null){argTypes[i].destructorFunction(param)}}}if(returns){return argTypes[0].fromWireType(rv)}};return isAsync?rv.then(done):done(rv)}})();`;
@@ -220,16 +220,6 @@ const RHINO_METHOD_CALLER = 'var invokerFunction=new Function(Object.keys(captur
 const RHINO_GENERIC_METHOD_CALLER = 'var invokerFunction=function(handle,methodName,destructorsRef,args){var a=argFromPtr.map((read,i)=>read(args+i*GenericWireTypeSize));var rv=kind===0?Emval.toValue(handle)(...a):kind===2?new(Emval.toValue(handle))(...a):kind===1?Emval.toValue(handle)[getStringOrSymbol(methodName)](...a):a[a.length-1];return retType.isVoid?undefined:emval_returnValue(toReturnWire,destructorsRef,rv)};';
 const rhinoWithoutEval = (code: string) =>
   patch(code, 'rhino3dm', [[RHINO_INVOKER, RHINO_GENERIC_INVOKER], [RHINO_METHOD_CALLER, RHINO_GENERIC_METHOD_CALLER]]);
-
-function occtWithoutEval(): Plugin {
-  return {
-    name: 'peekbean:occt-without-eval',
-    transform(code, id) {
-      if (!id.replace(/\\/g, '/').endsWith('occt-import-js/dist/occt-import-js.js')) return null;
-      return { code: embindWithoutEval(code, 'occt-import-js'), map: null };
-    },
-  };
-}
 
 // Vite bundles each web worker in a separate build. Every build reports its dependencies here,
 // so the license check and the report cover the workers too.
@@ -275,7 +265,7 @@ function licenseReport(): Plugin {
   };
 }
 
-const sharedPlugins = (): PluginOption[] => [licenseCheck(), occtWithoutEval()];
+const sharedPlugins = (): PluginOption[] => [licenseCheck()];
 
 // Lazily loaded chunks are named after what they are (assets/viewer.dwg-<hash>.js, assets/lang.python-<hash>.js),
 // so Cloudflare's request counts per path tell which viewers, converters and formats people use.
@@ -340,7 +330,7 @@ export default defineConfig({
   // the running worker with outdated URLs. Bundling them at startup avoids that.
   optimizeDeps: {
     include: [
-      'utif2', 'ag-psd', 'decode-dxt', 'libheif-js/libheif-wasm/libheif-bundle.mjs', 'occt-import-js', 'xlsx', 'xlsx/dist/cpexcel.full',
+      'utif2', 'ag-psd', 'decode-dxt', 'libheif-js/libheif-wasm/libheif-bundle.mjs', 'xlsx', 'xlsx/dist/cpexcel.full',
       'dxf-viewer', 'dxf-viewer/src/DxfScene.js', '@zip.js/zip.js', 'web-ifc',
       'three/addons/loaders/DDSLoader.js', 'three/addons/loaders/EXRLoader.js', 'three/addons/loaders/HDRLoader.js', 'three/addons/loaders/TGALoader.js',
       '@tracespace/parser', '@tracespace/plotter', '@tracespace/identify-layers', 'shpjs', 'proj4', 'topojson-client',

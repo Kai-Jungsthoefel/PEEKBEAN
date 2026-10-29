@@ -245,7 +245,7 @@ function which(cmd) {
 }
 
 /** Finds a tool on PATH, in $<ENV>, or where `pip install --user` puts console scripts. */
-function findPipTool(name) {
+export function findPipTool(name) {
   const fromEnv = process.env[name.toUpperCase()];
   if (fromEnv) return fromEnv;
   const onPath = which(name);
@@ -265,7 +265,7 @@ function findPipTool(name) {
   return found;
 }
 
-function findEmscripten() {
+export function findEmscripten() {
   const emsdk = path.resolve(process.env.EMSDK ?? path.join(os.homedir(), 'emsdk'));
   const config = path.join(emsdk, '.emscripten');
   const root = path.join(emsdk, 'upstream', 'emscripten');
@@ -298,7 +298,7 @@ function findEmscripten() {
   };
 }
 
-function run(cmd, args, options = {}) {
+export function run(cmd, args, options = {}) {
   const res = spawnSync(cmd, args, { stdio: 'inherit', ...options });
   if (res.error) throw res.error;
   if (res.status !== 0) throw new Error(`${path.basename(cmd)} ${args.slice(0, 3).join(' ')} ... failed with exit code ${res.status}`);

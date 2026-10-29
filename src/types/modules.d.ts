@@ -39,24 +39,6 @@ declare module 'sql.js' {
   export default function initSqlJs(config?: { locateFile?: (file: string) => string }): Promise<SqlJsStatic>;
 }
 
-declare module 'occt-import-js' {
-  interface OcctResult {
-    success: boolean;
-    root: { name: string; meshes: number[]; children: OcctResult['root'][] };
-    meshes: {
-      name: string;
-      color?: [number, number, number];
-      brep_faces: { first: number; last: number; color: [number, number, number] | null }[];
-      attributes: { position: { array: number[] }; normal?: { array: number[] } };
-      index: { array: number[] };
-    }[];
-  }
-  interface Occt {
-    ReadFile(format: 'step' | 'iges' | 'brep', content: Uint8Array, params: Record<string, unknown> | null): OcctResult;
-  }
-  export default function occtimportjs(overrides?: { locateFile?: (path: string) => string }): Promise<Occt>;
-}
-
 declare module 'exifr/src/core.mjs' {
   // exifr's core from its sources (see metadata/exif.ts); readers and parsers register themselves on import.
   export function parse(input: Blob | ArrayBuffer | Uint8Array, options?: Record<string, unknown>): Promise<Record<string, unknown> | undefined>;
