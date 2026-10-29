@@ -5,6 +5,7 @@ import { RAW_EXTENSIONS, inspectRaw, previewBlob, thumbnailPixels } from './came
 import { Measure2D } from './measure2d';
 import type { ViewerContext } from '../core/types';
 import type { DecodeFormat, DecodeResponse } from '../workers/image-decode-types';
+import type { IconPicture } from '../convert/image/ico';
 
 const MIN_SCALE = 0.02;
 const MAX_SCALE = 64;
@@ -262,6 +263,15 @@ export async function openImage(file: File, progress: (message: string) => void)
   return { source, format };
 }
 
+/** The pictures of an ICO or CUR file, in the order of its directory; empty for other files. */
+async function iconPictures(file: File): Promise<IconPicture[]> {
+  const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  // Loaded only for icons: 00 00 01 00 (ICO) or 00 00 02 00 (CUR).
+  if (!startsWith(head, [0, 0, 1, 0]) && !startsWith(head, [0, 0, 2, 0])) return [];
+  const { readIcon } = await import('../convert/image/ico');
+  return readIcon(new Uint8Array(await file.arrayBuffer()));
+}
+
 export async function mount({ file, container, toolbar, progress }: ViewerContext) {
   const opened = await openImage(file, progress);
   const { format } = opened;
@@ -388,6 +398,27 @@ export async function mount({ file, container, toolbar, progress }: ViewerContex
     sensorLabel.textContent = `Raw ${source.sensor[0]} × ${source.sensor[1]}`;
     sensorLabel.title = 'Size of the sensor data in the raw file';
     toolbar.append(sensorLabel);
+  }
+  // Icons hold the same picture in several sizes; the browser shows only one, so the others can be picked here.
+  const icons = await iconPictures(file);
+  if (icons.length > 1) {
+    const largest = icons.reduce((best, p, i) => (p.width * p.height > icons[best].width * icons[best].height || (p.width * p.height === icons[best].width * icons[best].height && p.bits > icons[best].bits) ? i : best), 0);
+    const show = async (index: number) => {
+      const next = await blobSource(icons[index].blob);
+      if (!next) throw new Error('This browser cannot show this picture of the icon.');
+      setSource(next);
+      fit();
+    };
+    const sizeSelect = h(
+      'select',
+      { title: 'Size', onchange: () => void show(Number(sizeSelect.value)).catch((error) => console.error(error)) },
+      ...icons.map((p, i) => h('option', { value: String(i) }, `${p.width} × ${p.height}${p.bits ? ` · ${p.bits}-bit` : ' · PNG'}`)),
+    );
+    sizeSelect.value = String(largest);
+    await show(largest).catch(() => {});
+    // The picker names the size already.
+    sizeLabel.remove();
+    toolbar.append(sizeSelect);
   }
   if (format && source.pages > 1) {
     const pageSelect = h(

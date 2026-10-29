@@ -12,7 +12,13 @@ const MIME: Record<string, string> = {
   fods: 'application/vnd.oasis.opendocument.spreadsheet',
   html: 'text/html',
   csv: 'text/csv',
+  tsv: 'text/tab-separated-values',
+  json: 'application/json',
+  md: 'text/markdown',
 };
+
+/** Names in the note on several files: "One CSV file for each …". */
+const LABELS: Record<string, string> = { csv: 'CSV', tsv: 'TSV', json: 'JSON', md: 'Markdown' };
 
 export async function convert({ file, target, options, progress }: ConvertContext): Promise<ConvertResult> {
   progress('Reading spreadsheet …');
@@ -38,7 +44,7 @@ export async function convert({ file, target, options, progress }: ConvertContex
   }
   const several = response.sheets.length > 1;
   return {
-    files: response.sheets.map((sheet) => new File([sheet.csv as Uint8Array<ArrayBuffer>], resultName(file.name, 'csv', several ? `- ${sheet.name}` : ''), { type: MIME.csv })),
-    notes: several ? [`One CSV file for each of the ${response.sheets.length} sheets.`] : [],
+    files: response.sheets.map((sheet) => new File([sheet.data as Uint8Array<ArrayBuffer>], resultName(file.name, target, several ? `- ${sheet.name}` : ''), { type: MIME[target] })),
+    notes: [...(several ? [`One ${LABELS[target]} file for each of the ${response.sheets.length} sheets.`] : []), ...response.notes],
   };
 }

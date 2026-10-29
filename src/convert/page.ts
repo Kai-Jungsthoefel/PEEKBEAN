@@ -50,7 +50,7 @@ interface Settings {
 }
 
 /** Shown on the general page before anything is typed into the search; missing ones are skipped. */
-const POPULAR = ['heic-to-jpg', 'png-to-jpg', 'jpg-to-png', 'webp-to-png', 'pdf-to-png', 'xlsx-to-csv', 'csv-to-xlsx', 'step-to-stl', 'step-to-glb', 'dwg-to-dxf', 'svg-to-png', 'rar-to-zip', 'msg-to-eml', 'kml-to-geojson'];
+const POPULAR = ['heic-to-jpg', 'png-to-jpg', 'jpg-to-png', 'jpg-to-pdf', 'webp-to-png', 'pdf-to-png', 'png-to-ico', 'mp3-to-wav', 'xlsx-to-csv', 'csv-to-xlsx', 'csv-to-json', 'json-to-yaml', 'step-to-stl', 'dwg-to-dxf', 'svg-to-png', 'rar-to-zip', 'msg-to-eml', 'kml-to-geojson'];
 const THUMBNAILS = ['jpg', 'jpeg', 'jfif', 'pjpeg', 'png', 'apng', 'webp', 'gif', 'bmp', 'avif', 'svg', 'ico'];
 const MAX_RESULTS = 24;
 /** Source formats a kind shows before "more". */
@@ -843,7 +843,8 @@ export class ConverterPage {
       sourceLabel: inputLabel,
       targetLabel: target?.label ?? '',
       kindLabel: converter?.label ?? (job.kind || 'Unknown format'),
-      picture: converter?.id === 'image',
+      // PDF and ICO results are no single picture of the same size to slide over.
+      picture: converter?.id === 'image' && !!target && ['png', 'jpg', 'webp'].includes(target.id),
       outputs,
       status: this.previewStatus(job),
       report: this.report(job),

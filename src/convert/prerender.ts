@@ -17,7 +17,7 @@ export function pageTitle(pair: ConversionPair | null): string {
 export function pageDescription(pair: ConversionPair | null): string {
   return pair
     ? `Convert ${pair.source.label} to ${pair.target.label} in your browser. Free and open source: files are converted on your device and never uploaded.`
-    : 'Convert images, PDFs, spreadsheets, 3D models and CAD drawings in your browser. Free and open source: files never leave your device.';
+    : 'Convert images, PDFs, audio, spreadsheets, data, 3D models and CAD drawings in your browser. Free and open source: files never leave your device.';
 }
 
 const link = (pair: ConversionPair) => `<li><a href="${pairPage(pair)}">${escape(pair.source.label)} to ${escape(pair.target.label)}</a></li>`;

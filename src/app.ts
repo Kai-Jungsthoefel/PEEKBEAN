@@ -338,7 +338,7 @@ export class App {
       ...viewers.map((v) => h('option', { value: v.id }, v.label)),
     );
     select.value = entry.chosenViewer ?? '';
-    const converter = converterForViewer(definition.id);
+    const converter = converterForViewer(definition.id, entry.file.name);
     if (converter) {
       exportButton.hidden = false;
       exportButton.addEventListener('click', () => this.exporter.open(entry.file, definition.id, converter, exportButton));

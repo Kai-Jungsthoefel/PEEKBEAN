@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The code of each converter in the catalog, loaded only when a file needs it.
-import { CONVERTERS, type ConverterInfo } from './catalog';
+import { CONVERTERS, sourceFor, type ConverterInfo } from './catalog';
 import { extensionOf } from '../core/bytes';
 import { detectViewer, viewers } from '../core/registry';
 import type { ConverterModule } from './types';
 
 const MODULES: Record<string, () => Promise<ConverterModule>> = {
   image: () => import('./converters/image'),
+  audio: () => import('./converters/audio'),
+  data: () => import('./converters/data'),
+  subtitles: () => import('./converters/subtitles'),
   pdf: () => import('./converters/pdf'),
   office: () => import('./converters/office'),
   spreadsheet: () => import('./converters/spreadsheet'),
@@ -23,9 +26,9 @@ export function loadConverter(id: string): Promise<ConverterModule> {
   return MODULES[id]();
 }
 
-/** The converter for the files a viewer shows; null when none takes them. */
-export function converterForViewer(viewer: string): ConverterInfo | null {
-  return CONVERTERS.find((c) => c.viewers.includes(viewer)) ?? null;
+/** The converter for a file a viewer shows; null when none takes it. */
+export function converterForViewer(viewer: string, name: string): ConverterInfo | null {
+  return CONVERTERS.find((c) => c.viewers.includes(viewer) && (!c.strict || sourceFor(c, name))) ?? null;
 }
 
 /**
@@ -33,7 +36,7 @@ export function converterForViewer(viewer: string): ConverterInfo | null {
  * "Open as map" does in the archive viewer. Only ZIPs are looked into; no such viewer takes other archives.
  */
 async function wholeArchiveViewer(file: File): Promise<(typeof viewers)[number] | null> {
-  const candidates = viewers.filter((v) => v.wholeArchive && converterForViewer(v.id));
+  const candidates = viewers.filter((v) => v.wholeArchive && CONVERTERS.some((c) => c.viewers.includes(v.id)));
   if (candidates.length === 0 || extensionOf(file.name) !== 'zip') return null;
   const { openArchive } = await import('../viewers/archive');
   const archive = await openArchive(file);
@@ -49,5 +52,5 @@ async function wholeArchiveViewer(file: File): Promise<(typeof viewers)[number] 
 export async function converterFor(file: File): Promise<{ converter: ConverterInfo | null; viewer: string; kind: string }> {
   let viewer = await detectViewer(file);
   if (viewer.id === 'archive') viewer = (await wholeArchiveViewer(file).catch(() => null)) ?? viewer;
-  return { converter: converterForViewer(viewer.id), viewer: viewer.id, kind: viewer.label };
+  return { converter: converterForViewer(viewer.id, file.name), viewer: viewer.id, kind: viewer.label };
 }

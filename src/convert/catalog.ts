@@ -42,6 +42,8 @@ export interface ConverterInfo {
   icon: IconName;
   /** Viewers (core/registry.ts) whose files this converter takes; the viewers' format detection decides. */
   viewers: string[];
+  /** Takes only files with one of its sources' extensions: the text viewer shows far more than JSON or subtitles. */
+  strict?: true;
   sources: SourceFormat[];
   targets: TargetFormat[];
   options?: ConvertOption[];
@@ -78,6 +80,7 @@ const raw = (slug: string): SourceFormat => ({ slug, label: slug.toUpperCase(), 
 
 const LOSSY_TABLE = 'Values and formulas are kept; formatting, charts and pictures are not.';
 const MESH = 'Exact surfaces are turned into triangles.';
+const SOUND_TRACK = 'Only the sound track; the picture is left out.';
 
 const SEPARATOR: ConvertOption = {
   id: 'separator',
@@ -100,7 +103,7 @@ const ENCODING: ConvertOption = {
     { value: 'plain', label: 'UTF-8' },
   ],
   initial: 'bom',
-  targets: ['csv'],
+  targets: ['csv', 'tsv'],
 };
 
 export const CONVERTERS: ConverterInfo[] = [
@@ -134,8 +137,65 @@ export const CONVERTERS: ConverterInfo[] = [
       { id: 'png', label: 'PNG', extension: 'png' },
       { id: 'jpg', label: 'JPG', extension: 'jpg', loss: 'Lossy compression; transparent areas become white.' },
       { id: 'webp', label: 'WebP', extension: 'webp', loss: 'Lossy compression.', minor: true },
+      { id: 'pdf', label: 'PDF', extension: 'pdf' },
+      { id: 'ico', label: 'ICO', extension: 'ico', loss: 'Square icon sizes up to 256 × 256 pixels.', minor: true },
     ],
-    options: [QUALITY],
+    options: [
+      QUALITY,
+      {
+        id: 'page',
+        label: 'Page size',
+        choices: [
+          { value: 'picture', label: 'Same as picture' },
+          { value: 'a4', label: 'A4' },
+          { value: 'letter', label: 'US Letter' },
+        ],
+        initial: 'picture',
+        targets: ['pdf'],
+      },
+      {
+        id: 'sizes',
+        label: 'Sizes',
+        choices: [
+          { value: '16,24,32,48,64,128,256', label: 'Windows, 16 to 256' },
+          { value: '16,32,48', label: 'Favicon, 16 to 48' },
+        ],
+        initial: '16,24,32,48,64,128,256',
+        targets: ['ico'],
+      },
+    ],
+  },
+  {
+    id: 'audio',
+    label: 'Audio',
+    icon: 'media',
+    viewers: ['media'],
+    sources: [
+      { slug: 'mp3', label: 'MP3', extensions: ['mp3'] },
+      { slug: 'm4a', label: 'M4A', extensions: ['m4a', 'm4b'] },
+      { slug: 'aac', label: 'AAC', extensions: ['aac'] },
+      { slug: 'flac', label: 'FLAC', extensions: ['flac'] },
+      { slug: 'ogg', label: 'OGG', extensions: ['ogg', 'oga'] },
+      { slug: 'opus', label: 'Opus', extensions: ['opus'] },
+      { slug: 'wav', label: 'WAV', extensions: ['wav'] },
+      { slug: 'mp4', label: 'MP4', extensions: ['mp4', 'm4v'], note: SOUND_TRACK },
+      { slug: 'webm', label: 'WebM', extensions: ['webm', 'weba'], note: SOUND_TRACK, minor: true },
+      { slug: 'mov', label: 'MOV', extensions: ['mov'], note: SOUND_TRACK, minor: true },
+      { slug: 'mkv', label: 'MKV', extensions: ['mkv'], note: SOUND_TRACK, minor: true },
+    ],
+    targets: [{ id: 'wav', label: 'WAV', extension: 'wav' }],
+    options: [
+      {
+        id: 'bits',
+        label: 'Bit depth',
+        choices: [
+          { value: '16', label: '16-bit' },
+          { value: '24', label: '24-bit' },
+          { value: '32', label: '32-bit float' },
+        ],
+        initial: '16',
+      },
+    ],
   },
   {
     id: 'pdf',
@@ -201,8 +261,57 @@ export const CONVERTERS: ConverterInfo[] = [
       { id: 'xlsb', label: 'XLSB', extension: 'xlsb', loss: LOSSY_TABLE, minor: true },
       { id: 'fods', label: 'FODS', extension: 'fods', loss: LOSSY_TABLE, minor: true },
       { id: 'html', label: 'HTML', extension: 'html', loss: 'One table per sheet as a web page; formulas become their values.' },
+      { id: 'json', label: 'JSON', extension: 'json', loss: 'An array with one object per row, named by the column names; one file per sheet. Formulas become their values.' },
+      { id: 'tsv', label: 'TSV', extension: 'tsv', loss: 'Values only, separated by tabs; one file per sheet.', minor: true },
+      { id: 'md', label: 'Markdown', extension: 'md', loss: 'A Markdown table per sheet with the column names as its header; values as displayed.', minor: true },
     ],
     options: [SEPARATOR, ENCODING],
+  },
+  {
+    id: 'data',
+    label: 'Data',
+    icon: 'text',
+    viewers: ['text'],
+    strict: true,
+    sources: [
+      { slug: 'json', label: 'JSON', extensions: ['json'] },
+      { slug: 'yaml', label: 'YAML', extensions: ['yaml', 'yml'] },
+      { slug: 'jsonl', label: 'JSON Lines', extensions: ['jsonl', 'ndjson'], minor: true },
+      { slug: 'jsonc', label: 'JSONC', extensions: ['jsonc'], minor: true },
+      { slug: 'json5', label: 'JSON5', extensions: ['json5'], minor: true },
+    ],
+    targets: [
+      { id: 'json', label: 'JSON', extension: 'json' },
+      { id: 'yaml', label: 'YAML', extension: 'yaml' },
+      { id: 'jsonl', label: 'JSON Lines', extension: 'jsonl', minor: true },
+    ],
+    options: [
+      {
+        id: 'layout',
+        label: 'Layout',
+        choices: [
+          { value: 'pretty', label: 'Indented' },
+          { value: 'minified', label: 'Minified' },
+        ],
+        initial: 'pretty',
+        targets: ['json'],
+      },
+    ],
+  },
+  {
+    id: 'subtitles',
+    label: 'Subtitles',
+    icon: 'text',
+    viewers: ['text'],
+    strict: true,
+    sources: [
+      { slug: 'srt', label: 'SRT', extensions: ['srt'] },
+      { slug: 'vtt', label: 'VTT', extensions: ['vtt'] },
+    ],
+    targets: [
+      { id: 'srt', label: 'SRT', extension: 'srt', loss: 'Positions, styles and voice tags of WebVTT are left out; speakers stay in front of their text.' },
+      { id: 'vtt', label: 'VTT', extension: 'vtt' },
+    ],
   },
   {
     id: 'model3d',

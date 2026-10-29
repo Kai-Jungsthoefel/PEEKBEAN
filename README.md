@@ -27,7 +27,7 @@ Someone sends you a file and you just want to look inside. Usually that means in
 - **Private by design.** No backend, no accounts, no analytics, no CDNs. A strict Content Security Policy keeps the page from talking to anything but its own origin.
 - **One viewer for everything.** Documents, CAD and BIM, 3D, GIS, databases, archives, e-mails, images, all in tabs side by side.
 - **More than a preview.** Measure with snapping, inspect metadata, browse IFC properties, query SQLite, play back G-code.
-- **Converts locally, too.** Images, PDFs, Office files, 3D models, DWG, maps, databases and more.
+- **Converts locally, too.** Images, PDFs, Office files, audio, spreadsheets, data, 3D models, DWG, maps, databases and more.
 - **Nothing to install.** Any modern browser, desktop or phone.
 - **Open source.** GPL-3.0-or-later.
 
@@ -63,10 +63,13 @@ Someone sends you a file and you just want to look inside. Usually that means in
 
 | From | To |
 |---|---|
-| Images | PNG, JPG, WebP |
+| Images | PNG, JPG, WebP, PDF, ICO |
 | PDF | PNG, JPG |
+| Audio, sound track of videos | WAV |
 | Word, PowerPoint | PDF |
-| Spreadsheets | XLSX, ODS, CSV, XLS, HTML |
+| Spreadsheets | XLSX, ODS, CSV, XLS, HTML, JSON, TSV, Markdown |
+| JSON, YAML, JSON Lines | JSON, YAML, JSON Lines |
+| Subtitles | SRT, VTT |
 | 3D models | GLB, STL, OBJ, PLY, USDZ |
 | DWG, HPGL | DXF |
 | Archives, comics | ZIP, TAR.GZ, CBZ |
