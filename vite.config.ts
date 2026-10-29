@@ -277,6 +277,23 @@ function licenseReport(): Plugin {
 
 const sharedPlugins = (): PluginOption[] => [licenseCheck(), occtWithoutEval()];
 
+// The lazily loaded viewers, converters and metadata readers get a prefix in their file name
+// (assets/viewer.dwg-<hash>.js), so Cloudflare's request counts per path tell which ones people use.
+const CHUNK_PREFIXES: [RegExp, string][] = [
+  [/\/src\/viewers\/([\w-]+)\.ts$/, 'viewer'],
+  [/\/src\/convert\/converters\/([\w-]+)\.ts$/, 'convert'],
+  [/\/src\/metadata\/([\w-]+)\.ts$/, 'meta'],
+];
+
+function chunkFileNames(chunk: { facadeModuleId: string | null }): string {
+  const id = chunk.facadeModuleId?.replace(/\\/g, '/') ?? '';
+  for (const [pattern, prefix] of CHUNK_PREFIXES) {
+    const match = pattern.exec(id);
+    if (match) return `assets/${prefix}.${match[1]}-[hash].js`;
+  }
+  return 'assets/[name]-[hash].js';
+}
+
 export default defineConfig({
   base: './',
   define: {
@@ -292,6 +309,7 @@ export default defineConfig({
     // The viewer and the converter; the pages per format and per conversion are copies of these two (landingPages).
     rolldownOptions: {
       input: { main: path.join(root, 'index.html'), convert: path.join(root, 'convert.html') },
+      output: { chunkFileNames },
     },
   },
   worker: {
