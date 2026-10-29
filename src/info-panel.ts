@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Side panel with the file's properties and metadata (when and where a photo was taken, document author, CAD system …).
 import { h } from './core/dom';
+import { errorText } from './core/errors';
 import { icon } from './core/icons';
 import type { MetaSection } from './metadata';
 
@@ -35,7 +36,7 @@ export class InfoPanel {
     try {
       result = await sections;
     } catch (error) {
-      result = [{ title: 'Note', rows: [{ label: 'Error', value: error instanceof Error ? error.message : String(error) }] }];
+      result = [{ title: 'Note', rows: [{ label: 'Error', value: errorText(error) }] }];
     }
     if (mine !== this.token) return;
     const onlyFile = result.length === 1 && result[0].title === 'File';

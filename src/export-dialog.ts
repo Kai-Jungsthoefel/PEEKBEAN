@@ -3,6 +3,7 @@
 // (src/convert/), the same code the converter page runs. Target and options are kept per kind of file.
 import { formatBytes } from './core/bytes';
 import { h } from './core/dom';
+import { errorText } from './core/errors';
 import { icon } from './core/icons';
 import { defaultTarget, initialOptions, optionsFor, sourceFor, type ConverterInfo } from './convert/catalog';
 import { baseName, download, zipFiles } from './convert/files';
@@ -164,7 +165,7 @@ export class ExportDialog {
       this.state = { kind: 'done', files: result.files, notes: result.notes };
     } catch (error) {
       console.error(error);
-      this.state = { kind: 'failed', message: error instanceof Error ? error.message : String(error) };
+      this.state = { kind: 'failed', message: errorText(error) };
     }
     this.render();
   }

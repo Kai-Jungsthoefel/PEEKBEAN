@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { extensionOf, formatBytes } from './core/bytes';
 import { h, setPressed } from './core/dom';
+import { errorText, isStaleChunkError } from './core/errors';
 import { icon, type IconName } from './core/icons';
 import { detectViewer, hexViewer, textViewer, viewers } from './core/registry';
 import { onThemeChange } from './core/theme';
@@ -391,8 +392,10 @@ export class App {
   }
 
   private errorBox(entry: OpenFile, failed: ViewerDefinition, error: unknown, report: { href: string; title: string }): HTMLElement {
-    const message = error instanceof Error ? error.message : String(error);
-    const fallbacks = [textViewer, hexViewer].filter((v) => v !== failed);
+    const message = errorText(error);
+    // After a deploy the other viewers are gone too; only a reload helps.
+    const stale = isStaleChunkError(error);
+    const fallbacks = stale ? [] : [textViewer, hexViewer].filter((v) => v !== failed);
     return h(
       'div',
       { class: 'status' },
@@ -415,7 +418,8 @@ export class App {
               `Show as ${v.label}`,
             ),
           ),
-          REPO_URL && h('a', { class: 'btn sm', target: '_blank', rel: 'noopener noreferrer', ...report }, icon('feedback', 14), 'Report this problem'),
+          stale && h('button', { type: 'button', class: 'btn sm', onclick: () => location.reload() }, 'Reload page'),
+          REPO_URL && !stale && h('a', { class: 'btn sm', target: '_blank', rel: 'noopener noreferrer', ...report }, icon('feedback', 14), 'Report this problem'),
         ),
       ),
     );

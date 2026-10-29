@@ -8,6 +8,7 @@
 // of that kind convert right away.
 import { extensionOf, formatBytes } from '../core/bytes';
 import { h } from '../core/dom';
+import { errorText } from '../core/errors';
 import { icon } from '../core/icons';
 import { formatPageFor, formatPagePath } from '../format-pages';
 import { conversionIssueLink, REPO_URL } from '../github';
@@ -57,7 +58,6 @@ const MAX_RESULTS = 24;
 const SHOWN_SOURCES = 8;
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
-const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const percent = new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 0, signDisplay: 'exceptZero' });
 
 export class ConverterPage {
