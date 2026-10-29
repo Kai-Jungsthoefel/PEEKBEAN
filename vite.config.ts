@@ -277,19 +277,30 @@ function licenseReport(): Plugin {
 
 const sharedPlugins = (): PluginOption[] => [licenseCheck(), occtWithoutEval()];
 
-// The lazily loaded viewers, converters and metadata readers get a prefix in their file name
-// (assets/viewer.dwg-<hash>.js), so Cloudflare's request counts per path tell which ones people use.
-const CHUNK_PREFIXES: [RegExp, string][] = [
-  [/\/src\/viewers\/([\w-]+)\.ts$/, 'viewer'],
-  [/\/src\/convert\/converters\/([\w-]+)\.ts$/, 'convert'],
-  [/\/src\/metadata\/([\w-]+)\.ts$/, 'meta'],
+// Lazily loaded chunks are named after what they are (assets/viewer.dwg-<hash>.js, assets/lang.python-<hash>.js),
+// so Cloudflare's request counts per path tell which viewers, converters and formats people use.
+// The first matching pattern wins; chunks shared by several modules keep Rolldown's name.
+const CHUNK_NAMES: [RegExp, string][] = [
+  [/\/src\/viewers\/([\w-]+)\.ts$/, 'viewer.$1'],
+  // Parts a viewer loads only for some of its formats, e.g. viewer.ebook.epub.
+  [/\/src\/viewers\/([\w-]+)\/([\w-]+)\.ts$/, 'viewer.$1.$2'],
+  [/\/src\/convert\/converters\/([\w-]+)\.ts$/, 'convert.$1'],
+  // Readers and writers per format, e.g. convert.database.write-xlsx.
+  [/\/src\/convert\/([\w-]+)\/([\w-]+)\.ts$/, 'convert.$1.$2'],
+  [/\/src\/metadata\/([\w-]+)\.ts$/, 'meta.$1'],
+  [/\/src\/workers\/([\w-]+)\.ts$/, 'worker.$1'],
+  // Syntax highlighting in the text viewer, one chunk per language.
+  [/\/node_modules\/@codemirror\/(?:lang-|legacy-modes\/mode\/)([\w-]+)[/.]/, 'lang.$1'],
+  [/\/node_modules\/three\/examples\/jsm\/loaders\/(\w+)\.js$/, 'lib.three.$1'],
+  // Other packages by name, without the scope: lib.libheif-js, lib.zip.js.
+  [/\/node_modules\/(?:@[\w.-]+\/)?([\w.-]+)\//, 'lib.$1'],
 ];
 
 function chunkFileNames(chunk: { facadeModuleId: string | null }): string {
   const id = chunk.facadeModuleId?.replace(/\\/g, '/') ?? '';
-  for (const [pattern, prefix] of CHUNK_PREFIXES) {
+  for (const [pattern, name] of CHUNK_NAMES) {
     const match = pattern.exec(id);
-    if (match) return `assets/${prefix}.${match[1]}-[hash].js`;
+    if (match) return `assets/${match[0].replace(pattern, name)}-[hash].js`;
   }
   return 'assets/[name]-[hash].js';
 }
@@ -315,6 +326,7 @@ export default defineConfig({
   worker: {
     format: 'es',
     plugins: sharedPlugins,
+    rolldownOptions: { output: { chunkFileNames } },
   },
   resolve: {
     alias: [
