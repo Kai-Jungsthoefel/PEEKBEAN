@@ -1,0 +1,17 @@
+Word data for the text recognition (served from ocr/lang)
+
+<lang>.words.txt.gz — the 50,000 most frequent words of each language
+  FrequencyWords by Hermit Dave, built from OpenSubtitles (2018 lists)
+  https://github.com/hermitdave/FrequencyWords
+  Licensed under the Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0),
+  https://creativecommons.org/licenses/by-sa/4.0/
+  The lists are unchanged, only compressed; they are shared under the same license.
+
+<lang>.words.tsv.gz, <lang>.pairs.tsv.gz, <lang>.triples.tsv.gz — word, word pair and word triple counts
+  Counted from the news corpora with 300,000 sentences (2023) of the Leipzig Corpora Collection
+  (Universität Leipzig, https://wortschatz.uni-leipzig.de/en/download), licensed under the Creative Commons
+  Attribution 4.0 International License (CC BY 4.0), https://creativecommons.org/licenses/by/4.0/
+  D. Goldhahn, T. Eckart & U. Quasthoff: Building Large Monolingual Dictionaries at the Leipzig Corpora Collection:
+  From 100 to 200 Languages. Proceedings of the 8th International Language Resources and Evaluation (LREC'12), 2012.
+  Changes: only the counts are kept (lower case; words seen at least 3 times, pairs at least 3 times, triples at
+  least 5 times), not the sentences.

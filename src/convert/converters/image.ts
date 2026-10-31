@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Images to PNG, JPG, WebP, PDF or ICO. Every format the image viewer reads works, through the same decoders; the
+// Images to PNG, JPG, WebP, PDF or ICO, and by text recognition to Word, text or Markdown (ocr.ts). Every format the image viewer reads works, through the same decoders; the
 // picture is redrawn on a canvas and written by the browser. Multi-page TIFF and HEIC files give one picture per page,
 // or one PDF with a page each. ICO and CUR files give each of their pictures.
 import { extensionOf } from '../../core/bytes';
@@ -8,6 +8,9 @@ import { resultName } from '../files';
 import { isIcon, readIcon, writeIcon } from '../image/ico';
 import type { ConvertContext, ConvertResult } from '../types';
 import { canvasFor, encodeCanvas } from './raster';
+
+/** Targets reached by text recognition (ocr.ts) */
+const OCR_TARGETS = ['docx', 'txt', 'md'];
 
 /** Formats that store photos lossily; in a PDF their pictures become JPEG again, the rest PNG. */
 const PHOTOS = ['jpg', 'jpeg', 'jfif', 'pjpeg', 'heic', 'heif', 'avif'];
@@ -42,6 +45,7 @@ async function* pages(file: File, progress: ConvertContext['progress']): AsyncGe
 
 export async function convert(ctx: ConvertContext): Promise<ConvertResult> {
   const { file, target } = ctx;
+  if (OCR_TARGETS.includes(target)) return (await import('./ocr')).convert(ctx);
   if (target === 'pdf') return toPdf(ctx);
   if (target === 'ico') return toIcon(ctx);
   const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());

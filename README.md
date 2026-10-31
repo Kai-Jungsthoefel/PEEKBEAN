@@ -63,8 +63,8 @@ Someone sends you a file and you just want to look inside. Usually that means in
 
 | From | To |
 |---|---|
-| Images | PNG, JPG, WebP, PDF, ICO |
-| PDF | PNG, JPG |
+| Images | PNG, JPG, WebP, PDF, ICO; Word, text, Markdown by text recognition |
+| PDF | PNG, JPG; Word, text, Markdown (its own text, scans by text recognition) |
 | Audio, sound track of videos | WAV |
 | Word, PowerPoint | PDF |
 | Spreadsheets | XLSX, ODS, CSV, XLS, HTML, JSON, TSV, Markdown |
@@ -76,6 +76,8 @@ Someone sends you a file and you just want to look inside. Usually that means in
 | Map data | GeoJSON, KML, GPX, CSV, Shapefile |
 | E-mails | EML, HTML, attachments as ZIP |
 | Databases | XLSX, CSV, SQLite |
+
+Text recognition runs in the browser as well: PaddleOCR models with onnxruntime-web, and word data per language to choose among unsure readings (`src/ocr/`). Its files are served from `public/ocr/`, made by `node scripts/build-ocr-data.mjs`.
 
 ## Privacy
 

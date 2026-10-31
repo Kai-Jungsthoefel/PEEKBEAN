@@ -54,6 +54,9 @@ const EXTRA_NOTICES = [
   // The npm package of laz-perf declares Apache-2.0 but ships no license text.
   ['laz-perf 0.0.7 (laz-perf.wasm)', 'licenses/laz-perf.txt'],
   ['Lucide icons (GitHub mark and star in src/core/icons.ts)', 'licenses/lucide.txt'],
+  // Text recognition: models and word data in public/ocr (scripts/build-ocr-data.mjs), fetched at run time.
+  ['PaddleOCR models (text detection and recognition, layout, tables, orientation) in ocr/models', 'licenses/paddleocr-models.txt'],
+  ['Word lists and word pairs for the text recognition in ocr/lang', 'licenses/ocr-word-data.txt'],
 ];
 
 // The page must not be able to talk to any server but its own origin; that is the privacy promise.
@@ -336,6 +339,7 @@ export default defineConfig({
       '@tracespace/parser', '@tracespace/plotter', '@tracespace/identify-layers', 'shpjs', 'proj4', 'topojson-client',
       'jxl-oxide-wasm', 'laz-perf/lib/worker/laz-perf.js', 'fzstd',
       'mdb-reader', 'buffer', '@noble/hashes/legacy', '@noble/hashes/sha2', '@noble/ciphers/aes.js',
+      'onnxruntime-web/wasm', 'franc-min',
     ],
   },
   // Lets `npm run preview` behave like a host that sends the CSP as a header (workers included).
@@ -356,6 +360,8 @@ export default defineConfig({
           dest: 'pdfjs',
           rename: { stripBase: 2 },
         })),
+        // onnxruntime runs the text recognition models; its WebAssembly build loads these two by URL (ocr.worker.ts).
+        ...['ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.wasm'].map((name) => ({ src: `node_modules/onnxruntime-web/dist/${name}`, dest: 'ort', rename: { stripBase: true as const } })),
         { src: 'node_modules/rhino3dm/rhino3dm.wasm', dest: 'rhino3dm', rename: { stripBase: true } },
         { src: 'node_modules/rhino3dm/rhino3dm.js', dest: 'rhino3dm', rename: { stripBase: true }, transform: (content: string) => rhinoWithoutEval(content) },
         { src: 'node_modules/three/examples/jsm/libs/basis/basis_transcoder.wasm', dest: 'basis', rename: { stripBase: true } },

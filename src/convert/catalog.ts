@@ -80,6 +80,11 @@ const raw = (slug: string): SourceFormat => ({ slug, label: slug.toUpperCase(), 
 
 const LOSSY_TABLE = 'Values and formulas are kept; formatting, charts and pictures are not.';
 const MESH = 'Exact surfaces are turned into triangles.';
+// Text recognition (converters/ocr.ts), in the browser like everything else
+const RECOGNIZED = 'The text is recognized in the browser: printed text well, handwriting less reliably. Headings, lists and tables are rebuilt; the layout is approximated.';
+const SCANNED = 'Pages with text of their own keep it; scanned pages are recognized in the browser (printed text well, handwriting less reliably). Headings, lists and tables are rebuilt; the layout is approximated.';
+const PLAIN_TEXT = 'Only the text, in reading order.';
+const MARKDOWN = 'Pictures are left out.';
 const SOUND_TRACK = 'Only the sound track; the picture is left out.';
 
 const SEPARATOR: ConvertOption = {
@@ -139,6 +144,9 @@ export const CONVERTERS: ConverterInfo[] = [
       { id: 'webp', label: 'WebP', extension: 'webp', loss: 'Lossy compression.', minor: true },
       { id: 'pdf', label: 'PDF', extension: 'pdf' },
       { id: 'ico', label: 'ICO', extension: 'ico', loss: 'Square icon sizes up to 256 × 256 pixels.', minor: true },
+      { id: 'docx', label: 'Word', extension: 'docx', loss: RECOGNIZED },
+      { id: 'txt', label: 'Text', extension: 'txt', loss: `${RECOGNIZED} ${PLAIN_TEXT}` },
+      { id: 'md', label: 'Markdown', extension: 'md', loss: `${RECOGNIZED} ${MARKDOWN}`, minor: true },
     ],
     options: [
       QUALITY,
@@ -206,6 +214,9 @@ export const CONVERTERS: ConverterInfo[] = [
     targets: [
       { id: 'png', label: 'PNG', extension: 'png', loss: 'One picture per page; text can no longer be selected.' },
       { id: 'jpg', label: 'JPG', extension: 'jpg', loss: 'One picture per page with lossy compression; text can no longer be selected.' },
+      { id: 'docx', label: 'Word', extension: 'docx', loss: SCANNED },
+      { id: 'txt', label: 'Text', extension: 'txt', loss: `${SCANNED} ${PLAIN_TEXT}` },
+      { id: 'md', label: 'Markdown', extension: 'md', loss: `${SCANNED} ${MARKDOWN}` },
     ],
     options: [
       {
@@ -217,6 +228,7 @@ export const CONVERTERS: ConverterInfo[] = [
           { value: '300', label: 'Print, 300 dpi' },
         ],
         initial: '150',
+        targets: ['png', 'jpg'],
       },
       QUALITY,
     ],
