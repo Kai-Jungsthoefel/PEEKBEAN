@@ -68,7 +68,7 @@ Someone sends you a file and you just want to look inside. Usually that means in
 | Audio, sound track of videos | WAV |
 | Word | PDF, LaTeX (equations as LaTeX formulas) |
 | PowerPoint | PDF |
-| LaTeX | PDF (typeset by TeX Live), Word (formulas as Word equations) |
+| LaTeX | PDF (typeset by TeX Live), Word (formulas as Word equations; from a ZIP of the project with its pictures and included files) |
 | Spreadsheets | XLSX, ODS, CSV, XLS, HTML, JSON, TSV, Markdown |
 | JSON, YAML, JSON Lines | JSON, YAML, JSON Lines |
 | Subtitles | SRT, VTT |
@@ -81,7 +81,7 @@ Someone sends you a file and you just want to look inside. Usually that means in
 
 Text recognition runs in the browser as well: PaddleOCR models with onnxruntime-web, and word data per language to choose among unsure readings (`src/ocr/`). Its files are served from `public/ocr/`, made by `node scripts/build-ocr-data.mjs`. Formulas set apart are read as LaTeX by [Texo](https://github.com/alephpi/Texo) (AGPL-3.0, `src/ocr/formula.ts`), whose 80 MB load only when a page has formulas.
 
-LaTeX is typeset by TeX Live itself, compiled to WebAssembly (pdfLaTeX, XeLaTeX, BibTeX; `src/workers/latex.worker.ts`). Every package of TeX Live 2025 is there, packed by [peekbean-texlive](https://github.com/Kai-Jungsthoefel/peekbean-texlive) into bundles that load when a document first reads one of their files, typically 10 to 40 MB per document. The site serves them itself from `texlive/`: `npm run texlive` fetches them (about 1.9 GB, kept in `~/.cache/peekbean`), the dev server serves them from there, and the build copies them into `dist/` on Cloudflare Pages or with `PEEKBEAN_TEXLIVE_COPY=1`. A whole project typesets from a ZIP archive (as Overleaf exports it) with "Open as LaTeX document".
+LaTeX is typeset by TeX Live itself, compiled to WebAssembly (pdfLaTeX, XeLaTeX, BibTeX; `src/workers/latex.worker.ts`). Every package of TeX Live 2025 is there, packed by [peekbean-texlive](https://github.com/Kai-Jungsthoefel/peekbean-texlive) into bundles that load when a document first reads one of their files, typically 10 to 40 MB per document. The site serves them itself from `texlive/`: `npm run texlive` fetches them (about 1.9 GB, kept in `~/.cache/peekbean`), the dev server serves them from there, and the build copies them into `dist/` on Cloudflare Pages or with `PEEKBEAN_TEXLIVE_COPY=1`. A whole project typesets from a ZIP archive (as Overleaf exports it) with "Open as LaTeX document", and converts from one in the converter.
 
 ## Privacy
 

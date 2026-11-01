@@ -31,6 +31,58 @@ export function documentsOf(files: Record<string, string>, project = ''): string
   return documents;
 }
 
+/** Text of a source file: UTF-8, or Latin-1 for older files that are not valid UTF-8 */
+export function decodeSource(data: Uint8Array): string {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(data);
+  } catch {
+    return new TextDecoder('latin1').decode(data);
+  }
+}
+
+/** Index of the % that starts a line's comment, or the line's length */
+function commentStart(line: string): number {
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '\\') i++;
+    else if (line[i] === '%') return i;
+  }
+  return line.length;
+}
+
+/** A file of the project by the name the document gives it, relative to the main file's folder as TeX looks for it */
+export function projectFile(files: Record<string, Uint8Array>, main: string, name: string, extensions: string[]): string | null {
+  const dir = main.includes('/') ? main.slice(0, main.lastIndexOf('/') + 1) : '';
+  const parts: string[] = [];
+  for (const part of `${dir}${name.trim()}`.split('/')) {
+    if (part === '..') parts.pop();
+    else if (part && part !== '.') parts.push(part);
+  }
+  const candidates = ['', ...extensions.map((e) => `.${e}`)].map((e) => parts.join('/') + e);
+  const exact = candidates.find((p) => p in files);
+  if (exact) return exact;
+  // Projects written on Windows name their files in any case: "pe" for Pe.png
+  const lower = new Set(candidates.map((c) => c.toLowerCase()));
+  return Object.keys(files).find((p) => lower.has(p.toLowerCase())) ?? null;
+}
+
+/**
+ * The main file with the files it includes (\input, \include, \subfile) written in where they stand, as TeX reads
+ * them; inclusions in comments and of files not in the project stay as they are.
+ */
+export function expandInputs(files: Record<string, Uint8Array>, main: string): string {
+  const expand = (source: string, depth: number): string =>
+    source.split('\n').map((line) => {
+      const cut = commentStart(line);
+      const code = line.slice(0, cut).replace(/\\(input|include|subfile)\s*\{([^{}]+)\}/g, (macro, _kind: string, name: string) => {
+        const path = depth < 16 ? projectFile(files, main, name, ['tex']) : null;
+        // A comment on the included file's last line must not swallow what follows the \input
+        return path && path !== main ? `${expand(decodeSource(files[path]), depth + 1)}\n` : macro;
+      });
+      return code + line.slice(cut);
+    }).join('\n');
+  return expand(decodeSource(files[main]), 0);
+}
+
 /** Files the document reads that are not there: other parts of the project, pictures, or a package that is missing */
 export function missingFiles(log: string): string[] {
   const found = new Set<string>();

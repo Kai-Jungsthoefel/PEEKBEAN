@@ -45,7 +45,10 @@ function convert(latex: string, options: OmmlOptions): string | null {
   mathml = mathml.replace(/<mi>([^<]{2,})<\/mi>/g, '<mi mathvariant="normal">$1</mi>');
   try {
     // mml2omml writes upright names as normal text with an invalid style; Word's own form is the plain style
-    const omml = mml2omml(mathml).replace(/<m:nor\/><m:sty m:val="undefined"\/>/g, '<m:sty m:val="p"/>');
+    const omml = mml2omml(mathml).replace(/<m:nor\/><m:sty m:val="undefined"\/>/g, '<m:sty m:val="p"/>')
+      // mml2omml writes text unescaped: "e<1" would break the document
+      .replace(/(<([mw]):t\b[^>]*>)([\s\S]*?)(<\/\2:t>)/g, (_, open: string, _ns: string, text: string, close: string) =>
+        open + text.replace(/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[\da-f]+);)/gi, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + close);
     return omml.startsWith('<m:oMath') ? omml : null;
   } catch {
     return null;

@@ -2,15 +2,17 @@
 // LaTeX → Word, through unified-latex's syntax tree: sections (numbered as LaTeX numbers them), lists, tables with
 // merged cells, footnotes, links, text formatting, title block, theorems, verbatim text, and formulas as Word
 // equations (math/omml.ts, with the document's own macros). The document's own text macros are expanded; what draws
-// (TikZ) or comes from other files (pictures, \input, bibliographies) becomes a short note in brackets.
+// (TikZ) or comes from other files the project does not hold (pictures, \input, bibliographies) becomes a short note
+// in brackets; the converter writes included files in beforehand (latex/project.ts) and hands over the pictures.
 import { getParser, parse } from '@unified-latex/unified-latex-util-parse';
 import type * as Ast from '@unified-latex/unified-latex-types';
 import {
-  AlignmentType, BorderStyle, Document, ExternalHyperlink, FootnoteReferenceRun, HeadingLevel, LevelFormat, Packer,
+  AlignmentType, BorderStyle, Document, ExternalHyperlink, FootnoteReferenceRun, HeadingLevel, ImageRun, LevelFormat, Packer,
   Paragraph, Table, TableCell, TableRow, TextRun, WidthType, type IBorderOptions, type ParagraphChild,
 } from 'docx';
 import { latexToOmml } from '../math/omml';
 import { ommlChild, wordEquation } from '../math/word';
+import type { Picture } from './pictures';
 
 export interface LatexDocx {
   docx: Blob;
@@ -100,12 +102,49 @@ const SIGNATURES: Record<string, { signature: string }> = {
   autoref: { signature: 'm' }, eqref: { signature: 'm' }, autocite: { signature: 'o o m' }, parencite: { signature: 'o o m' },
   textcite: { signature: 'o o m' }, citep: { signature: 'o o m' }, citet: { signature: 'o o m' }, highlight: { signature: 'm' },
   subfile: { signature: 'm' }, printbibliography: { signature: 'o' }, checkmark: { signature: '' },
+  // A line break with extra space, \\[2cm]: the space is no text
+  '\\': { signature: 's o' },
 };
 const argContent = (m: Ast.Macro, i: number): Ast.Node[] => m.args?.[i]?.content ?? [];
 /** The arguments a macro was given in braces or brackets, in order, without the empty ones unified-latex adds */
 const givenArgs = (m: Ast.Macro) => (m.args ?? []).filter((a) => a.openMark || a.content.length);
 
-export async function latexToDocx(input: string): Promise<LatexDocx> {
+/** The text width of the Word page (A4, margins of an inch) in points; \textwidth and \linewidth mean it */
+const TEXT_WIDTH = 451;
+const UNITS: Record<string, number> = { pt: 1, bp: 1.00375, mm: 2.84528, cm: 28.4528, in: 72.27, em: 10, ex: 4.3 };
+
+/** A length in \includegraphics' options in points: 0.8\textwidth, 5cm, 120pt */
+function length(value: string | undefined): number | null {
+  const m = /^\s*([\d.]*)\s*(\\textwidth|\\linewidth|\\columnwidth|\\hsize|\\textheight|[a-z]{2})\s*$/.exec(value ?? '');
+  const factor = m?.[1] ? Number(m[1]) : 1;
+  if (!m || !Number.isFinite(factor)) return null;
+  if (m[2] === '\\textheight') return factor * TEXT_WIDTH * 1.45;
+  if (m[2].startsWith('\\')) return factor * TEXT_WIDTH;
+  return m[2] in UNITS ? factor * UNITS[m[2]] : null;
+}
+
+/** Size of a picture in points as \includegraphics[width=…, height=…, scale=…] gives it, never wider than the page */
+function pictureSize(picture: Picture, options: string): { width: number; height: number } {
+  const option = (key: string) => new RegExp(`(?:^|,)\\s*${key}\\s*=\\s*([^,]+)`).exec(options)?.[1];
+  const width = length(option('width'));
+  const height = length(option('height'));
+  let fit = Number(option('scale')) || 1;
+  if (width && height && /keepaspectratio/.test(options)) fit = Math.min(width / picture.width, height / picture.height);
+  else if (width && height) return limit(width, height);
+  else if (width) fit = width / picture.width;
+  else if (height) fit = height / picture.height;
+  return limit(picture.width * fit, picture.height * fit);
+}
+const limit = (width: number, height: number) => (width > TEXT_WIDTH ? { width: TEXT_WIDTH, height: (TEXT_WIDTH * height) / width } : { width, height });
+
+export interface LatexDocxOptions {
+  /** The pictures of the project by the name \includegraphics gives them (latex/pictures.ts) */
+  pictures?: Map<string, Picture>;
+  /** Whether the source is a whole project rather than a single .tex file: changes what the notes say */
+  project?: boolean;
+}
+
+export async function latexToDocx(input: string, { pictures = new Map(), project = false }: LatexDocxOptions = {}): Promise<LatexDocx> {
   // Windows line ends: the parser would take \r\n for two line ends, a new paragraph
   const source = input.replace(/\r\n?/g, '\n');
   const notes = new Set<string>();
@@ -494,17 +533,29 @@ export async function latexToDocx(input: string): Promise<LatexDocx> {
         flush();
         return;
       }
-      case 'includegraphics':
+      case 'includegraphics': {
         flush();
-        text(`[Picture: ${rawArg(last).trim()}]`, { italics: true });
+        const picture = pictures.get(rawArg(last).trim());
+        if (picture) {
+          const size = pictureSize(picture, rawArg(args.find((a) => a.openMark === '[')));
+          // docx measures pictures in pixels of 96 per inch
+          push(new ImageRun({ type: picture.type, data: picture.data, transformation: { width: Math.round((size.width * 96) / 72.27), height: Math.round((size.height * 96) / 72.27) } }));
+        } else {
+          text(`[Picture: ${rawArg(last).trim()}]`, { italics: true });
+          note(project
+            ? 'Pictures that are not in the archive, or in a format Word cannot show (such as EPS), are marked in the text.'
+            : 'Pictures are not part of the .tex file; their places are marked in the text. Convert the whole project as a ZIP archive to have them in the document.');
+        }
         flush();
-        note('Pictures are not part of the .tex file; their places are marked in the text.');
         return;
+      }
       case 'input':
       case 'include':
       case 'subfile':
         text(`[File: ${rawArg(last).trim()}]`, { italics: true });
-        note('Files the document includes with \\input or \\include are not part of the .tex file; their places are marked in the text.');
+        note(project
+          ? 'Files the document includes that are not in the archive are marked in the text.'
+          : 'Files the document includes with \\input or \\include are not part of the .tex file; their places are marked in the text. Convert the whole project as a ZIP archive to have them in the document.');
         return;
       case 'bibliography':
       case 'printbibliography':

@@ -266,21 +266,21 @@ export const CONVERTERS: ConverterInfo[] = [
     id: 'latex',
     label: 'LaTeX',
     icon: 'text',
+    // Not strict: the LaTeX viewer also takes a ZIP of a project, which the converter turns over whole
     viewers: ['latex'],
-    strict: true,
     sources: [{ slug: 'tex', label: 'LaTeX', extensions: ['tex', 'ltx', 'latex'] }],
     targets: [
       {
         id: 'pdf',
         label: 'PDF',
         extension: 'pdf',
-        loss: 'Typeset by LaTeX itself (TeX Live 2025 with pdfLaTeX, or XeLaTeX for documents with fontspec), as on a computer. Only the .tex file is there: for pictures and included files, open the project as a ZIP archive in the viewer. Bibliographies need BibTeX; Biber is not available.',
+        loss: 'Typeset by LaTeX itself (TeX Live 2025 with pdfLaTeX, or XeLaTeX for documents with fontspec), as on a computer. Pictures and included files come along when the whole project is converted as a ZIP archive. Bibliographies need BibTeX; Biber is not available.',
       },
       {
         id: 'docx',
         label: 'Word',
         extension: 'docx',
-        loss: 'Sections, lists, tables, footnotes, links, text formatting and formulas (as Word equations) are kept, and simple macros of your own are expanded. Only the .tex file itself is read: pictures and files it includes become a note in the text; drawings (TikZ) and bibliographies are left out.',
+        loss: 'Sections, lists, tables, footnotes, links, text formatting and formulas (as Word equations) are kept, and simple macros of your own are expanded. From a ZIP of the whole project, included files and pictures (PNG, JPEG, PDF figures) come along; from a single .tex file they become a note in the text. Drawings (TikZ) and bibliographies are left out.',
       },
     ],
   },
