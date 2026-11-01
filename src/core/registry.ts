@@ -31,7 +31,7 @@ export const textViewer: ViewerDefinition = {
     'env', 'yaml', 'yml', 'toml', 'css', 'scss', 'less', 'js', 'mjs', 'cjs', 'jsx', 'ts', 'mts', 'cts', 'tsx', 'vue',
     'svelte', 'py', 'rb', 'php', 'pl', 'lua', 'r', 'java', 'kt', 'kts', 'scala', 'groovy', 'gradle', 'c', 'h', 'cpp',
     'cc', 'cxx', 'hpp', 'hh', 'cs', 'fs', 'go', 'rs', 'swift', 'dart', 'sh', 'bash', 'zsh', 'fish', 'ps1', 'psm1',
-    'bat', 'cmd', 'sql', 'graphql', 'proto', 'tex', 'bib', 'diff', 'patch', 'dockerfile', 'makefile', 'cmake', 'tf',
+    'bat', 'cmd', 'sql', 'graphql', 'proto', 'bib', 'diff', 'patch', 'dockerfile', 'makefile', 'cmake', 'tf',
     'srt', 'vtt', 'jsonl', 'ndjson', 'reg', 'vbs', 'asm', 'xaml', 'service', 'editorconfig',
   ],
   load: () => import('../viewers/text'),
@@ -461,6 +461,20 @@ export const viewers: ViewerDefinition[] = [
     extensions: ['pem', 'crt', 'cer', 'der', 'p7b', 'p7c', 'csr', 'p12', 'pfx', 'key'],
     sniff: (head) => /^\s*-----BEGIN /.test(latin1(head, 64)),
     load: () => import('../viewers/certificate'),
+  },
+  {
+    id: 'latex',
+    label: 'LaTeX document',
+    category: 'documents',
+    icon: 'text',
+    extensions: ['tex', 'ltx', 'latex'],
+    // Projects as editors such as Overleaf export them.
+    wholeArchive: {
+      label: 'Open as LaTeX document',
+      title: 'Typeset the LaTeX project in this archive',
+      accepts: (names) => names.some((name) => ['tex', 'ltx', 'latex'].includes(extensionOf(name))),
+    },
+    load: () => import('../viewers/latex'),
   },
   {
     id: 'markdown',

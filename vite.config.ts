@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, createReadStream, existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { defineConfig, type Plugin, type PluginOption } from 'vite';
+import { defineConfig, type Connect, type Plugin, type PluginOption } from 'vite';
 import license, { type Dependency } from 'rollup-plugin-license';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import { findPair, PAIRS, pairPage } from './src/convert/catalog';
 import { converterPageHtml } from './src/convert/prerender';
 import { findFormatPage, FORMAT_PAGES, formatPagePath } from './src/format-pages';
 import { pageUrl, SITE_URL, viewerPageHtml } from './src/prerender';
+import { fetchTexlive, hasTexlive, texliveDir } from './scripts/fetch-texlive.mjs';
 
 const root = import.meta.dirname;
 const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
@@ -58,6 +59,8 @@ const EXTRA_NOTICES = [
   ['PaddleOCR models (text detection and recognition, layout, tables, orientation) in ocr/models', 'licenses/paddleocr-models.txt'],
   ['Word lists and word pairs for the text recognition in ocr/lang', 'licenses/ocr-word-data.txt'],
   ['Texo formula recognition model in ocr/models (AGPL-3.0)', 'licenses/texo-formula-model.txt'],
+  // LaTeX viewer: TeX Live and its engine in texlive/ (scripts/fetch-texlive.mjs), fetched at run time.
+  ['TeX Live 2025 and the busytex engine in texlive/ (the license of each package in texlive/licenses.json)','licenses/texlive.txt'],
 ];
 
 // The page must not be able to talk to any server but its own origin; that is the privacy promise.
@@ -188,6 +191,52 @@ function warnMissingSourceUrl(): Plugin {
       if (!sourceUrl) {
         this.warn('package.json has no "repository" — set it before publishing, the GPL requires a link to the source.');
       }
+    },
+  };
+}
+
+/**
+ * TeX Live for the LaTeX viewer (scripts/fetch-texlive.mjs): about 1.9 GB in some 6,000 files, served at texlive/.
+ * The dev server and the preview serve it from where it is kept; the build copies it into the output folder on
+ * Cloudflare Pages (CF_PAGES) or with PEEKBEAN_TEXLIVE_COPY=1, fetching it first when it is not there. Other builds
+ * (CI, a quick local check) leave it out, and the LaTeX viewer says so. The engine's script defines a global; a line
+ * added to it makes it a module that the module worker can import.
+ */
+function texLive(): Plugin {
+  let outDir = path.join(root, 'dist');
+  const engineModule = (dir: string) => `${readFileSync(path.join(dir, 'texlive', 'engine', 'busytex.js'), 'utf8')}\nexport default busytex;\n`;
+  const serve: Connect.NextHandleFunction = (req, res, next) => {
+    const dir = texliveDir();
+    const name = decodeURIComponent((req.url ?? '').split('?')[0]).replace(/^\/+/, '');
+    if (!hasTexlive(dir) || name.includes('..')) return next();
+    if (name === 'engine/busytex.mjs') {
+      res.setHeader('Content-Type', 'text/javascript');
+      return res.end(engineModule(dir));
+    }
+    const file = path.join(dir, 'texlive', name);
+    if (!existsSync(file) || !statSync(file).isFile()) return next();
+    const types: Record<string, string> = { '.json': 'application/json', '.js': 'text/javascript', '.wasm': 'application/wasm' };
+    res.setHeader('Content-Type', types[path.extname(file)] ?? 'application/octet-stream');
+    createReadStream(file).pipe(res);
+  };
+  const missing = () => console.warn(`TeX Live is not in ${texliveDir()}, so the LaTeX viewer cannot typeset. Fetch it with "npm run texlive" (about 1.9 GB).`);
+  return {
+    name: 'peekbean:texlive',
+    configResolved(config) {
+      outDir = path.resolve(config.root, config.build.outDir);
+    },
+    configureServer(server) {
+      if (!hasTexlive()) missing();
+      server.middlewares.use('/texlive', serve);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use('/texlive', serve);
+    },
+    closeBundle() {
+      if (!process.env.CF_PAGES && !process.env.PEEKBEAN_TEXLIVE_COPY) return;
+      const dir = fetchTexlive();
+      cpSync(path.join(dir, 'texlive'), path.join(outDir, 'texlive'), { recursive: true });
+      writeFileSync(path.join(outDir, 'texlive', 'engine', 'busytex.mjs'), engineModule(dir));
     },
   };
 }
@@ -350,6 +399,7 @@ export default defineConfig({
   plugins: [
     contentSecurityPolicy(),
     landingPages(),
+    texLive(),
     warnMissingSourceUrl(),
     githubStars(),
     // pdf.js fetches these on demand; serving them ourselves keeps PDFs from triggering CDN requests.

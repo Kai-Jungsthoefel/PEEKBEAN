@@ -355,6 +355,15 @@ dialog { color: var(--tx); }
 
 /* ---- Viewers ------------------------------------------------------------------------------------------------ */
 .text-viewer .cm-editor { flex: 1; min-height: 0; background: var(--term); }
+/* LaTeX: source and PDF in two panes, each with its own controls in the toolbar. */
+.latex-pane { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; }
+.latex-pane[hidden], .latex-bar[hidden] { display: none; }
+.latex-bar { display: contents; }
+.latex-source { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.latex-pdf { flex: 1; min-height: 0; position: relative; }
+.latex-pane .error-card p + p { margin-top: -8px; }
+/* On phones the PDF's pinned tools (Measure) sit in the bottom bar, outside the viewer; the source has no use for them. */
+body:has(.latex-viewer[data-mode=source]) .pinned-tools > :not(.seg) { display: none; }
 
 .hex-viewer { flex: 1; min-height: 0; overflow-y: auto; background: var(--term); }
 .hex-sticky { position: sticky; top: 0; height: 100%; overflow: hidden; }

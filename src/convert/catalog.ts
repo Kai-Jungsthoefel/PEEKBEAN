@@ -266,10 +266,16 @@ export const CONVERTERS: ConverterInfo[] = [
     id: 'latex',
     label: 'LaTeX',
     icon: 'text',
-    viewers: ['text'],
+    viewers: ['latex'],
     strict: true,
     sources: [{ slug: 'tex', label: 'LaTeX', extensions: ['tex', 'ltx', 'latex'] }],
     targets: [
+      {
+        id: 'pdf',
+        label: 'PDF',
+        extension: 'pdf',
+        loss: 'Typeset by LaTeX itself (TeX Live 2025 with pdfLaTeX, or XeLaTeX for documents with fontspec), as on a computer. Only the .tex file is there: for pictures and included files, open the project as a ZIP archive in the viewer. Bibliographies need BibTeX; Biber is not available.',
+      },
       {
         id: 'docx',
         label: 'Word',

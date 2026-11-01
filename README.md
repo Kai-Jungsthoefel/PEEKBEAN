@@ -46,7 +46,7 @@ Someone sends you a file and you just want to look inside. Usually that means in
 
 | | |
 |---|---|
-| Documents | PDF, Word, PowerPoint, Excel, ODS, Numbers, CSV, RTF, Markdown, Jupyter, EPUB, FB2, HTML |
+| Documents | PDF, Word, PowerPoint, Excel, ODS, Numbers, CSV, RTF, Markdown, LaTeX (typeset by TeX Live), Jupyter, EPUB, FB2, HTML |
 | CAD and BIM | DWG, DXF, STEP, IGES, BREP, IFC, FreeCAD, Rhino, HPGL plots, Gerber and Excellon, G-code |
 | CAD previews | SolidWorks, Inventor, Solid Edge, NX, Creo, CATIA, Blender (embedded preview and properties) |
 | 3D and point clouds | STL, OBJ, PLY, glTF/GLB, 3MF, FBX, DAE, 3DS, USD/USDZ, VRML, VTK, LAS/LAZ and more |
@@ -68,7 +68,7 @@ Someone sends you a file and you just want to look inside. Usually that means in
 | Audio, sound track of videos | WAV |
 | Word | PDF, LaTeX (equations as LaTeX formulas) |
 | PowerPoint | PDF |
-| LaTeX | Word (formulas as Word equations) |
+| LaTeX | PDF (typeset by TeX Live), Word (formulas as Word equations) |
 | Spreadsheets | XLSX, ODS, CSV, XLS, HTML, JSON, TSV, Markdown |
 | JSON, YAML, JSON Lines | JSON, YAML, JSON Lines |
 | Subtitles | SRT, VTT |
@@ -80,6 +80,8 @@ Someone sends you a file and you just want to look inside. Usually that means in
 | Databases | XLSX, CSV, SQLite |
 
 Text recognition runs in the browser as well: PaddleOCR models with onnxruntime-web, and word data per language to choose among unsure readings (`src/ocr/`). Its files are served from `public/ocr/`, made by `node scripts/build-ocr-data.mjs`. Formulas set apart are read as LaTeX by [Texo](https://github.com/alephpi/Texo) (AGPL-3.0, `src/ocr/formula.ts`), whose 80 MB load only when a page has formulas.
+
+LaTeX is typeset by TeX Live itself, compiled to WebAssembly (pdfLaTeX, XeLaTeX, BibTeX; `src/workers/latex.worker.ts`). Every package of TeX Live 2025 is there, packed by [peekbean-texlive](https://github.com/Kai-Jungsthoefel/peekbean-texlive) into bundles that load when a document first reads one of their files, typically 10 to 40 MB per document. The site serves them itself from `texlive/`: `npm run texlive` fetches them (about 1.9 GB, kept in `~/.cache/peekbean`), the dev server serves them from there, and the build copies them into `dist/` on Cloudflare Pages or with `PEEKBEAN_TEXLIVE_COPY=1`. A whole project typesets from a ZIP archive (as Overleaf exports it) with "Open as LaTeX document".
 
 ## Privacy
 
