@@ -117,7 +117,7 @@ function store(name: string, gz: Uint8Array): Uint8Array {
 function bundleSync(name: string): Uint8Array {
   const done = unpacked.get(name);
   if (done) return done;
-  progress(`Loading ${name.replace(/~\d+$/, '')} (${megabytes(downloaded)} so far) …`);
+  progress(`Loading ${name.replace(/@\d+$/, '')} (${megabytes(downloaded)} so far) …`);
   const request = new XMLHttpRequest();
   request.open('GET', `${base}bundles/${encodeURIComponent(name)}.gz`, false);
   request.responseType = 'arraybuffer';
@@ -129,7 +129,7 @@ function bundleSync(name: string): Uint8Array {
 /** Bundles fetched together before a run, so TeX seldom waits for one at a time; a package's name means all its parts */
 async function prefetch(names: Iterable<string>): Promise<void> {
   const all = Object.keys(index!.bundles);
-  const parts = (name: string) => (index!.bundles[name] ? [name] : all.filter((bundle) => bundle.startsWith(`${name}~`)));
+  const parts = (name: string) => (index!.bundles[name] ? [name] : all.filter((bundle) => bundle.startsWith(`${name}@`)));
   const missing = [...new Set([...names].flatMap(parts))].filter((name) => !unpacked.has(name));
   if (!missing.length) return;
   const total = missing.reduce((sum, name) => sum + index!.bundles[name].gz, 0);
