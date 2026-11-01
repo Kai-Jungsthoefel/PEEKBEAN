@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Images to PNG, JPG, WebP, PDF or ICO, and by text recognition to Word, text or Markdown (ocr.ts). Every format the image viewer reads works, through the same decoders; the
+// Images to PNG, JPG, WebP, PDF or ICO, and by text recognition to Word, text, Markdown or LaTeX (ocr.ts). Every format the image viewer reads works, through the same decoders; the
 // picture is redrawn on a canvas and written by the browser. Multi-page TIFF and HEIC files give one picture per page,
 // or one PDF with a page each. ICO and CUR files give each of their pictures.
 import { extensionOf } from '../../core/bytes';
@@ -10,7 +10,7 @@ import type { ConvertContext, ConvertResult } from '../types';
 import { canvasFor, encodeCanvas } from './raster';
 
 /** Targets reached by text recognition (ocr.ts) */
-const OCR_TARGETS = ['docx', 'txt', 'md'];
+const OCR_TARGETS = ['docx', 'txt', 'md', 'tex'];
 
 /** Formats that store photos lossily; in a PDF their pictures become JPEG again, the rest PNG. */
 const PHOTOS = ['jpg', 'jpeg', 'jfif', 'pjpeg', 'heic', 'heif', 'avif'];

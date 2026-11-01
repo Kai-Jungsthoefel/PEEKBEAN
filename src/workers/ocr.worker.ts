@@ -4,12 +4,13 @@
 import type { Block, Line, MarginRow } from '../ocr/assemble';
 import { walk } from '../ocr/assemble';
 import type { Img } from '../ocr/image';
-import type { Env, ModelKey, Ort } from '../ocr/models';
+import type { Env, Ort } from '../ocr/models';
 import { DEFAULTS, processPage } from '../ocr/pipeline';
 
 export type OcrRequest =
   | { kind: 'init'; base: string }
-  | { kind: 'page'; image: Img; textLines?: Line[] };
+  /** formulas: read formulas set apart as LaTeX (for Word, Markdown and LaTeX) */
+  | { kind: 'page'; image: Img; textLines?: Line[]; formulas?: boolean };
 
 export interface OcrPage {
   img: Img;
@@ -22,7 +23,7 @@ export interface OcrPage {
 
 export type OcrResponse =
   | { kind: 'step'; step: string }
-  | { kind: 'download'; key: ModelKey; loaded: number; total: number }
+  | { kind: 'download'; key: string; loaded: number; total: number }
   | { kind: 'page'; page: OcrPage }
   | { kind: 'error'; error: string };
 
@@ -83,7 +84,7 @@ self.onmessage = async (e: MessageEvent<OcrRequest>) => {
     }
     await started;
     if (!env) throw new Error('The text recognition did not start.');
-    const r = await processPage(env, msg.image, DEFAULTS, (step) => post({ kind: 'step', step }), msg.textLines);
+    const r = await processPage(env, msg.image, { ...DEFAULTS, formulas: !!msg.formulas }, (step) => post({ kind: 'step', step }), msg.textLines);
     const transfer: Transferable[] = [];
     for (const b of walk(r.blocks)) if (b.type === 'image' && b.img) transfer.push(b.img.data.buffer);
     if (r.img !== msg.image) transfer.push(r.img.data.buffer);

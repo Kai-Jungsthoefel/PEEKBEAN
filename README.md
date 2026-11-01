@@ -63,10 +63,12 @@ Someone sends you a file and you just want to look inside. Usually that means in
 
 | From | To |
 |---|---|
-| Images | PNG, JPG, WebP, PDF, ICO; Word, text, Markdown by text recognition |
-| PDF | PNG, JPG; Word, text, Markdown (its own text, scans by text recognition) |
+| Images | PNG, JPG, WebP, PDF, ICO; Word, text, Markdown, LaTeX by text and formula recognition |
+| PDF | PNG, JPG; Word, text, Markdown, LaTeX (its own text, scans by text recognition, formulas by formula recognition) |
 | Audio, sound track of videos | WAV |
-| Word, PowerPoint | PDF |
+| Word | PDF, LaTeX (equations as LaTeX formulas) |
+| PowerPoint | PDF |
+| LaTeX | Word (formulas as Word equations) |
 | Spreadsheets | XLSX, ODS, CSV, XLS, HTML, JSON, TSV, Markdown |
 | JSON, YAML, JSON Lines | JSON, YAML, JSON Lines |
 | Subtitles | SRT, VTT |
@@ -77,7 +79,7 @@ Someone sends you a file and you just want to look inside. Usually that means in
 | E-mails | EML, HTML, attachments as ZIP |
 | Databases | XLSX, CSV, SQLite |
 
-Text recognition runs in the browser as well: PaddleOCR models with onnxruntime-web, and word data per language to choose among unsure readings (`src/ocr/`). Its files are served from `public/ocr/`, made by `node scripts/build-ocr-data.mjs`.
+Text recognition runs in the browser as well: PaddleOCR models with onnxruntime-web, and word data per language to choose among unsure readings (`src/ocr/`). Its files are served from `public/ocr/`, made by `node scripts/build-ocr-data.mjs`. Formulas set apart are read as LaTeX by [Texo](https://github.com/alephpi/Texo) (AGPL-3.0, `src/ocr/formula.ts`), whose 80 MB load only when a page has formulas.
 
 ## Privacy
 

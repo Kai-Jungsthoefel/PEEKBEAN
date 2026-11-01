@@ -83,8 +83,11 @@ const MESH = 'Exact surfaces are turned into triangles.';
 // Text recognition (converters/ocr.ts), in the browser like everything else
 const RECOGNIZED = 'The text is recognized in the browser: printed text well, handwriting less reliably. Headings, lists and tables are rebuilt; the layout is approximated.';
 const SCANNED = 'Pages with text of their own keep it; scanned pages are recognized in the browser (printed text well, handwriting less reliably). Headings, lists and tables are rebuilt; the layout is approximated.';
+const EQUATIONS = 'Formulas set apart become Word equations.';
 const PLAIN_TEXT = 'Only the text, in reading order.';
-const MARKDOWN = 'Pictures are left out.';
+const MARKDOWN = 'Pictures are left out; formulas set apart become LaTeX between $$.';
+const LATEX = 'Formulas set apart are read as LaTeX (printed formulas well, handwritten ones hardly); formulas within a line stay text. Pictures come as PNG files next to the .tex, in one ZIP.';
+const OFFICE_PDF = 'Office fonts such as Calibri and Arial are replaced by open fonts with the same widths; shadows, glow and picture effects are simplified.';
 const SOUND_TRACK = 'Only the sound track; the picture is left out.';
 
 const SEPARATOR: ConvertOption = {
@@ -144,9 +147,10 @@ export const CONVERTERS: ConverterInfo[] = [
       { id: 'webp', label: 'WebP', extension: 'webp', loss: 'Lossy compression.', minor: true },
       { id: 'pdf', label: 'PDF', extension: 'pdf' },
       { id: 'ico', label: 'ICO', extension: 'ico', loss: 'Square icon sizes up to 256 × 256 pixels.', minor: true },
-      { id: 'docx', label: 'Word', extension: 'docx', loss: RECOGNIZED },
+      { id: 'docx', label: 'Word', extension: 'docx', loss: `${RECOGNIZED} ${EQUATIONS}` },
       { id: 'txt', label: 'Text', extension: 'txt', loss: `${RECOGNIZED} ${PLAIN_TEXT}` },
       { id: 'md', label: 'Markdown', extension: 'md', loss: `${RECOGNIZED} ${MARKDOWN}`, minor: true },
+      { id: 'tex', label: 'LaTeX', extension: 'tex', loss: `${RECOGNIZED} ${LATEX}`, minor: true },
     ],
     options: [
       QUALITY,
@@ -214,9 +218,10 @@ export const CONVERTERS: ConverterInfo[] = [
     targets: [
       { id: 'png', label: 'PNG', extension: 'png', loss: 'One picture per page; text can no longer be selected.' },
       { id: 'jpg', label: 'JPG', extension: 'jpg', loss: 'One picture per page with lossy compression; text can no longer be selected.' },
-      { id: 'docx', label: 'Word', extension: 'docx', loss: SCANNED },
+      { id: 'docx', label: 'Word', extension: 'docx', loss: `${SCANNED} ${EQUATIONS}` },
       { id: 'txt', label: 'Text', extension: 'txt', loss: `${SCANNED} ${PLAIN_TEXT}` },
       { id: 'md', label: 'Markdown', extension: 'md', loss: `${SCANNED} ${MARKDOWN}` },
+      { id: 'tex', label: 'LaTeX', extension: 'tex', loss: `${SCANNED} ${LATEX}` },
     ],
     options: [
       {
@@ -234,20 +239,42 @@ export const CONVERTERS: ConverterInfo[] = [
     ],
   },
   {
-    id: 'office',
-    label: 'Word and PowerPoint',
+    id: 'word',
+    label: 'Word documents',
     icon: 'doc',
-    viewers: ['docx', 'pptx'],
-    sources: [
-      { slug: 'docx', label: 'DOCX', extensions: ['docx', 'docm', 'dotx', 'dotm'] },
-      { slug: 'pptx', label: 'PPTX', extensions: ['pptx', 'pptm', 'ppsx', 'potx'] },
+    viewers: ['docx'],
+    sources: [{ slug: 'docx', label: 'DOCX', extensions: ['docx', 'docm', 'dotx', 'dotm'] }],
+    targets: [
+      { id: 'pdf', label: 'PDF', extension: 'pdf', loss: OFFICE_PDF },
+      {
+        id: 'tex',
+        label: 'LaTeX',
+        extension: 'tex',
+        loss: 'Headings, lists, tables, footnotes, links and text formatting become LaTeX, equations become LaTeX formulas; fonts, colors, page layout, text boxes and drawings are not kept. Pictures come as files next to the .tex, in one ZIP.',
+      },
     ],
+  },
+  {
+    id: 'powerpoint',
+    label: 'PowerPoint',
+    icon: 'slides',
+    viewers: ['pptx'],
+    sources: [{ slug: 'pptx', label: 'PPTX', extensions: ['pptx', 'pptm', 'ppsx', 'potx'] }],
+    targets: [{ id: 'pdf', label: 'PDF', extension: 'pdf', loss: OFFICE_PDF }],
+  },
+  {
+    id: 'latex',
+    label: 'LaTeX',
+    icon: 'text',
+    viewers: ['text'],
+    strict: true,
+    sources: [{ slug: 'tex', label: 'LaTeX', extensions: ['tex', 'ltx', 'latex'] }],
     targets: [
       {
-        id: 'pdf',
-        label: 'PDF',
-        extension: 'pdf',
-        loss: 'Office fonts such as Calibri and Arial are replaced by open fonts with the same widths; shadows, glow and picture effects are simplified.',
+        id: 'docx',
+        label: 'Word',
+        extension: 'docx',
+        loss: 'Sections, lists, tables, footnotes, links, text formatting and formulas (as Word equations) are kept, and simple macros of your own are expanded. Only the .tex file itself is read: pictures and files it includes become a note in the text; drawings (TikZ) and bibliographies are left out.',
       },
     ],
   },

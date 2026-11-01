@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// PDF pages to PNG or JPG, rendered by pdf.js at the chosen resolution; one picture per page. Word, text and
-// Markdown come from ocr.ts.
+// PDF pages to PNG or JPG, rendered by pdf.js at the chosen resolution; one picture per page. Word, text,
+// Markdown and LaTeX come from ocr.ts.
 import * as pdfjsLib from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { resultName } from '../files';
@@ -18,7 +18,7 @@ const MAX_SIDE = 16_000;
 
 export async function convert(ctx: ConvertContext): Promise<ConvertResult> {
   // Word, text and Markdown: the text layer where there is one, text recognition for scans
-  if (['docx', 'txt', 'md'].includes(ctx.target)) return (await import('./ocr')).convert(ctx);
+  if (['docx', 'txt', 'md', 'tex'].includes(ctx.target)) return (await import('./ocr')).convert(ctx);
   const { file, target, options, progress } = ctx;
   const task = pdfjsLib.getDocument({
     data: new Uint8Array(await file.arrayBuffer()),

@@ -56,7 +56,7 @@ export interface Session {
   run(feeds: Record<string, Tensor>): Promise<Record<string, Tensor>>;
 }
 export interface Ort {
-  Tensor: new (type: 'float32', data: Float32Array, dims: number[]) => Tensor;
+  Tensor: new (type: 'float32' | 'int64' | 'bool', data: Float32Array | BigInt64Array | Uint8Array, dims: number[]) => Tensor;
   InferenceSession: { create(model: Uint8Array, options?: object): Promise<Session> };
 }
 
@@ -71,8 +71,8 @@ export interface Env {
   /** Fetch one of the site's files (from a cache if possible); gzip files come back unpacked */
   fetchBytes(url: string, onProgress?: (loaded: number, total: number) => void): Promise<Uint8Array>;
   sessionOptions?: object;
-  /** Called while a model downloads */
-  onDownload?: (key: ModelKey, loaded: number, total: number) => void;
+  /** Called while a model downloads (a key of MODELS, or a file of the formula model) */
+  onDownload?: (key: string, loaded: number, total: number) => void;
 }
 
 const loaded = new Map<string, Promise<Loaded>>();

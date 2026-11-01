@@ -5,6 +5,7 @@ import { assemble, lineStyle, walk, type Block, type Line, type MarginRow } from
 import { buildDictionary, correctLines, type Dictionary } from './correct';
 import { detectLines } from './det';
 import { findSheet, flattenSheet } from './document';
+import { loadFormulaModel, recognizeFormula } from './formula';
 import { crop, rectBox, refineSkew, resize, rotate, rotate90, rotatePoint, toCHW, type Img, type RotRect } from './image';
 import { detectLayout, type Region } from './layout';
 import { DICTIONARIES, FRANC_TO_DICT, LANGUAGE_DATA, loadModel, SCRIPTS, type Env, type ModelKey, type ScriptKey } from './models';
@@ -32,10 +33,12 @@ export interface PipelineOptions {
   columns: boolean;
   /** Correct unsure words: with word pairs and triples where the language has them, else against its word list */
   correct: boolean;
+  /** Read formulas set apart as LaTeX (the formula model loads only when the page has one) */
+  formulas: boolean;
 }
 
 export const DEFAULTS: PipelineOptions = {
-  detSide: 1600, pageSide: 1754, orientation: true, photo: true, layout: true, tableModel: true, scripts: 'auto', headerFooter: true, columns: true, correct: true,
+  detSide: 1600, pageSide: 1754, orientation: true, photo: true, layout: true, tableModel: true, scripts: 'auto', headerFooter: true, columns: true, correct: true, formulas: false,
 };
 
 export interface PageResult {
@@ -179,8 +182,36 @@ export async function processPage(env: Env, input: Img, opts: PipelineOptions, p
   const tables = await time('Tables', () => findTables(env, page, regions, lines, opts));
   const doc = await time('Assembling', () => assemble(lines, regions, tables, { columns: opts.columns, pageWidth: page.width, pageHeight: page.height }));
   for (const b of walk(doc.blocks)) if (b.type === 'image') b.img = crop(page, b.box);
+  if (opts.formulas) await time('Formulas', () => readFormulas(env, page, doc.blocks));
   const header = opts.headerFooter ? doc.header : [], footer = opts.headerFooter ? doc.footer : [];
   return { img, blocks: doc.blocks, header, footer, lines, regions, tables, flattened, turned, skew, timings, scriptsUsed: [...scriptsUsed] };
+}
+
+// ---------- Formulas ----------
+
+/** Below this mean token probability (wrong readings in tests: 0.77 to 0.86) a formula stays a picture */
+const FORMULA_CONF = 0.85;
+
+async function readFormulas(env: Env, page: Img, blocks: Block[]): Promise<void> {
+  const formulas = [...walk(blocks)].filter((b) => b.type === 'image' && b.label === 'formula');
+  if (!formulas.length) return;
+  const model = await loadFormulaModel(env);
+  for (const b of formulas) {
+    if (b.type !== 'image') continue;
+    const f = await recognizeFormula(env, model, page, b.box);
+    // A sign the model has no token for (<unk>) or unbalanced braces leave a formula that does not compile
+    if (f && f.conf >= FORMULA_CONF && !f.latex.includes('<unk>') && balanced(f.latex)) b.latex = f.latex;
+  }
+}
+
+function balanced(latex: string): boolean {
+  let depth = 0;
+  for (let i = 0; i < latex.length; i++) {
+    if (latex[i] === '\\') i++;
+    else if (latex[i] === '{') depth++;
+    else if (latex[i] === '}' && --depth < 0) return false;
+  }
+  return depth === 0;
 }
 
 // ---------- Correction ----------

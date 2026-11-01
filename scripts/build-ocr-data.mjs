@@ -2,6 +2,9 @@
 // Puts the text recognition's files into public/ocr, so the site serves them itself (licenses/paddleocr-models.txt,
 // licenses/ocr-word-data.txt):
 //   ocr/models/<name>.onnx + .yml          PaddleOCR models from Hugging Face (Apache-2.0), only renamed
+//   ocr/models/formula-*                   Texo's formula model as ONNX (AGPL-3.0, licenses/texo-formula-model.txt),
+//                                          renamed; the encoder (54 MB) split in three parts for hosts that limit
+//                                          file sizes to 25 MB
 //   ocr/lang/<lang>.words.txt.gz           FrequencyWords lists, 50,000 words (CC BY-SA 4.0), only compressed
 //   ocr/lang/<lang>.{words,pairs,triples}.tsv.gz
 //                                          word, pair and triple counts from the Leipzig Corpora Collection's news
@@ -30,6 +33,8 @@ const MODELS = {
 };
 // PaddlePaddle publishes PP-DocLayout-S without ONNX; this conversion of it is Apache-2.0 as well.
 const LAYOUT = { onnx: 'stefanj0/PP-DocLayout-S-ONNX/resolve/main/pp_doclayout_s.onnx', yml: 'PaddlePaddle/PP-DocLayout-S/resolve/main/inference.yml' };
+// Texo (https://github.com/alephpi/Texo), at the revision that was tested
+const FORMULA = 'alephpi/FormulaNet/resolve/b2668efe5112082846fde4d446b9bfaab3989533/onnx';
 
 const WORD_LISTS = ['en', 'de', 'es', 'fr', 'it', 'pt', 'nl', 'pl', 'ru', 'tr', 'sv', 'da', 'no', 'cs', 'hu', 'ro', 'fi', 'uk', 'el'];
 const CORPORA = { en: 'eng', de: 'deu', es: 'spa', fr: 'fra', it: 'ita', pt: 'por', nl: 'nld', pl: 'pol' };
@@ -50,10 +55,20 @@ async function models() {
     [`${name}.yml`, `${HF}/${repo}/resolve/main/inference.yml`],
   ]);
   files.push(['layout.onnx', `${HF}/${LAYOUT.onnx}`], ['layout.yml', `${HF}/${LAYOUT.yml}`]);
+  files.push(
+    ['formula-decoder.onnx', `${HF}/${FORMULA}/decoder_model_merged.onnx`],
+    ['formula-tokenizer.json', `${HF}/${FORMULA}/tokenizer.json`],
+  );
   for (const [name, url] of files) {
     if (existsSync(path.join(dir, name))) continue;
     writeFileSync(path.join(dir, name), await download(url));
     console.log('model', name);
+  }
+  if (!existsSync(path.join(dir, 'formula-encoder.part3.onnx'))) {
+    const encoder = await download(`${HF}/${FORMULA}/encoder_model.onnx`);
+    const size = Math.ceil(encoder.length / 3);
+    for (let i = 0; i < 3; i++) writeFileSync(path.join(dir, `formula-encoder.part${i + 1}.onnx`), encoder.subarray(i * size, (i + 1) * size));
+    console.log('model formula-encoder (three parts)');
   }
 }
 

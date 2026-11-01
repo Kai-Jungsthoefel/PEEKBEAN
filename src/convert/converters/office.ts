@@ -59,7 +59,9 @@ const STEPS: Record<PdfProgress['phase'], string> = {
   pages: 'Writing PDF pages …',
 };
 
-export async function convert({ file, viewer, progress }: ConvertContext): Promise<ConvertResult> {
+export async function convert(ctx: ConvertContext): Promise<ConvertResult> {
+  const { file, viewer, target, progress } = ctx;
+  if (target === 'tex') return (await import('./word-latex')).convert(ctx);
   const options = {
     fonts,
     title: file.name.replace(/\.[^.]+$/, ''),

@@ -9,6 +9,8 @@ export interface Region extends Box {
 }
 
 const SIZE = 480;
+/** Formulas set apart score lower than text; pages without formulas showed none even far below this */
+const FORMULA_SCORE = 0.3;
 
 export async function detectLayout(ort: Ort, model: Loaded, img: Img, minScore = 0.4): Promise<Region[]> {
   const labels = ((model.config?.label_list ?? []) as unknown[]).map(String);
@@ -30,9 +32,10 @@ export async function detectLayout(ort: Ort, model: Loaded, img: Img, minScore =
   const regions: Region[] = [];
   for (let i = 0; i < n; i++) {
     const [cls, score, x0, y0, x1, y1] = d.subarray(i * 6, i * 6 + 6);
-    if (score < minScore || cls < 0) continue;
+    const label = labels[cls] ?? String(cls);
+    if (score < (label === 'formula' ? Math.min(minScore, FORMULA_SCORE) : minScore) || cls < 0) continue;
     regions.push({
-      label: labels[cls] ?? String(cls), score,
+      label, score,
       x0: Math.max(0, x0), y0: Math.max(0, y0), x1: Math.min(img.width, x1), y1: Math.min(img.height, y1),
     });
   }

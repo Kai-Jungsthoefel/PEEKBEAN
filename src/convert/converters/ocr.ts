@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Pictures and PDFs to Word, plain text or Markdown by text recognition (ocr/, run in workers/ocr.worker.ts). PDF
-// pages with a text layer of their own keep it; scans, and scans with invisible text from another program, are read.
-// The models (about 60 MB) and the word data of the page's language load from the site on first use.
+// Pictures and PDFs to Word, plain text, Markdown or LaTeX by text recognition (ocr/, run in workers/ocr.worker.ts).
+// PDF pages with a text layer of their own keep it; scans, and scans with invisible text from another program, are
+// read. Formulas set apart are read as LaTeX on both (ocr/formula.ts). The models (about 60 MB, the formula model
+// another 80 MB when a page has formulas) and the word data of the page's language load from the site on first use.
 import * as pdfjsLib from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { levelHeadings, type Block, type Line } from '../../ocr/assemble';
+import { levelHeadings, walk, type Block, type Line } from '../../ocr/assemble';
 import type { DocxPage } from '../../ocr/export';
 import type { Img } from '../../ocr/image';
 import { linesFromItems, type TextItem } from '../../ocr/pdftext';
@@ -40,15 +41,19 @@ export async function convert({ file, target, progress }: ConvertContext): Promi
     else if (msg.kind === 'download') {
       downloads.set(msg.key, [msg.loaded, msg.total]);
       const [loaded, total] = [...downloads.values()].reduce(([a, b], [l, t]) => [a + l, b + t], [0, 0]);
-      progress(`Loading the text recognition (${Math.round(loaded / 1e6)} of ${Math.round(total / 1e6)} MB, only the first time) …`, total ? loaded / total : undefined);
+      // The formula model comes later, when the first formula turns up
+      const what = msg.key.startsWith('formula') ? 'formula recognition' : 'text recognition';
+      progress(`Loading the ${what} (${Math.round(loaded / 1e6)} of ${Math.round(total / 1e6)} MB, only the first time) …`, total ? loaded / total : undefined);
     } else if (msg.kind === 'page') pending.shift()?.resolve(msg.page);
     else pending.shift()?.reject(new Error(msg.error));
   };
   worker.onerror = (e) => pending.shift()?.reject(new Error(e.message || 'The text recognition stopped.'));
+  // Plain text has no place for formulas
+  const formulas = target !== 'txt';
   const read = (input: PageInput) => new Promise<OcrPage>((resolve, reject) => {
     pending.push({ resolve, reject });
     label = input.label;
-    const request: OcrRequest = { kind: 'page', image: input.image, textLines: input.textLines };
+    const request: OcrRequest = { kind: 'page', image: input.image, textLines: input.textLines, formulas };
     worker.postMessage(request, [input.image.data.buffer]);
   });
 
@@ -64,11 +69,20 @@ export async function convert({ file, target, progress }: ConvertContext): Promi
     const blocks: Block[][] = pages.map((p) => p.blocks);
     levelHeadings(blocks);
     const notes = summary(pages);
+    if (formulas) notes.push(...formulaSummary(blocks));
     if (garbled) notes.push(`${garbled === 1 ? 'One page has' : `${garbled} pages have`} a text layer with wrong characters (a font without a proper character map); recognized from the page instead.`);
     if (target === 'docx') {
       const { toDocx } = await import('../../ocr/export');
       const docx = await toDocx(pages.map((p): DocxPage => ({ blocks: p.blocks, header: p.header, footer: p.footer, width: p.img.width, height: p.img.height })), png);
       return { files: [new File([docx], resultName(file.name, 'docx'), { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })], notes };
+    }
+    if (target === 'tex') {
+      const { toLatex } = await import('../../ocr/latex');
+      const { tex, figures } = toLatex(pages.map((p) => ({ blocks: p.blocks, width: p.img.width })));
+      const files = [new File([tex], resultName(file.name, 'tex'), { type: 'application/x-tex' })];
+      for (const f of figures) files.push(new File([await png(f.img) as Uint8Array<ArrayBuffer>], f.name, { type: 'image/png' }));
+      if (figures.length) notes.push(`The ${figures.length === 1 ? 'picture comes' : `${figures.length} pictures come`} as PNG next to the .tex file, in one ZIP.`);
+      return { files, notes };
     }
     const { toMarkdown, toText } = await import('../../ocr/export');
     const text = target === 'md' ? toMarkdown(blocks) : toText(blocks);
@@ -85,7 +99,16 @@ function summary(pages: OcrPage[]): string[] {
   return [`${read} of ${pages.length} pages were recognized; the others had a text layer of their own.`];
 }
 
-/** Pictures of the document (Word) as PNG */
+function formulaSummary(pages: Block[][]): string[] {
+  const all = pages.flatMap((blocks) => [...walk(blocks)]).filter((b) => b.type === 'image' && b.label === 'formula');
+  const read = all.filter((b) => b.type === 'image' && b.latex).length;
+  if (!all.length) return [];
+  const count = (n: number) => (n === 1 ? 'One formula' : `${n} formulas`);
+  if (read === all.length) return [`${count(read)} ${read === 1 ? 'was' : 'were'} read as LaTeX.`];
+  return [`${count(all.length)} found; ${read} read as LaTeX, the others too unsure and kept as pictures.`];
+}
+
+/** Pictures of the document (Word and LaTeX) as PNG */
 async function png(img: Img): Promise<Uint8Array> {
   const canvas = new OffscreenCanvas(img.width, img.height);
   canvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), 0, 0);

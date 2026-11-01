@@ -57,6 +57,7 @@ const EXTRA_NOTICES = [
   // Text recognition: models and word data in public/ocr (scripts/build-ocr-data.mjs), fetched at run time.
   ['PaddleOCR models (text detection and recognition, layout, tables, orientation) in ocr/models', 'licenses/paddleocr-models.txt'],
   ['Word lists and word pairs for the text recognition in ocr/lang', 'licenses/ocr-word-data.txt'],
+  ['Texo formula recognition model in ocr/models (AGPL-3.0)', 'licenses/texo-formula-model.txt'],
 ];
 
 // The page must not be able to talk to any server but its own origin; that is the privacy promise.

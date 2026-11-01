@@ -59,7 +59,11 @@ export type Block =
   | { type: 'paragraph'; text: string; lang?: string; role?: 'caption' | 'header' | 'footer'; box: Box }
   | { type: 'list'; ordered: boolean; items: string[]; lang?: string; box: Box }
   | { type: 'table'; grid: TableGrid; borderless: boolean; box: Box }
-  | { type: 'image'; label: string; box: Box; img?: Img }
+  /**
+   * A picture, or a formula set apart (label "formula"): its LaTeX when the formula model read it, and its number
+   * from the right margin ("(7)" becomes "7")
+   */
+  | { type: 'image'; label: string; box: Box; img?: Img; latex?: string; tag?: string }
   /** Blocks side by side in the original: one stack of blocks per column, widths as shares of the whole */
   | { type: 'columns'; columns: Block[][]; widths: number[]; box: Box };
 
@@ -97,6 +101,8 @@ interface Group extends Box {
   label: string;
   lines: Line[];
   grid?: TableGrid;
+  /** Equation number of a formula */
+  tag?: string;
 }
 
 export function assemble(input: Line[], regions: Region[], tables: TableGrid[], opts: AssembleOptions): PageDoc {
@@ -170,13 +176,38 @@ export function assemble(input: Line[], regions: Region[], tables: TableGrid[], 
   for (const r of regions.filter((r) => PICTURE.has(r.label))) {
     const p = withoutTables(r, tableBoxes);
     if (!p) continue;
-    // A formula inside a line of text ("the volume V_min is …") stays text; only formulas set apart become pictures
+    // The layout model sometimes finds a formula twice (a bit smaller), or two formulas once more as one; the more
+    // confident box, which comes first, stays
+    if (r.label === 'formula' && pictures.some((q) => q.label === 'formula' && intersect(q, p) > 0.6 * Math.min(area(q), area(p)))) continue;
+    // A formula inside a line of text ("the volume V_min is …") stays text; only formulas set apart become pictures.
+    // The line must run across the formula: a line of the next column at the same height does not count.
     if (r.label === 'formula' && lines.some((l) => rest.has(l) && l.x1 - l.x0 > 1.5 * (p.x1 - p.x0)
+      && Math.min(l.x1, p.x1) - Math.max(l.x0, p.x0) > 0.5 * (p.x1 - p.x0)
       && Math.min(l.y1, p.y1) - Math.max(l.y0, p.y0) > 0.5 * Math.min(l.y1 - l.y0, p.y1 - p.y0))) continue;
     const text = lines.filter((l) => rest.has(l) && share(p, l) > 0.5);
-    const bodyLike = text.filter((l) => l.text.length > 25);
+    // A formula read as text gives long lines too; there only real words count
+    const bodyLike = text.filter((l) => r.label === 'formula' ? words(l.text) >= 3 : l.text.length > 25);
     if (bodyLike.reduce((s, l) => s + area(l), 0) > 0.2 * area(p)) continue;
-    pictures.push({ ...r, ...p });
+    // Lines of another formula are no part of this one
+    const others = regions.filter((o) => o !== r && o.label === 'formula');
+    const loose = lines.filter((l) => rest.has(l) && !others.some((o) => share(o, l) > 0.5));
+    pictures.push({ ...r, ...(r.label === 'formula' ? withScripts(p, loose) : p) });
+  }
+
+  // Equation numbers go with the nearest formula to their left at the same height
+  const tags = new Map<Region, string>();
+  for (const l of lines) {
+    if (!rest.has(l) || !/^\(\s*[\w.,-]{1,8}\s*\)$/.test(l.text.trim())) continue;
+    const cy = (l.y0 + l.y1) / 2;
+    let best: Region | null = null;
+    for (const f of pictures) {
+      const h = f.y1 - f.y0;
+      if (f.label !== 'formula' || tags.has(f) || l.x0 < f.x1 - 0.1 * h || cy < f.y0 - 0.3 * h || cy > f.y1 + 0.6 * h) continue;
+      if (!best || f.x1 > best.x1) best = f;
+    }
+    if (!best || l.x0 - best.x1 > 0.6 * opts.pageWidth) continue;
+    tags.set(best, l.text.trim().slice(1, -1).trim());
+    rest.delete(l);
   }
 
   // Titles, captions and pictures take the lines mostly inside them
@@ -199,7 +230,7 @@ export function assemble(input: Line[], regions: Region[], tables: TableGrid[], 
     if (kind !== 'picture' && !ls.length) continue;
     // A title region may be too wide or tall; its lines are what counts
     const box = kind === 'picture' ? r : bounds(ls);
-    groups.push({ ...box, kind, label: r.label, lines: ls });
+    groups.push({ ...box, kind, label: r.label, lines: ls, tag: tags.get(r) });
   }
 
   // The remaining lines form blocks: vertically close and horizontally overlapping lines belong together
@@ -212,7 +243,7 @@ export function assemble(input: Line[], regions: Region[], tables: TableGrid[], 
   const toBlocks = (g: Group): Block[] => {
     const box: Box = { x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1 };
     if (g.kind === 'table') return [{ type: 'table', grid: g.grid!, borderless: g.grid!.source !== 'lines' && !g.grid!.ruled, box }];
-    if (g.kind === 'picture') return [{ type: 'image', label: g.label, box }];
+    if (g.kind === 'picture') return [{ type: 'image', label: g.label, box, ...(g.tag ? { tag: g.tag } : {}) }];
     if (g.kind === 'caption') return [{ type: 'paragraph', text: joinRows(g.lines), role: 'caption', box }];
     if (g.kind === 'title') {
       return [{ type: 'heading', level: 0, text: joinRows(g.lines), box, size: median(g.lines.map((l) => l.y1 - l.y0)), title: g.label === 'doc_title' }];
@@ -279,6 +310,30 @@ function withoutTables(r: Box, tables: Box[]): Box | null {
   }
   return p.y1 - p.y0 >= 0.25 * (r.y1 - r.y0) && p.y1 - p.y0 > 20 ? p : null;
 }
+
+/**
+ * A formula's box from the layout may cut off an exponent or index sticking out at the top or bottom; short pieces
+ * touching it that overlap it sideways belong to it.
+ */
+function withScripts(f: Box, lines: Line[]): Box {
+  const out = { ...f };
+  const h = f.y1 - f.y0;
+  for (const l of lines) {
+    const gap = Math.max(l.y0 - f.y1, f.y0 - l.y1);
+    const overlap = Math.min(l.x1, f.x1) - Math.max(l.x0, f.x0);
+    if (gap > 0.4 * h || overlap <= 0 || l.x1 - l.x0 > 0.6 * (f.x1 - f.x0) || words(l.text)) continue;
+    if ((l.y0 + l.y1) / 2 > f.y0 && (l.y0 + l.y1) / 2 < f.y1) continue;
+    out.x0 = Math.min(out.x0, l.x0); out.y0 = Math.min(out.y0, l.y0);
+    out.x1 = Math.max(out.x1, l.x1); out.y1 = Math.max(out.y1, l.y1);
+  }
+  return out;
+}
+
+/**
+ * Words of running text in a line: four letters or more, lower case after the first. Names in a formula read as text
+ * ("EMAM", "FH") are no words.
+ */
+const words = (text: string) => (text.match(/(?<!\p{L})\p{L}\p{Ll}{3,}/gu) ?? []).length;
 
 const contains = (outer: Box, b: Box) => {
   const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;

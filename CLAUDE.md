@@ -20,6 +20,7 @@ There is no test suite. Verify with `npm run build` and by opening the matching 
 - `src/workers/`: heavy parsing and decoding in web workers
 - `src/metadata/`: readers for the info panel, loaded only when it opens
 - `src/convert/`: the converter. `catalog.ts` lists what converts into what (plain data, the build also reads it), `converters/<id>.ts` reuse the viewers' readers, `page.ts` is `convert.html`; `vite.config.ts` writes one page per conversion (`jpg-to-png.html` …); conversions from a `minor` source to a `minor` target get `noindex`. The viewer's "Export" (`src/export-dialog.ts`) runs the same modules
+- `src/latex/`: LaTeX out of Word content and recognized pages, and LaTeX into Word (parsed with unified-latex); `src/math/`: formulas between LaTeX and Word equations (OMML)
 - `src/format-pages.ts`: the viewer's pages per format (`dwg-viewer.html` …) with their own texts, `src/prerender.ts` their HTML for search engines. A format gets a page only with text of its own and real searches for it; near-identical pages count as doorway pages
 - `src/site.ts`: header parts, footer and file drop shared by the viewer and the converter
 - `src/wasm/`: prebuilt WebAssembly (checked in). Sources: `crates/dwg2dxf` (Rust, acadrust), `wasm/libarchive` (Emscripten) and occt-import-js with OpenCascade (Emscripten, 4 GB of memory instead of the npm release's 2 GB; sources downloaded by the script); rebuild only via `npm run build:*-wasm`

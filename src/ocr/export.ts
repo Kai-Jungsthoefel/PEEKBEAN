@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Document blocks → plain text, Markdown and Word. Word gets real headings, lists, tables with merged cells,
-// the pictures, a language per paragraph (so spell checking fits), blocks side by side as a table without borders,
-// and each page as a section with its own header and footer (page numbers as fields, counting on from the original).
+// Document blocks → plain text, Markdown, LaTeX and Word. Word gets real headings, lists, tables with merged cells,
+// the pictures, formulas as equations, a language per paragraph (so spell checking fits), blocks side by side as a
+// table without borders, and each page as a section with its own header and footer (page numbers as fields, counting
+// on from the original).
 import {
   AlignmentType, BorderStyle, Document, Footer, Header, HeadingLevel, ImageRun, LevelFormat, Packer, PageNumber,
   PageOrientation, Paragraph, Tab, Table, TableCell, TableRow, TabStopType, TextRun, WidthType, type IBorderOptions,
 } from 'docx';
+import { latexToOmml } from '../math/omml';
+import { wordEquation } from '../math/word';
 import { walk, type Block, type MarginRow } from './assemble';
 import type { Img } from './image';
 import type { TableGrid } from './table';
@@ -25,6 +28,7 @@ export function toMarkdown(pages: Pages): string {
       else if (b.type === 'paragraph') out.push(b.role === 'caption' ? `*${b.text}*` : b.text.replace(/\n/g, '  \n'));
       else if (b.type === 'list') out.push(b.items.map((t, i) => (b.ordered ? `${i + 1}. ` : '- ') + t).join('\n'));
       else if (b.type === 'table') out.push(tableMarkdown(b.grid));
+      else if (b.type === 'image' && b.latex) out.push(`$$\n${b.latex}${b.tag ? ` \\tag{${b.tag}}` : ''}\n$$`);
     }
   });
   return out.join('\n\n') + '\n';
@@ -104,6 +108,7 @@ export async function toDocx(pages: DocxPage[], png: (img: Img) => Promise<Uint8
 
     const render = async (blocks: Block[], share: number): Promise<Out[]> => {
       const out: Out[] = [];
+      let omml: string | null;
       for (const b of blocks) {
         const run = (text: string, extra: object = {}) => new TextRun({ text, language: 'lang' in b && b.lang ? { value: b.lang } : undefined, ...extra });
         if (b.type === 'heading') out.push(new Paragraph({ heading: HEADINGS[b.level - 1], children: [run(b.text)] }));
@@ -120,6 +125,8 @@ export async function toDocx(pages: DocxPage[], png: (img: Img) => Promise<Uint8
           out.push(wordTable(b.grid, b.borderless), new Paragraph(''));
         } else if (b.type === 'columns') {
           out.push(await columnsTable(b, share, textTwips, render), new Paragraph(''));
+        } else if (b.latex && (omml = latexToOmml(b.latex))) {
+          out.push(wordEquation(omml, b.tag));
         } else if (b.img) {
           // As large as in the original, but never wider than its column
           const maxW = (share * textTwips / 1440) * 96 - 8;
